@@ -60,6 +60,8 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import org.json.JSONArray;
 
 import java.io.InputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
@@ -82,17 +84,20 @@ public class MainActivity extends Activity {
     private ProgressBar progress;
     private FrameLayout offlineOverlay;
     private FrameLayout loadingOverlay;
-    private ImageView profileAvatar;
     private ImageButton featureMenuButton;
     private ImageButton composeFab;
     private String profileUrl = "";
     private View activeSheetOverlay;
     private View activeSheetPanel;
     private NavItem navHome;
-    private NavItem navExplore;
-    private NavItem navVideo;
+    private NavItem navMessage;
+    private NavItem navCompose;
     private NavItem navNotif;
     private NavItem navProfile;
+    private boolean isLoggedIn = false;
+    private boolean imeVisible = false;
+    private String currentUrl = "";
+    private String nativeScript;
 
     private SharedPreferences prefs;
     private ValueCallback<Uri[]> fileCallback;
@@ -141,7 +146,7 @@ public class MainActivity extends Activity {
     private void readPalette() {
         dark = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
                 == Configuration.UI_MODE_NIGHT_YES;
-        // v1.3: palet monokrom ala aplikasi sosial native modern / Threads-inspired.
+        // v1.4: palet monokrom ala aplikasi sosial native modern / Threads-inspired.
         // Biru Deapp tetap dipakai untuk aksi primer dan progress agar identitas brand tidak hilang.
         cBg = Color.parseColor(dark ? "#000000" : "#FFFFFF");
         cSurface = Color.parseColor(dark ? "#000000" : "#FFFFFF");
@@ -388,6 +393,10 @@ public class MainActivity extends Activity {
         readPalette();
         baseUrl = normalizeUrl(url);
         prefs.edit().putString(KEY_URL, baseUrl).apply();
+        isLoggedIn = false;
+        imeVisible = false;
+        currentUrl = baseUrl;
+        profileUrl = "";
 
         root = new FrameLayout(this);
         root.setBackgroundColor(cBg);
@@ -415,33 +424,46 @@ public class MainActivity extends Activity {
         shell.addView(topContainer, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(56)));
 
-        LinearLayout toolbar = new LinearLayout(this);
-        toolbar.setOrientation(LinearLayout.HORIZONTAL);
-        toolbar.setGravity(Gravity.CENTER_VERTICAL);
-        toolbar.setPadding(dp(15), 0, dp(10), 0);
+        FrameLayout toolbar = new FrameLayout(this);
+        toolbar.setPadding(dp(12), 0, dp(8), 0);
         topContainer.addView(toolbar, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(56), Gravity.BOTTOM));
 
-        // Logo menjadi satu-satunya identitas di sisi kiri agar header ringan.
-        ImageView logo = new ImageView(this);
-        logo.setImageResource(R.drawable.deapp_logo);
-        logo.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        logo.setContentDescription("Beranda Deapp");
-        LinearLayout.LayoutParams logoLp = new LinearLayout.LayoutParams(dp(35), dp(35));
-        toolbar.addView(logo, logoLp);
-        logo.setOnClickListener(v -> {
+        // Kiri: mark/logo aplikasi Deapp.
+        ImageView leftLogo = new ImageView(this);
+        leftLogo.setImageResource(R.drawable.deapp_logo);
+        leftLogo.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        leftLogo.setContentDescription("Beranda Deapp");
+        leftLogo.setClickable(true);
+        leftLogo.setFocusable(true);
+        FrameLayout.LayoutParams leftLp = new FrameLayout.LayoutParams(dp(36), dp(36), Gravity.START | Gravity.CENTER_VERTICAL);
+        toolbar.addView(leftLogo, leftLp);
+        leftLogo.setOnClickListener(v -> {
             haptic(v);
             loadRelative("index.php");
         });
 
-        View spacer = new View(this);
-        toolbar.addView(spacer, new LinearLayout.LayoutParams(0, dp(1), 1f));
+        // Tengah: wordmark Deapp. Posisi benar-benar di tengah, tidak bergeser oleh tombol kanan/kiri.
+        TextView wordmark = text("Deapp", 21, cText);
+        wordmark.setTypeface(Typeface.create("sans-serif-black", Typeface.BOLD));
+        wordmark.setLetterSpacing(-0.025f);
+        wordmark.setGravity(Gravity.CENTER);
+        wordmark.setContentDescription("Deapp");
+        wordmark.setClickable(true);
+        FrameLayout.LayoutParams wordLp = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, dp(56), Gravity.CENTER);
+        toolbar.addView(wordmark, wordLp);
+        wordmark.setOnClickListener(v -> {
+            haptic(v);
+            loadRelative("index.php");
+        });
 
-        // Tombol menu fitur: satu ikon di kanan atas, membuka feature grid bottom sheet.
+        // Kanan: seluruh fitur aplikasi berada di satu menu grid native.
         featureMenuButton = iconButton(R.drawable.ic_native_grid, "Menu fitur Deapp");
         featureMenuButton.setColorFilter(cText);
         featureMenuButton.setBackground(rounded(Color.TRANSPARENT, 99));
-        toolbar.addView(featureMenuButton);
+        FrameLayout.LayoutParams menuLp = new FrameLayout.LayoutParams(dp(44), dp(44), Gravity.END | Gravity.CENTER_VERTICAL);
+        toolbar.addView(featureMenuButton, menuLp);
         featureMenuButton.setOnClickListener(v -> {
             haptic(v);
             showFeatureMenuSheet();
@@ -461,8 +483,14 @@ public class MainActivity extends Activity {
         shell.addView(content, contentLp);
 
         swipeRefresh = new SwipeRefreshLayout(this);
-        swipeRefresh.setColorSchemeColors(cAccent);
+        // Pull-to-refresh dibuat lebih ikonik: spinner besar, jarak tarik lebih natural,
+        // dan kontras mengikuti tema Deapp.
+        swipeRefresh.setSize(SwipeRefreshLayout.LARGE);
+        swipeRefresh.setColorSchemeColors(cAccent, cText);
         swipeRefresh.setProgressBackgroundColorSchemeColor(cSurface);
+        swipeRefresh.setDistanceToTriggerSync(dp(86));
+        swipeRefresh.setSlingshotDistance(dp(112));
+        swipeRefresh.setProgressViewOffset(false, dp(10), dp(76));
         content.addView(swipeRefresh, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
@@ -574,32 +602,33 @@ public class MainActivity extends Activity {
     private void buildNativeBottomBar() {
         bottomContainer = new FrameLayout(this);
         bottomContainer.setBackgroundColor(cSurface);
+        bottomContainer.setVisibility(View.GONE); // jangan tampil sebelum status login dari halaman Deapp diketahui
         shell.addView(bottomContainer, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(58)));
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(62)));
 
         LinearLayout nav = new LinearLayout(this);
         nav.setOrientation(LinearLayout.HORIZONTAL);
         nav.setGravity(Gravity.CENTER);
-        nav.setPadding(dp(10), dp(4), dp(10), dp(4));
+        nav.setPadding(dp(5), dp(4), dp(5), dp(4));
         bottomContainer.addView(nav, new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(58), Gravity.TOP));
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(62), Gravity.TOP));
 
         View divider = new View(this);
         divider.setBackgroundColor(cBorder);
         bottomContainer.addView(divider, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(1), Gravity.TOP));
 
-        // Navigasi inti ala Threads: fitur sekunder dipindah ke menu kanan atas.
-        navHome = addNav(nav, R.drawable.ic_native_home, "Beranda", () -> loadRelative("index.php"));
-        navExplore = addNav(nav, R.drawable.ic_native_search, "Jelajah", () -> loadRelative("explore.php"));
-        navNotif = addNav(nav, R.drawable.ic_native_bell, "Aktivitas", () -> loadRelative("notifications.php"));
-        navProfile = addNav(nav, R.drawable.ic_native_user, "Profil", this::openOwnProfile);
-        navVideo = null;
+        // 5 menu utama: Beranda, Pesan, Buat, Notifikasi, Profil.
+        navHome = addNav(nav, R.drawable.ic_native_home, "Beranda", false, () -> loadRelative("index.php"));
+        navMessage = addNav(nav, R.drawable.ic_native_message, "Pesan", false, () -> loadRelative("messages.php"));
+        navCompose = addNav(nav, R.drawable.ic_native_add, "Buat kiriman", true, this::openComposer);
+        navNotif = addNav(nav, R.drawable.ic_native_bell, "Notifikasi", false, () -> loadRelative("notifications.php"));
+        navProfile = addNav(nav, R.drawable.ic_native_user, "Profil", false, this::openOwnProfile);
         updateNativeNav(baseUrl);
     }
 
-    private NavItem addNav(LinearLayout parent, int iconRes, String description, Runnable action) {
-        NavItem item = new NavItem(iconRes, description, action);
+    private NavItem addNav(LinearLayout parent, int iconRes, String description, boolean primary, Runnable action) {
+        NavItem item = new NavItem(iconRes, description, primary, action);
         parent.addView(item.root, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
         return item;
     }
@@ -608,16 +637,17 @@ public class MainActivity extends Activity {
         composeFab = new ImageButton(this);
         composeFab.setImageResource(R.drawable.ic_native_add);
         composeFab.setColorFilter(dark ? Color.BLACK : Color.WHITE);
-        composeFab.setContentDescription("Buat kiriman");
+        composeFab.setContentDescription("Buat kiriman dari Beranda");
         composeFab.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        composeFab.setPadding(dp(16), dp(16), dp(16), dp(16));
-        composeFab.setBackground(rounded(dark ? Color.WHITE : Color.BLACK, 19));
-        composeFab.setElevation(dp(9));
+        composeFab.setPadding(dp(15), dp(15), dp(15), dp(15));
+        composeFab.setBackground(rounded(dark ? Color.WHITE : Color.BLACK, 18));
+        composeFab.setElevation(dp(8));
         composeFab.setStateListAnimator(null);
+        composeFab.setVisibility(View.GONE);
 
-        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(dp(58), dp(58), Gravity.END | Gravity.BOTTOM);
-        lp.rightMargin = dp(18);
-        lp.bottomMargin = dp(70);
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(dp(56), dp(56), Gravity.END | Gravity.BOTTOM);
+        lp.rightMargin = dp(17);
+        lp.bottomMargin = dp(76);
         root.addView(composeFab, lp);
         composeFab.setOnClickListener(v -> {
             haptic(v);
@@ -628,8 +658,11 @@ public class MainActivity extends Activity {
     private class NavItem {
         final FrameLayout root;
         final ImageView icon;
+        final boolean primary;
+        Bitmap avatarBitmap;
 
-        NavItem(int iconRes, String description, Runnable action) {
+        NavItem(int iconRes, String description, boolean primary, Runnable action) {
+            this.primary = primary;
             root = new FrameLayout(MainActivity.this);
             root.setClickable(true);
             root.setFocusable(true);
@@ -637,10 +670,12 @@ public class MainActivity extends Activity {
 
             icon = new ImageView(MainActivity.this);
             icon.setImageResource(iconRes);
-            icon.setColorFilter(cMuted);
-            icon.setPadding(dp(10), dp(10), dp(10), dp(10));
-            icon.setBackground(rounded(Color.TRANSPARENT, 16));
-            FrameLayout.LayoutParams iconLp = new FrameLayout.LayoutParams(dp(44), dp(44), Gravity.CENTER);
+            icon.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            icon.setClipToOutline(true);
+            icon.setColorFilter(primary ? cBg : cMuted);
+            icon.setPadding(primary ? dp(9) : dp(10), primary ? dp(9) : dp(10), primary ? dp(9) : dp(10), primary ? dp(9) : dp(10));
+            icon.setBackground(primary ? rounded(cText, 99) : rounded(Color.TRANSPARENT, 16));
+            FrameLayout.LayoutParams iconLp = new FrameLayout.LayoutParams(primary ? dp(42) : dp(44), primary ? dp(42) : dp(44), Gravity.CENTER);
             root.addView(icon, iconLp);
 
             root.setOnClickListener(v -> {
@@ -649,8 +684,40 @@ public class MainActivity extends Activity {
             });
         }
 
+        void setAvatarBitmap(Bitmap bitmap) {
+            if (primary || bitmap == null) return;
+            avatarBitmap = bitmap;
+            icon.clearColorFilter();
+            icon.setPadding(0, 0, 0, 0);
+            icon.setImageBitmap(bitmap);
+            icon.setBackground(bordered(cSurface, cBorder, 99));
+        }
+
+        void clearAvatar(int fallbackRes) {
+            if (primary) return;
+            avatarBitmap = null;
+            icon.setImageResource(fallbackRes);
+            icon.setPadding(dp(10), dp(10), dp(10), dp(10));
+            icon.setBackground(rounded(Color.TRANSPARENT, 16));
+        }
+
         void setActive(boolean active) {
-            // Threads-inspired: status aktif dibaca dari kontras ikon, tanpa pill berwarna.
+            if (primary) {
+                icon.setColorFilter(cBg);
+                icon.setAlpha(1f);
+                icon.setBackground(rounded(cText, 99));
+                icon.setScaleX(1f);
+                icon.setScaleY(1f);
+                return;
+            }
+            if (avatarBitmap != null) {
+                icon.clearColorFilter();
+                icon.setAlpha(active ? 1f : .82f);
+                icon.setScaleX(active ? 1.04f : 1f);
+                icon.setScaleY(active ? 1.04f : 1f);
+                icon.setBackground(bordered(cSurface, active ? cText : cBorder, 99));
+                return;
+            }
             icon.setColorFilter(active ? cText : cMuted);
             icon.setAlpha(active ? 1f : .72f);
             icon.setBackground(rounded(Color.TRANSPARENT, 16));
@@ -662,7 +729,7 @@ public class MainActivity extends Activity {
     private void applyInsetsToShell() {
         ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
             Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            boolean imeVisible = insets.isVisible(WindowInsetsCompat.Type.ime());
+            imeVisible = insets.isVisible(WindowInsetsCompat.Type.ime());
             if (topContainer != null) {
                 topContainer.setPadding(0, bars.top, 0, 0);
                 ViewGroup.LayoutParams lp = topContainer.getLayoutParams();
@@ -672,19 +739,42 @@ public class MainActivity extends Activity {
             if (bottomContainer != null) {
                 bottomContainer.setPadding(0, 0, 0, bars.bottom);
                 ViewGroup.LayoutParams lp = bottomContainer.getLayoutParams();
-                lp.height = dp(58) + bars.bottom;
+                lp.height = dp(62) + bars.bottom;
                 bottomContainer.setLayoutParams(lp);
-                bottomContainer.setVisibility(imeVisible ? View.GONE : View.VISIBLE);
             }
             if (composeFab != null) {
                 FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) composeFab.getLayoutParams();
-                lp.rightMargin = dp(18);
-                lp.bottomMargin = dp(70) + bars.bottom;
+                lp.rightMargin = dp(17);
+                lp.bottomMargin = dp(76) + bars.bottom;
                 composeFab.setLayoutParams(lp);
-                composeFab.setVisibility(imeVisible ? View.GONE : View.VISIBLE);
             }
+            updateChromeVisibility();
             return insets;
         });
+    }
+
+    private boolean isHomeUrl(String url) {
+        if (url == null || url.trim().isEmpty()) return true;
+        try {
+            URI u = URI.create(url);
+            String path = u.getPath() == null ? "" : u.getPath().toLowerCase(Locale.US);
+            String basePath = URI.create(baseUrl).getPath();
+            if (basePath == null) basePath = "/";
+            String bp = basePath.toLowerCase(Locale.US);
+            if (!bp.endsWith("/")) bp += "/";
+            return path.equals(bp) || path.equals(bp + "index.php") || path.endsWith("/index.php");
+        } catch (Exception e) {
+            String low = url.toLowerCase(Locale.US);
+            return low.endsWith("/") || low.contains("/index.php");
+        }
+    }
+
+    private void updateChromeVisibility() {
+        boolean fullscreen = customView != null;
+        boolean showBottom = isLoggedIn && !imeVisible && !fullscreen;
+        if (bottomContainer != null) bottomContainer.setVisibility(showBottom ? View.VISIBLE : View.GONE);
+        boolean showFloatingCompose = showBottom && isHomeUrl(currentUrl);
+        if (composeFab != null) composeFab.setVisibility(showFloatingCompose ? View.VISIBLE : View.GONE);
     }
 
     private void configureWebView() {
@@ -700,7 +790,7 @@ public class MainActivity extends Activity {
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.3 ThreadsShell/3");
+        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.4 NativeMobile/4");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) s.setSafeBrowsingEnabled(true);
 
         CookieManager cm = CookieManager.getInstance();
@@ -723,7 +813,9 @@ public class MainActivity extends Activity {
                 super.onPageStarted(view, url, favicon);
                 progress.setVisibility(View.VISIBLE);
                 showOffline(false);
+                currentUrl = url == null ? "" : url;
                 updateNativeNav(url);
+                updateChromeVisibility();
                 updateKeepScreenOn(url);
             }
 
@@ -740,7 +832,9 @@ public class MainActivity extends Activity {
                 progress.setVisibility(View.GONE);
                 swipeRefresh.setRefreshing(false);
                 loadingOverlay.setVisibility(View.GONE);
+                currentUrl = url == null ? "" : url;
                 updateNativeNav(url);
+                updateChromeVisibility();
             }
 
             @Override
@@ -836,45 +930,24 @@ public class MainActivity extends Activity {
         });
     }
 
+    private String readAssetText(String name) {
+        StringBuilder out = new StringBuilder();
+        try (InputStream in = getAssets().open(name);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(in, "UTF-8"))) {
+            String line;
+            while ((line = reader.readLine()) != null) out.append(line).append('\n');
+        } catch (Exception ignored) {
+            return "";
+        }
+        return out.toString();
+    }
+
     private void injectNativeShell() {
         if (webView == null) return;
-        String js = "(function(){" +
-                "var id='deapp-native-shell-style';var s=document.getElementById(id);" +
-                "if(!s){s=document.createElement('style');s.id=id;" +
-                "s.textContent=':root{--topbar-h:0px!important;--bnav-h:0px!important}' +" +
-                "'.topbar,.bottom-nav{display:none!important}' +" +
-                "'html,body{scrollbar-width:none!important;overscroll-behavior-y:none!important;background:var(--surface)!important}' +" +
-                "'html::-webkit-scrollbar,body::-webkit-scrollbar,*::-webkit-scrollbar{display:none!important;width:0!important;height:0!important;background:transparent!important}' +" +
-                "'body{padding-top:0!important;padding-bottom:0!important;-webkit-tap-highlight-color:transparent}' +" +
-                "'.layout,.layout-guest{padding-top:0!important;padding-bottom:14px!important}' +" +
-                "'.tabs,.nx-studio-nav{top:0!important}' +" +
-                "'.page-home .composer-trigger{display:none!important}' +" +
-                "'.page-home .feed-tabs{border-left:0!important;border-right:0!important;border-top:0!important;border-radius:0!important;box-shadow:none!important;background:var(--surface)!important}' +" +
-                "'.page-home .feed{border:0!important;border-radius:0!important;box-shadow:none!important;background:var(--surface)!important}' +" +
-                "'.page-home .feed>.post-card,.page-home .feed>.qa-card{border-radius:0!important;box-shadow:none!important}' +" +
-                "'.post-card{box-shadow:none!important}' +" +
-                "'.post-card .post-actions{border-top-color:transparent!important}' +" +
-                "'.modal-overlay{align-items:flex-end!important;justify-content:center!important;padding:0!important;overflow:hidden!important}' +" +
-                "'.modal-overlay .modal-box{width:100%!important;max-width:100%!important;margin:0!important;border-left:0!important;border-right:0!important;border-bottom:0!important;border-radius:24px 24px 0 0!important;max-height:94dvh!important;overflow:auto!important;padding-bottom:max(20px,env(safe-area-inset-bottom))!important;box-shadow:0 -12px 38px rgba(0,0,0,.16)!important;animation:deappNativeSheetIn .22s cubic-bezier(.2,.8,.2,1)!important;will-change:transform}' +" +
-                "'.modal-overlay .modal-box:before,.deapp-cookie-modal .cookie-modal-card:before,dialog.c-modal[open] .c-modal-box:before{content:\"\";display:block;width:36px;height:4px;border-radius:99px;background:color-mix(in srgb,var(--text-muted) 48%,transparent);margin:8px auto 10px;flex:none}' +" +
-                "'.modal-overlay.photo-studio-modal .modal-box,.modal-overlay.reel-create-modal .modal-box{max-height:97dvh!important}' +" +
-                "'.deapp-cookie-modal{align-items:flex-end!important;padding:0!important}' +" +
-                "'.deapp-cookie-modal .cookie-modal-card{width:100%!important;max-width:100%!important;margin:0!important;border-radius:24px 24px 0 0!important;max-height:94dvh!important;overflow:auto!important;will-change:transform}' +" +
-                "'dialog.c-modal[open]{position:fixed!important;inset:auto 0 0 0!important;width:100%!important;max-width:none!important;margin:0!important;border-radius:24px 24px 0 0!important;max-height:94dvh!important}' +" +
-                "'dialog.c-modal .c-modal-box{border-radius:24px 24px 0 0!important;will-change:transform}' +" +
-                "'@keyframes deappNativeSheetIn{from{transform:translateY(100%);opacity:.7}to{transform:translateY(0);opacity:1}}';" +
-                "document.head.appendChild(s);}" +
-                "document.documentElement.classList.add('deapp-native-shell','deapp-threads-shell');" +
-                "function closeSheet(box){var ov=box.closest('.modal-overlay');var dlg=box.closest('dialog');var btn=box.querySelector('.modal-close,[data-close-modal],[aria-label=\\\"Tutup\\\"]');if(btn){btn.click();return;}if(dlg&&dlg.close){dlg.close();return;}if(ov){ov.click();}}" +
-                "function wire(box){if(!box||box.dataset.deappSwipeSheet==='1')return;box.dataset.deappSwipeSheet='1';var sy=0,last=0,drag=false;" +
-                "box.addEventListener('touchstart',function(e){if(e.touches.length!==1)return;sy=e.touches[0].clientY;last=sy;drag=false;box.style.transition='none';},{passive:true});" +
-                "box.addEventListener('touchmove',function(e){if(!e.touches.length)return;var y=e.touches[0].clientY,dy=y-sy;last=y;if(dy>5&&box.scrollTop<=0){drag=true;box.style.transform='translateY('+Math.min(dy,window.innerHeight*.72)+'px)';if(dy>10)e.preventDefault();}},{passive:false});" +
-                "box.addEventListener('touchend',function(){if(!drag){box.style.transition='';return;}var dy=last-sy;box.style.transition='transform .20s cubic-bezier(.2,.8,.2,1)';if(dy>92){box.style.transform='translateY(110%)';setTimeout(function(){closeSheet(box);box.style.transform='';box.style.transition='';},155);}else{box.style.transform='translateY(0)';setTimeout(function(){box.style.transform='';box.style.transition='';},210);}drag=false;},{passive:true});}" +
-                "function scan(){document.querySelectorAll('.modal-overlay .modal-box,.deapp-cookie-modal .cookie-modal-card,dialog.c-modal[open] .c-modal-box').forEach(wire);}" +
-                "scan();if(!window.__deappNativeSheetObserver){window.__deappNativeSheetObserver=new MutationObserver(scan);window.__deappNativeSheetObserver.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class','open']});}" +
-                "try{var av=document.querySelector('#user-menu-btn img.avatar-mini,.bottom-nav .bnav-avatar');var pr=document.querySelector('#user-dropdown .dropdown-user,.bottom-nav a.bnav:last-child');if(window.DeappNative){window.DeappNative.syncProfile(av?av.src:'',pr?pr.href:'');}}catch(e){}" +
-                "return true;})()";
-        webView.evaluateJavascript(js, null);
+        if (nativeScript == null || nativeScript.isEmpty()) {
+            nativeScript = readAssetText("deapp_native_v14.js");
+        }
+        if (!nativeScript.isEmpty()) webView.evaluateJavascript(nativeScript, null);
     }
 
     private class DraggableSheet extends LinearLayout {
@@ -1214,18 +1287,29 @@ public class MainActivity extends Activity {
 
     public class NativeBridge {
         @JavascriptInterface
-        public void syncProfile(String avatarUrl, String href) {
-            runOnUiThread(() -> syncNativeProfile(avatarUrl, href));
+        public void tap() {
+            runOnUiThread(() -> haptic(webView != null ? webView : root));
+        }
+
+        @JavascriptInterface
+        public void syncSessionState(boolean loggedIn, String avatarUrl, String href, String pageUrl) {
+            runOnUiThread(() -> {
+                isLoggedIn = loggedIn;
+                profileUrl = href == null ? "" : href.trim();
+                if (pageUrl != null && !pageUrl.trim().isEmpty()) currentUrl = pageUrl.trim();
+                syncNativeProfile(avatarUrl, profileUrl);
+                updateNativeNav(currentUrl);
+                updateChromeVisibility();
+            });
         }
     }
 
     private void syncNativeProfile(String avatarUrl, String href) {
         profileUrl = href == null ? "" : href.trim();
-        if (profileAvatar == null) return;
+        if (navProfile == null) return;
         if (avatarUrl == null || avatarUrl.trim().isEmpty() || !(avatarUrl.startsWith("http://") || avatarUrl.startsWith("https://"))) {
-            profileAvatar.setImageResource(R.drawable.ic_native_user);
-            profileAvatar.setColorFilter(cMuted);
-            profileAvatar.setPadding(dp(7), dp(7), dp(7), dp(7));
+            navProfile.clearAvatar(R.drawable.ic_native_user);
+            navProfile.setActive(currentUrl != null && currentUrl.toLowerCase(Locale.US).contains("/profile.php"));
             return;
         }
         loadProfileAvatar(avatarUrl);
@@ -1241,14 +1325,13 @@ public class MainActivity extends Activity {
                 conn.setInstanceFollowRedirects(true);
                 String cookie = CookieManager.getInstance().getCookie(avatarUrl);
                 if (cookie != null && !cookie.isEmpty()) conn.setRequestProperty("Cookie", cookie);
-                conn.setRequestProperty("User-Agent", "DeappLite/1.3");
+                conn.setRequestProperty("User-Agent", "DeappLite/1.4");
                 try (InputStream in = conn.getInputStream()) {
                     Bitmap bitmap = BitmapFactory.decodeStream(in);
                     if (bitmap != null) runOnUiThread(() -> {
-                        if (profileAvatar == null) return;
-                        profileAvatar.clearColorFilter();
-                        profileAvatar.setPadding(0, 0, 0, 0);
-                        profileAvatar.setImageBitmap(bitmap);
+                        if (navProfile == null) return;
+                        navProfile.setAvatarBitmap(bitmap);
+                        updateNativeNav(currentUrl);
                     });
                 }
             } catch (Exception ignored) {
@@ -1308,10 +1391,10 @@ public class MainActivity extends Activity {
     private void updateNativeNav(String url) {
         if (navHome == null || url == null) return;
         String low = url.toLowerCase(Locale.US);
-        boolean home = low.endsWith("/") || low.contains("/index.php");
+        boolean home = isHomeUrl(url);
         navHome.setActive(home);
-        if (navExplore != null) navExplore.setActive(low.contains("/explore.php") || low.contains("/hashtag.php"));
-        if (navVideo != null) navVideo.setActive(low.contains("/reels.php"));
+        if (navMessage != null) navMessage.setActive(low.contains("/messages.php") || low.contains("/inbox.php"));
+        if (navCompose != null) navCompose.setActive(false);
         if (navNotif != null) navNotif.setActive(low.contains("/notifications.php"));
         if (navProfile != null) navProfile.setActive(low.contains("/profile.php") || low.contains("/connections.php"));
     }
@@ -1379,9 +1462,9 @@ public class MainActivity extends Activity {
         root.removeView(customView);
         customView = null;
         shell.setVisibility(View.VISIBLE);
-        if (composeFab != null) composeFab.setVisibility(View.VISIBLE);
         if (customViewCallback != null) customViewCallback.onCustomViewHidden();
         customViewCallback = null;
+        updateChromeVisibility();
         updateKeepScreenOn(webView != null ? webView.getUrl() : "");
     }
 
@@ -1458,12 +1541,14 @@ public class MainActivity extends Activity {
     private void destroyWebView() {
         composeFab = null;
         featureMenuButton = null;
-        profileAvatar = null;
         navHome = null;
-        navExplore = null;
-        navVideo = null;
+        navMessage = null;
+        navCompose = null;
         navNotif = null;
         navProfile = null;
+        isLoggedIn = false;
+        imeVisible = false;
+        currentUrl = "";
         if (webView != null) {
             webView.stopLoading();
             webView.setWebChromeClient(null);

@@ -1,29 +1,27 @@
-# Deapp Lite Android
+# Deapp Lite Android v1.4
 
-Deapp Lite adalah shell Android ringan untuk aplikasi Deapp PHP/MySQL. UI navigasi utama menggunakan komponen Android native, sedangkan feed, profil, Live, Video Pendek, AI, pesan, dan fitur Deapp tetap berasal dari server melalui WebView.
+Deapp Lite adalah Android native shell ringan untuk Deapp. Backend, login, postingan, pesan, notifikasi, Live, Reels, komunitas, dan data tetap berasal dari aplikasi PHP/MySQL Deapp di server.
 
-## v1.3 — Threads-inspired native shell
+## Tampilan v1.4
 
-- Header: logo Deapp + menu fitur.
-- Bottom navigation: Beranda, Jelajah, Aktivitas, Profil.
-- Floating + button untuk membuat postingan.
-- Menu fitur berupa grid bottom sheet berikon.
-- Native bottom sheet dan modal web/composer dapat ditutup dengan swipe ke bawah.
-- Feed lebih flat/minimal, scrollbar tidak terlihat.
-- Dark mode, pull-to-refresh, fullscreen media, WebRTC Live, upload/download, kamera/mikrofon dan offline state tetap didukung.
+- Header native: logo Deapp kiri, wordmark Deapp tengah, menu fitur kanan.
+- Bottom navigation 5 menu: Beranda, Pesan, +, Notifikasi, Profil.
+- Bottom navigation hanya muncul setelah pengguna login.
+- Floating + hanya muncul di Beranda.
+- Menu opsi postingan menjadi draggable bottom sheet.
+- Composer dan modal lain tetap tampil sebagai bottom sheet yang bisa ditarik turun.
+- Profil dibuat edge-to-edge/full mobile.
+- Tab di seluruh aplikasi bisa digeser horizontal dengan touch atau mouse.
+- Pull-to-refresh memakai indikator Android yang lebih besar dan lebih jelas.
+- Interaksi web diberi native pressed feedback dan haptic, tanpa tap-highlight bawaan browser.
+- Scrollbar visual disembunyikan.
 
-## URL server
+## Build APK
 
-Hosting:
+Workflow GitHub Actions berada di `.github/workflows/build-apk.yml` dan otomatis berjalan setiap push ke branch `main`.
 
-    https://domainanda.com/
+Artifact hasil build bernama `deapp-lite-apk` dan berisi `deapp-lite.apk`.
 
-XAMPP/LAN:
+## Versi
 
-    http://192.168.1.10/deapp/
-
-Jangan gunakan `localhost` di ponsel karena `localhost` menunjuk ke perangkat Android sendiri.
-
-## Build
-
-GitHub Actions pada `.github/workflows/build-apk.yml` membangun APK debug installable sebagai artifact `deapp-lite-apk`.
+`1.4.0-lite` — versionCode `5`
