@@ -32,6 +32,8 @@ import android.view.ViewOutlineProvider;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.view.animation.LinearInterpolator;
+import android.view.animation.DecelerateInterpolator;
+import android.view.animation.OvershootInterpolator;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.GeolocationPermissions;
@@ -609,31 +611,43 @@ public class MainActivity extends Activity {
         startupSplashLogo.setImageResource(R.drawable.deapp_logo);
         startupSplashLogo.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         startupSplashLogo.setContentDescription("Deapp");
-        startupSplashLogo.setScaleX(.90f);
-        startupSplashLogo.setScaleY(.90f);
-        startupSplashLogo.setAlpha(.78f);
-        center.addView(startupSplashLogo, new LinearLayout.LayoutParams(dp(96), dp(96)));
+        // v1.9.14: entrance ala Threads — logo muncul dari skala kecil, overshoot, lalu settle.
+        startupSplashLogo.setScaleX(.52f);
+        startupSplashLogo.setScaleY(.52f);
+        startupSplashLogo.setRotation(-12f);
+        startupSplashLogo.setAlpha(0f);
+        center.addView(startupSplashLogo, new LinearLayout.LayoutParams(dp(100), dp(100)));
 
-        TextView brand = text("Deapp", 22, cText);
-        brand.setTypeface(Typeface.create("sans-serif-black", Typeface.BOLD));
+        TextView brand = text("Welcome", 18, cText);
+        brand.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
         brand.setGravity(Gravity.CENTER);
+        brand.setAlpha(0f);
+        brand.setTranslationY(dp(10));
         LinearLayout.LayoutParams brandLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        brandLp.topMargin = dp(14);
+        brandLp.topMargin = dp(15);
         center.addView(brand, brandLp);
-
-        View pulse = new View(this);
-        pulse.setBackground(rounded(cAccent, 99));
-        pulse.setAlpha(.22f);
-        LinearLayout.LayoutParams pulseLp = new LinearLayout.LayoutParams(dp(36), dp(3));
-        pulseLp.gravity = Gravity.CENTER_HORIZONTAL;
-        pulseLp.topMargin = dp(18);
-        center.addView(pulse, pulseLp);
 
         root.addView(layer, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         startupSplashOverlay = layer;
-        startStartupLogoAnimation();
+
+        startupSplashLogo.animate().cancel();
+        startupSplashLogo.animate()
+                .scaleX(1.08f).scaleY(1.08f).rotation(2f).alpha(1f)
+                .setDuration(520)
+                .setInterpolator(new OvershootInterpolator(1.18f))
+                .withEndAction(() -> {
+                    if (!startupSplashVisible || startupSplashLogo == null) return;
+                    startupSplashLogo.animate()
+                            .scaleX(1f).scaleY(1f).rotation(0f).alpha(1f)
+                            .setDuration(230)
+                            .setInterpolator(new DecelerateInterpolator())
+                            .withEndAction(this::startStartupLogoAnimation)
+                            .start();
+                }).start();
+        brand.animate().alpha(1f).translationY(0f).setStartDelay(330).setDuration(480)
+                .setInterpolator(new DecelerateInterpolator()).start();
 
         // Total splash sekitar 5 detik: fade dimulai pada 4,7 dtk dan selesai tepat di sekitar 5 dtk.
         layer.postDelayed(() -> {
@@ -653,13 +667,15 @@ public class MainActivity extends Activity {
         if (!startupSplashVisible || startupSplashLogo == null || startupSplashOverlay == null) return;
         startupSplashLogo.animate().cancel();
         startupSplashLogo.animate()
-                .scaleX(1.08f).scaleY(1.08f).rotation(2f).alpha(1f)
-                .setDuration(650)
+                .scaleX(1.035f).scaleY(1.035f).alpha(1f)
+                .setDuration(900)
+                .setInterpolator(new DecelerateInterpolator())
                 .withEndAction(() -> {
                     if (!startupSplashVisible || startupSplashLogo == null) return;
                     startupSplashLogo.animate()
-                            .scaleX(.90f).scaleY(.90f).rotation(-2f).alpha(.78f)
-                            .setDuration(650)
+                            .scaleX(.985f).scaleY(.985f).alpha(.94f)
+                            .setDuration(900)
+                            .setInterpolator(new DecelerateInterpolator())
                             .withEndAction(this::startStartupLogoAnimation)
                             .start();
                 }).start();
@@ -908,9 +924,10 @@ public class MainActivity extends Activity {
             icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
             icon.setClipToOutline(true);
             icon.setColorFilter(primary ? cBg : cMuted);
-            icon.setPadding(primary ? dp(10) : dp(9), primary ? dp(10) : dp(9), primary ? dp(10) : dp(9), primary ? dp(10) : dp(9));
+            // v1.9.14: ikon bottom navigation dibuat sedikit lebih besar tanpa menaikkan tinggi bar.
+            icon.setPadding(primary ? dp(9) : dp(7), primary ? dp(9) : dp(7), primary ? dp(9) : dp(7), primary ? dp(9) : dp(7));
             icon.setBackground(primary ? rounded(cText, 99) : rounded(Color.TRANSPARENT, 14));
-            FrameLayout.LayoutParams iconLp = new FrameLayout.LayoutParams(primary ? dp(42) : dp(40), primary ? dp(42) : dp(40), Gravity.CENTER);
+            FrameLayout.LayoutParams iconLp = new FrameLayout.LayoutParams(primary ? dp(44) : dp(42), primary ? dp(44) : dp(42), Gravity.CENTER);
             root.addView(icon, iconLp);
 
             root.setOnClickListener(v -> {
@@ -1095,8 +1112,10 @@ public class MainActivity extends Activity {
         boolean shortVideoPage = reelsPage || isReelsUrl(currentUrl);
         boolean specialWebChrome = isSpecialWebChromeType(pageChromeType) || isSpecialSectionUrl(currentUrl);
         boolean notificationPage = "notifications".equalsIgnoreCase(pageChromeType) || isNotificationsUrl(currentUrl);
-        // Notifikasi tetap memakai header web khusus, tetapi bottom bar kembali ke navigasi umum Android.
-        boolean specialWebOwnsBottom = specialWebChrome && !notificationPage;
+        boolean messagesPage = "messages".equalsIgnoreCase(pageChromeType) || (currentUrl != null && currentUrl.toLowerCase(Locale.US).contains("/messages.php"));
+        // v1.9.14: Notifikasi dan Chat tetap memakai header web khusus, tetapi footer memakai
+        // bottom navigation umum Android. Profil memang sejak awal memakai chrome native umum.
+        boolean specialWebOwnsBottom = specialWebChrome && !(notificationPage || messagesPage);
         boolean homePage = isHomeUrl(currentUrl);
         if (refreshIndicator != null && refreshIndicator.getLayoutParams() instanceof FrameLayout.LayoutParams) {
             FrameLayout.LayoutParams rlp = (FrameLayout.LayoutParams) refreshIndicator.getLayoutParams();
@@ -1116,9 +1135,10 @@ public class MainActivity extends Activity {
         boolean sheetActive = activeSheetOverlay != null || webSheetOpen;
         boolean showBottom = isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage && !postDetailPage && !shortVideoPage && !specialWebOwnsBottom && !sheetActive;
         if (bottomContainer != null) bottomContainer.setVisibility(showBottom ? View.VISIBLE : View.GONE);
-        // Aksi membuat postingan hanya ada di Beranda. Di halaman lain bottom bar tetap dapat tampil,
-        // tetapi slot + disingkirkan supaya tidak terasa sebagai tombol global.
-        if (navCompose != null) navCompose.root.setVisibility(showBottom && homePage ? View.VISIBLE : View.GONE);
+        // v1.9.15: bottom navigation umum selalu mempertahankan lima slot:
+        // Beranda · Chat · + Postingan · Notifikasi · Profil.
+        // Pembatasan hanya berlaku untuk FAB mengambang, bukan tombol + di nav tengah.
+        if (navCompose != null) navCompose.root.setVisibility(showBottom ? View.VISIBLE : View.GONE);
         boolean showFloatingCompose = homePage && isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage && !postDetailPage && !shortVideoPage && !specialWebChrome && !sheetActive && !uiScrolling;
         if (composeFab != null) {
             composeFab.setVisibility(showFloatingCompose ? View.VISIBLE : View.GONE);
@@ -1232,7 +1252,7 @@ public class MainActivity extends Activity {
         if (profilePage || isProfileUrl(currentUrl)) {
             String title = profileDisplayName == null ? "" : profileDisplayName.trim();
             toolbarTitle.setText(title.isEmpty() ? "Profil" : title);
-            featureMenuButton.setImageResource(R.drawable.ic_native_more);
+            featureMenuButton.setImageResource(R.drawable.ic_native_more_vertical);
             featureMenuButton.setContentDescription("Opsi profil");
             featureMenuButton.setColorFilter(cText);
             return;
@@ -1259,7 +1279,7 @@ public class MainActivity extends Activity {
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.13 NativeMobile/9.13");
+        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.15 NativeMobile/9.15");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) s.setSafeBrowsingEnabled(true);
 
         CookieManager cm = CookieManager.getInstance();
@@ -1934,7 +1954,7 @@ public class MainActivity extends Activity {
                 conn.setInstanceFollowRedirects(true);
                 String cookie = CookieManager.getInstance().getCookie(avatarUrl);
                 if (cookie != null && !cookie.isEmpty()) conn.setRequestProperty("Cookie", cookie);
-                conn.setRequestProperty("User-Agent", "DeappLite/1.9.13");
+                conn.setRequestProperty("User-Agent", "DeappLite/1.9.15");
                 try (InputStream in = conn.getInputStream()) {
                     Bitmap bitmap = BitmapFactory.decodeStream(in);
                     if (bitmap != null) runOnUiThread(() -> {
@@ -2148,7 +2168,7 @@ public class MainActivity extends Activity {
         name.setGravity(Gravity.CENTER);
         box.addView(name);
 
-        TextView version = text("Versi 1.9.13-lite · Build 23", 13, cMuted);
+        TextView version = text("Versi 1.9.15-lite · Build 25", 13, cMuted);
         version.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams versionLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);

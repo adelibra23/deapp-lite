@@ -64,3 +64,25 @@ Versi: **1.9.12-lite · Build 22**.
 - Tab memakai link/filter asli DeApp agar seluruh kategori backend tetap berfungsi.
 
 Versi: **1.9.13-lite · Build 23 · NativeMobile/9.13**.
+
+
+## v1.9.14 — Common Bottom Navigation, Flat Notifications & Welcome Splash
+
+- Notifikasi, Chat/Pesan, dan Profil menggunakan bottom navigation umum Android.
+- Ikon bottom navigation sedikit diperbesar.
+- Counter reaction/komentar/bagikan diperkecil dan ditempel dekat ikon masing-masing.
+- Notifikasi menjadi flat list tanpa card besar, dengan tab filter horizontal di bagian atas.
+- Header Profil menggunakan ikon titik tiga vertikal.
+- Splash awal menampilkan label Welcome dan animasi logo scale/overshoot lalu breathing halus.
+
+Versi: **1.9.14-lite · Build 24 · NativeMobile/9.14**.
+
+
+## v1.9.15 — Persistent 5-Item Bottom Navigation
+
+- Bottom navigation umum selalu menampilkan lima menu saat bar aktif: **Beranda · Chat · + Postingan · Notifikasi · Profil**.
+- Tombol `+` pada bottom navigation tetap tersedia dari Beranda, Chat, Notifikasi, dan Profil.
+- Hanya tombol plus mengambang/FAB di pojok kanan bawah yang dibatasi tampil di Beranda.
+- Perilaku keyboard, modal/bottom sheet, dan halaman immersive tetap dapat menyembunyikan bottom bar sementara sesuai konteks.
+
+Versi: **1.9.15-lite · Build 25 · NativeMobile/9.15**.

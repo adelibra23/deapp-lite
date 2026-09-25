@@ -890,6 +890,50 @@
     html.deapp-native-messages.deapp-chat-open .chat-quick{padding:3px 2px 4px!important}
     html.deapp-native-messages.deapp-chat-open .quick-react{font-size:19px!important}
 
+    /* v1.9.14 — Threads-style compact counters + flat notification list. */
+    .post-card:not(.post-embedded) .act-btn.deapp-counted-action{
+      min-width:40px!important;padding:7px 6px!important;gap:3px!important;border-radius:20px!important
+    }
+    .post-card:not(.post-embedded) .deapp-action-count{
+      min-width:0!important;font-size:11px!important;line-height:1!important;font-weight:650!important;letter-spacing:-.01em!important;color:var(--text-muted)!important
+    }
+    .post-card:not(.post-embedded) .act-btn svg{width:20px!important;height:20px!important}
+    .post-card:not(.post-embedded) .act-emoji{font-size:19px!important}
+
+    html.deapp-native-notifications .notif-layout{display:block!important;margin:0!important;padding:0!important}
+    html.deapp-native-notifications .notif-main{width:100%!important;max-width:none!important;margin:0!important;padding:0!important}
+    html.deapp-native-notifications .notif-side{display:none!important}
+    html.deapp-native-notifications .notif-card{
+      padding:0!important;margin:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;overflow:visible!important
+    }
+    html.deapp-native-notifications .notif-item{
+      position:relative!important;display:flex!important;align-items:center!important;gap:12px!important;min-height:70px!important;
+      margin:0!important;padding:11px 14px!important;border-radius:0!important;background:transparent!important;color:var(--text)!important;box-shadow:none!important
+    }
+    html.deapp-native-notifications .notif-item:after{
+      content:""!important;position:absolute!important;left:72px!important;right:0!important;bottom:0!important;height:1px!important;background:color-mix(in srgb,var(--border) 72%,transparent)!important
+    }
+    html.deapp-native-notifications .notif-item:last-child:after{display:none!important}
+    html.deapp-native-notifications .notif-item.unread{background:color-mix(in srgb,var(--acc) 6%,var(--surface))!important}
+    html.deapp-native-notifications .notif-item:active{background:var(--surface-2)!important}
+    html.deapp-native-notifications .notif-avatar>img,html.deapp-native-notifications .notif-sysav{width:46px!important;height:46px!important}
+    html.deapp-native-notifications .notif-text{font-size:14px!important;line-height:1.38!important;font-weight:560!important}
+    html.deapp-native-notifications .notif-item.unread .notif-text{font-weight:700!important}
+    html.deapp-native-notifications .notif-time{font-size:11px!important;color:var(--text-faint)!important;margin-top:3px!important}
+    html.deapp-native-notifications .unread-dot{width:7px!important;height:7px!important;flex:0 0 7px!important;margin-left:auto!important}
+    html.deapp-native-notifications .mention-list{margin:0!important;padding:0!important}
+    html.deapp-native-notifications .mention-card{
+      position:relative!important;margin:0!important;padding:12px 14px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important
+    }
+    html.deapp-native-notifications .mention-card:after{
+      content:"";position:absolute;left:72px;right:0;bottom:0;height:1px;background:color-mix(in srgb,var(--border) 72%,transparent)
+    }
+    html.deapp-native-notifications .nx-filter{
+      margin:0!important;padding:8px 10px!important;border:0!important;border-radius:0!important;background:var(--surface)!important;box-shadow:none!important;
+      border-bottom:1px solid color-mix(in srgb,var(--border) 72%,transparent)!important
+    }
+    html.deapp-native-notifications .deapp-notification-tabs{top:calc(58px + env(safe-area-inset-top))!important;padding-top:6px!important;padding-bottom:6px!important}
+
     @media(max-width:560px){
       .deapp-section-header{grid-template-columns:44px minmax(0,1fr) 44px;padding-left:6px;padding-right:6px}
       .deapp-section-header .deapp-section-left,.deapp-section-header .deapp-section-action{width:40px;height:40px}
