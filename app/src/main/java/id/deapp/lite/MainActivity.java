@@ -134,6 +134,7 @@ public class MainActivity extends Activity {
     private String pendingGeoOrigin;
     private String pendingPermissionLabel = "";
     private long lastPostPublishedSoundAt = 0L;
+    private long lastReactionFeedbackAt = 0L;
     private String baseUrl = "";
 
     private View customView;
@@ -477,9 +478,11 @@ public class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(56), Gravity.BOTTOM));
 
         toolbarLogo = new ImageView(this);
-        toolbarLogo.setImageResource(R.drawable.deapp_logo);
+        toolbarLogo.setImageResource(R.drawable.ic_native_search);
         toolbarLogo.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        toolbarLogo.setContentDescription("Logo Deapp");
+        toolbarLogo.setColorFilter(cText);
+        toolbarLogo.setPadding(dp(8), dp(8), dp(8), dp(8));
+        toolbarLogo.setContentDescription("Cari di Deapp");
         toolbarLogo.setClickable(true);
         toolbarLogo.setFocusable(true);
         FrameLayout.LayoutParams leftLp = new FrameLayout.LayoutParams(dp(36), dp(36), Gravity.START | Gravity.CENTER_VERTICAL);
@@ -492,7 +495,7 @@ public class MainActivity extends Activity {
                 if (webView != null && webView.canGoBack()) webView.goBack();
                 else loadRelative("index.php");
             } else {
-                loadRelative("index.php");
+                loadRelative("explore.php");
             }
         });
 
@@ -1246,9 +1249,10 @@ public class MainActivity extends Activity {
             featureMenuButton.setVisibility(View.INVISIBLE);
             return;
         }
-        toolbarLogo.setImageResource(R.drawable.deapp_logo);
-        toolbarLogo.clearColorFilter();
-        toolbarLogo.setContentDescription("Logo Deapp");
+        toolbarLogo.setImageResource(R.drawable.ic_native_search);
+        toolbarLogo.setColorFilter(cText);
+        toolbarLogo.setPadding(dp(8), dp(8), dp(8), dp(8));
+        toolbarLogo.setContentDescription("Cari di Deapp");
         if (profilePage || isProfileUrl(currentUrl)) {
             String title = profileDisplayName == null ? "" : profileDisplayName.trim();
             toolbarTitle.setText(title.isEmpty() ? "Profil" : title);
@@ -1257,7 +1261,8 @@ public class MainActivity extends Activity {
             featureMenuButton.setColorFilter(cText);
             return;
         }
-        toolbarTitle.setText("Deapp");
+        if (currentUrl != null && currentUrl.toLowerCase(Locale.US).contains("/explore.php")) toolbarTitle.setText("Cari");
+        else toolbarTitle.setText("Deapp");
         featureMenuButton.setImageResource(R.drawable.ic_native_grid);
         featureMenuButton.setContentDescription("Menu fitur Deapp");
         featureMenuButton.setColorFilter(cText);
@@ -1279,7 +1284,7 @@ public class MainActivity extends Activity {
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.16 NativeMobile/9.16");
+        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.17 NativeMobile/9.17");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) s.setSafeBrowsingEnabled(true);
 
         CookieManager cm = CookieManager.getInstance();
@@ -1859,6 +1864,11 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void reactionFeedback() {
+            runOnUiThread(MainActivity.this::playReactionFeedback);
+        }
+
+        @JavascriptInterface
         public void syncSessionState(boolean loggedIn, String avatarUrl, String href, String pageUrl) {
             runOnUiThread(() -> {
                 isLoggedIn = loggedIn;
@@ -1954,7 +1964,7 @@ public class MainActivity extends Activity {
                 conn.setInstanceFollowRedirects(true);
                 String cookie = CookieManager.getInstance().getCookie(avatarUrl);
                 if (cookie != null && !cookie.isEmpty()) conn.setRequestProperty("Cookie", cookie);
-                conn.setRequestProperty("User-Agent", "DeappLite/1.9.16");
+                conn.setRequestProperty("User-Agent", "DeappLite/1.9.17");
                 try (InputStream in = conn.getInputStream()) {
                     Bitmap bitmap = BitmapFactory.decodeStream(in);
                     if (bitmap != null) runOnUiThread(() -> {
@@ -2008,6 +2018,18 @@ public class MainActivity extends Activity {
         webView.evaluateJavascript("(function(){if(window.__DEAPP_NATIVE_V19__&&window.__DEAPP_NATIVE_V19__.openProfileOptions){return window.__DEAPP_NATIVE_V19__.openProfileOptions();}return false;})()", value -> {
             if (!"true".equals(value)) Toast.makeText(this, "Opsi profil tidak tersedia", Toast.LENGTH_SHORT).show();
         });
+    }
+
+    private void playReactionFeedback() {
+        long now = android.os.SystemClock.elapsedRealtime();
+        if (now - lastReactionFeedbackAt < 90) return;
+        lastReactionFeedbackAt = now;
+        haptic(webView != null ? webView : root);
+        try {
+            ToneGenerator tone = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 44);
+            tone.startTone(ToneGenerator.TONE_PROP_ACK, 65);
+            if (root != null) root.postDelayed(tone::release, 130); else tone.release();
+        } catch (Exception ignored) {}
     }
 
     private void playPostPublishedSound() {
@@ -2168,7 +2190,7 @@ public class MainActivity extends Activity {
         name.setGravity(Gravity.CENTER);
         box.addView(name);
 
-        TextView version = text("Versi 1.9.16-lite · Build 26", 13, cMuted);
+        TextView version = text("Versi 1.9.17-lite · Build 27", 13, cMuted);
         version.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams versionLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);

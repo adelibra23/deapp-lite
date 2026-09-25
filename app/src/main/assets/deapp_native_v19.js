@@ -29,6 +29,7 @@
   const isLivePage = /\/live\.php$/.test(path);
   const isAiPage = /\/ai\.php$/.test(path);
   const isShopPage = /\/shop\.php$/.test(path);
+  const isExplorePage = /\/explore\.php$/.test(path);
   const isSettingsPageFamily = /\/(settings|security|security-password|security-email|security-wallet-pin|security-2fa|security-sessions|help|privacy|policy|cookies|profile-edit)\.php$/.test(path);
   const isAuthPage = /\/(login|register)\.php$/.test(path);
 
@@ -41,6 +42,7 @@
   if (isLivePage) root.classList.add('deapp-native-live');
   if (isAiPage) root.classList.add('deapp-native-ai');
   if (isShopPage) root.classList.add('deapp-native-shop');
+  if (isExplorePage) root.classList.add('deapp-native-explore');
   if (isSettingsPageFamily) root.classList.add('deapp-native-settings-family');
 
   const style = document.createElement('style');
@@ -992,6 +994,127 @@
     html.deapp-native-ai .deapp-ai-disclaimer{display:none!important}
     html.is-dark.deapp-native-ai .deapp-ai-composer{background:#111!important;border-color:#2a2a2a!important;box-shadow:0 5px 24px rgba(0,0,0,.28)!important}
 
+
+
+    /* v1.9.17 — Search ala Threads, popup tengah, action row compact, Story hold-to-pause. */
+    html.deapp-native-explore .explore-head{
+      margin:0!important;padding:9px 12px 7px!important;border:0!important;border-radius:0!important;
+      background:var(--surface)!important;box-shadow:none!important
+    }
+    html.deapp-native-explore .explore-head .page-title{display:none!important}
+    html.deapp-native-explore .explore-search{
+      display:flex!important;align-items:center!important;gap:9px!important;width:100%!important;min-height:46px!important;
+      padding:0 13px!important;border:1px solid color-mix(in srgb,var(--border) 76%,transparent)!important;border-radius:17px!important;
+      background:var(--surface-2)!important;box-shadow:none!important
+    }
+    html.deapp-native-explore .explore-search>svg{width:19px!important;height:19px!important;color:var(--text-muted)!important;flex:0 0 auto!important}
+    html.deapp-native-explore .explore-search input{
+      flex:1 1 auto!important;width:auto!important;min-width:0!important;height:44px!important;padding:0!important;border:0!important;outline:0!important;
+      background:transparent!important;color:var(--text)!important;font-size:15px!important;box-shadow:none!important
+    }
+    html.deapp-native-explore .explore-search .btn{display:none!important}
+    html.deapp-native-explore .tabs.sticky-tabs{
+      position:sticky!important;top:0!important;z-index:32!important;display:flex!important;gap:4px!important;margin:0!important;padding:4px 10px 8px!important;
+      border:0!important;border-bottom:1px solid color-mix(in srgb,var(--border) 72%,transparent)!important;border-radius:0!important;background:var(--surface)!important;box-shadow:none!important
+    }
+    html.deapp-native-explore .tabs.sticky-tabs .tab{
+      min-height:38px!important;padding:8px 12px!important;border:0!important;border-radius:0!important;background:transparent!important;
+      color:var(--text-muted)!important;font-size:13px!important;font-weight:700!important;white-space:nowrap!important
+    }
+    html.deapp-native-explore .tabs.sticky-tabs .tab.active{color:var(--text)!important;border-bottom:2px solid var(--text)!important}
+    html.deapp-native-explore .people-grid{display:block!important;margin:0!important;padding:0!important}
+    html.deapp-native-explore .people-card{
+      position:relative!important;display:grid!important;grid-template-columns:48px minmax(0,1fr) auto!important;align-items:center!important;gap:11px!important;
+      min-height:74px!important;margin:0!important;padding:10px 12px!important;border:0!important;border-bottom:1px solid color-mix(in srgb,var(--border) 68%,transparent)!important;
+      border-radius:0!important;background:var(--surface)!important;box-shadow:none!important;text-align:left!important
+    }
+    html.deapp-native-explore .people-card .people-cover{display:none!important}
+    html.deapp-native-explore .people-avatar-link{grid-column:1!important;grid-row:1/5!important;align-self:start!important}
+    html.deapp-native-explore .people-avatar{width:46px!important;height:46px!important;border-radius:50%!important}
+    html.deapp-native-explore .people-name,html.deapp-native-explore .people-uname,html.deapp-native-explore .people-bio,html.deapp-native-explore .people-stats{grid-column:2!important;margin:0!important;text-align:left!important}
+    html.deapp-native-explore .people-name{font-size:14px!important;font-weight:800!important}
+    html.deapp-native-explore .people-uname,html.deapp-native-explore .people-stats{font-size:11.5px!important;color:var(--text-muted)!important}
+    html.deapp-native-explore .people-bio{font-size:12.5px!important;line-height:1.35!important}
+    html.deapp-native-explore .people-card>.btn{grid-column:3!important;grid-row:1/5!important;align-self:center!important;border-radius:999px!important}
+
+    /* Popup ringan dipusatkan agar tidak bertabrakan dengan bottom navigation. */
+    .nx-pop-toasts{
+      left:50%!important;right:auto!important;top:50%!important;bottom:auto!important;transform:translate(-50%,-50%)!important;
+      width:min(370px,calc(100vw - 32px))!important;max-height:min(70dvh,520px)!important;align-content:center!important;gap:9px!important
+    }
+    .nx-pop-toast{
+      grid-template-columns:36px minmax(0,1fr) 28px!important;padding:12px 12px!important;border-radius:18px!important;
+      background:color-mix(in srgb,var(--surface) 96%,transparent)!important;box-shadow:0 18px 60px rgba(0,0,0,.22)!important;
+      backdrop-filter:blur(20px) saturate(135%)!important;-webkit-backdrop-filter:blur(20px) saturate(135%)!important;
+      transform:translateY(8px) scale(.965)!important
+    }
+    .nx-pop-toast.show{transform:none!important}
+    .nx-pop-toast.out{transform:translateY(6px) scale(.975)!important}
+    #toast.toast{
+      left:50%!important;right:auto!important;top:50%!important;bottom:auto!important;z-index:5200!important;
+      min-width:min(280px,calc(100vw - 40px))!important;max-width:min(390px,calc(100vw - 32px))!important;
+      padding:13px 16px!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:18px!important;
+      background:rgba(22,22,22,.94)!important;color:#fff!important;box-shadow:0 18px 60px rgba(0,0,0,.28)!important;
+      backdrop-filter:blur(20px)!important;-webkit-backdrop-filter:blur(20px)!important;
+      transform:translate(-50%,calc(-50% + 12px)) scale(.97)!important;text-align:center!important;justify-content:center!important
+    }
+    #toast.toast.show{transform:translate(-50%,-50%) scale(1)!important;opacity:1!important}
+    #toast.toast.success{background:rgba(21,89,64,.96)!important}
+    #toast.toast.error{background:rgba(139,35,35,.96)!important}
+
+    /* Action postingan seperti Threads: ikon dan angka kecil sejajar, tanpa label. */
+    .post-card:not(.post-embedded) .post-actions{
+      display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:10px!important;min-height:40px!important;
+      padding-top:1px!important;padding-bottom:3px!important
+    }
+    .post-card:not(.post-embedded) .post-actions .react-wrap{display:flex!important;align-items:center!important;flex:0 0 auto!important}
+    .post-card:not(.post-embedded) .act-btn{
+      width:34px!important;min-width:34px!important;height:34px!important;min-height:34px!important;padding:6px!important;border-radius:18px!important
+    }
+    .post-card:not(.post-embedded) .act-btn.deapp-counted-action{
+      display:inline-flex!important;align-items:center!important;justify-content:flex-start!important;flex:0 0 auto!important;
+      width:auto!important;min-width:34px!important;height:34px!important;padding:5px 4px!important;gap:3px!important;border-radius:18px!important
+    }
+    .post-card:not(.post-embedded) .act-btn svg{width:18px!important;height:18px!important;stroke-width:1.8!important}
+    .post-card:not(.post-embedded) .act-emoji{font-size:18px!important;line-height:1!important}
+    .post-card:not(.post-embedded) .deapp-action-count{
+      min-width:0!important;margin:0!important;padding:0!important;font-size:10.5px!important;line-height:1!important;font-weight:620!important;
+      letter-spacing:-.015em!important;color:var(--text-muted)!important;font-variant-numeric:tabular-nums!important
+    }
+    .post-card:not(.post-embedded) .js-bookmark{margin-left:0!important}
+    .post-card:not(.post-embedded) .post-gifts{margin-top:0!important;padding-top:0!important}
+
+    /* Story: area tap lebar + composer bawah ala Instagram Stories. */
+    html.deapp-native-story-open .story-nav{width:43%!important;z-index:24!important}
+    html.deapp-native-story-open .story-bottom{
+      padding:20px 10px calc(9px + env(safe-area-inset-bottom))!important;
+      background:linear-gradient(to top,rgba(0,0,0,.78),rgba(0,0,0,.24),transparent)!important
+    }
+    html.deapp-native-story-open .story-bar{display:flex!important;align-items:center!important;gap:6px!important;max-width:720px!important}
+    html.deapp-native-story-open .story-reply{flex:1 1 auto!important;min-width:0!important;position:relative!important}
+    html.deapp-native-story-open .story-reply input{
+      height:46px!important;border-radius:24px!important;background:rgba(18,18,18,.28)!important;border:1px solid rgba(255,255,255,.72)!important;
+      padding:0 48px 0 16px!important;font-size:14px!important;color:#fff!important;box-shadow:none!important;
+      backdrop-filter:blur(10px)!important;-webkit-backdrop-filter:blur(10px)!important
+    }
+    html.deapp-native-story-open .story-reply input:focus{border-color:#fff!important;background:rgba(18,18,18,.42)!important}
+    html.deapp-native-story-open .story-send{
+      width:36px!important;height:36px!important;right:5px!important;border-radius:50%!important;background:transparent!important;color:#fff!important;border:0!important
+    }
+    html.deapp-native-story-open .story-send svg{width:20px!important;height:20px!important}
+    html.deapp-native-story-open .story-act{
+      display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:2px!important;height:44px!important;min-width:38px!important;
+      padding:0 4px!important;color:#fff!important;background:transparent!important;border:0!important
+    }
+    html.deapp-native-story-open .story-act-n{font-size:10px!important;color:rgba(255,255,255,.82)!important}
+    html.deapp-native-story-open .story-quick{
+      left:12px!important;right:12px!important;bottom:calc(66px + env(safe-area-inset-bottom))!important;border-radius:22px!important;
+      background:rgba(24,24,24,.94)!important;box-shadow:0 12px 36px rgba(0,0,0,.34)!important
+    }
+    html.deapp-native-story-open.deapp-story-press-paused .story-stage:after{
+      content:""!important;position:absolute!important;inset:0!important;pointer-events:none!important;background:rgba(0,0,0,.035)!important
+    }
+
     @media(max-width:560px){
       .deapp-section-header{grid-template-columns:44px minmax(0,1fr) 44px;padding-left:6px;padding-right:6px}
       .deapp-section-header .deapp-section-left,.deapp-section-header .deapp-section-action{width:40px;height:40px}
@@ -1398,7 +1521,7 @@
       const row = document.createElement('button');
       row.type = 'button';
       row.className = 'snav deapp-native-about-row';
-      row.innerHTML = '<span class="deapp-settings-native-icon">ⓘ</span><span><b>Tentang aplikasi</b><small>Deapp Lite untuk Android</small></span><span class="deapp-version-pill">v1.9.16-lite</span>';
+      row.innerHTML = '<span class="deapp-settings-native-icon">ⓘ</span><span><b>Tentang aplikasi</b><small>Deapp Lite untuk Android</small></span><span class="deapp-version-pill">v1.9.17-lite</span>';
       row.addEventListener('click', function(){
         nativeTap();
         try { if (API && API.showAboutApp) API.showAboutApp(); } catch (_) {}
@@ -2166,7 +2289,7 @@
   }
 
 
-  // v1.9.10 — reaction postingan memberi feedback haptic native saat benar-benar ditap.
+  // v1.9.17 — reaction postingan memberi haptic + suara ringan native.
   let lastReactionHapticAt = 0;
   function installReactionHaptics() {
     if (document.documentElement.dataset.deappReactionHaptic === '1') return;
@@ -2177,7 +2300,10 @@
       const now = Date.now();
       if (now - lastReactionHapticAt < 90) return;
       lastReactionHapticAt = now;
-      try { if (API && typeof API.tap === 'function') API.tap(); } catch (_) {}
+      try {
+        if (API && typeof API.reactionFeedback === 'function') API.reactionFeedback();
+        else if (API && typeof API.tap === 'function') API.tap();
+      } catch (_) {}
     }, true);
   }
 
@@ -2186,7 +2312,7 @@
     document.querySelectorAll('.post-card:not(.post-embedded)').forEach(function(card){
       const stats=card.querySelector('.post-stats');
       const actions=card.querySelector('.post-actions');
-      if (!stats || !actions) return;
+      if (!actions) return;
 
       function valueOf(el) {
         if (!el) return '';
@@ -2215,18 +2341,30 @@
         btn.classList.add('deapp-counted-action');
       }
 
-      const reactSrc=stats.querySelector('.stat-reactions');
-      const reactCount=stats.querySelector('.js-react-count');
+      const reactSrc=stats ? stats.querySelector('.stat-reactions') : null;
+      const reactCount=stats ? stats.querySelector('.js-react-count') : null;
       attach(actions.querySelector('.js-react-btn'), reactSrc, 'reactions', valueOf(reactCount));
 
-      const commentSrc=stats.querySelector('.stat-link.js-toggle-comments');
+      const commentSrc=stats ? stats.querySelector('.stat-link.js-toggle-comments') : null;
       attach(actions.querySelector('.js-toggle-comments'), commentSrc, 'comments', valueOf(commentSrc));
 
-      const shareSrc=stats.querySelector('a.stat-link[href*="tab=shares"]');
-      attach(actions.querySelector('.js-share'), shareSrc, 'shares', valueOf(shareSrc));
+      const shareSrc=stats ? stats.querySelector('a.stat-link[href*="tab=shares"]') : null;
+      const shareBtn=actions.querySelector('.js-share');
+      attach(shareBtn, shareSrc, 'shares', valueOf(shareSrc));
 
-      const remaining=stats.querySelector('.stat-reactions:not(.deapp-stat-relocated),.stat-link:not(.deapp-stat-relocated)');
-      stats.classList.toggle('deapp-stats-empty', !remaining);
+      const giftBtn=actions.querySelector('.js-gift-open');
+      const giftRow=card.querySelector('.post-gifts');
+      const giftCount=giftRow ? giftRow.querySelectorAll('.post-gift').length : 0;
+      if (giftBtn && giftRow && giftCount > 0) attach(giftBtn, giftRow, 'gifts', String(giftCount));
+      // Urutan Lite: reaction · komentar · gift · bagikan · simpan.
+      if (giftBtn && shareBtn && giftBtn.parentNode === actions && shareBtn.parentNode === actions && giftBtn.nextElementSibling !== shareBtn) {
+        actions.insertBefore(giftBtn, shareBtn);
+      }
+
+      if (stats) {
+        const remaining=stats.querySelector('.stat-reactions:not(.deapp-stat-relocated),.stat-link:not(.deapp-stat-relocated)');
+        stats.classList.toggle('deapp-stats-empty', !remaining);
+      }
     });
   }
 
@@ -2360,6 +2498,105 @@
     });
   }
 
+
+  // v1.9.17 — tahan Story untuk jeda, tap singkat tetap menjalankan navigasi asli.
+  const storyTimerBridge = {installed:false, records:new Map(), nativeSet:null, nativeClear:null};
+  function installStoryTimerBridge() {
+    if (storyTimerBridge.installed) return;
+    storyTimerBridge.installed = true;
+    storyTimerBridge.nativeSet = window.setTimeout.bind(window);
+    storyTimerBridge.nativeClear = window.clearTimeout.bind(window);
+    const nativeSet = storyTimerBridge.nativeSet;
+    const nativeClear = storyTimerBridge.nativeClear;
+    window.setTimeout = function(fn, delay) {
+      const args = Array.prototype.slice.call(arguments, 2);
+      const d = Number(delay) || 0;
+      const isStoryNext = typeof fn === 'function' && fn.name === 'nextStory' && d >= 1000 && d <= 20000;
+      if (!isStoryNext) return nativeSet.apply(window, [fn, delay].concat(args));
+      let virtualId = 0;
+      const rec = {fn:fn,args:args,remaining:d,startedAt:Date.now(),paused:false,underlying:0};
+      const fire = function(){
+        storyTimerBridge.records.delete(virtualId);
+        if (!rec.paused) fn.apply(window,args);
+      };
+      rec.underlying = nativeSet(fire,d);
+      virtualId = rec.underlying;
+      storyTimerBridge.records.set(virtualId,rec);
+      return virtualId;
+    };
+    window.clearTimeout = function(id) {
+      const rec = storyTimerBridge.records.get(id);
+      if (rec) {
+        nativeClear(rec.underlying);
+        storyTimerBridge.records.delete(id);
+        return;
+      }
+      nativeClear(id);
+    };
+  }
+  function currentStoryProgressBar() {
+    const bars = Array.from(document.querySelectorAll('#story-progress b'));
+    return bars.find(function(b){ return String(b.style.transition || '').indexOf('width') >= 0; }) || null;
+  }
+  function pauseStoryTimer(on) {
+    installStoryTimerBridge();
+    const nativeSet=storyTimerBridge.nativeSet, nativeClear=storyTimerBridge.nativeClear;
+    storyTimerBridge.records.forEach(function(rec,key){
+      if (on && !rec.paused) {
+        rec.remaining = Math.max(120, rec.remaining - Math.max(0, Date.now() - rec.startedAt));
+        nativeClear(rec.underlying);
+        rec.paused = true;
+        const b=currentStoryProgressBar();
+        if (b && b.parentElement) {
+          const tw=b.parentElement.getBoundingClientRect().width || 1;
+          const bw=b.getBoundingClientRect().width;
+          b.style.transition='none';
+          b.style.width=Math.max(0,Math.min(100,bw/tw*100))+'%';
+        }
+      } else if (!on && rec.paused) {
+        rec.paused=false;
+        rec.startedAt=Date.now();
+        const fire=function(){ storyTimerBridge.records.delete(key); rec.fn.apply(window,rec.args); };
+        rec.underlying=nativeSet(fire,rec.remaining);
+        const b=currentStoryProgressBar();
+        if (b) {
+          void b.offsetWidth;
+          b.style.transition='width '+rec.remaining+'ms linear';
+          b.style.width='100%';
+        }
+      }
+    });
+  }
+  function installStoryPressPause() {
+    const viewer=document.getElementById('story-viewer');
+    if (!viewer || viewer.dataset.deappHoldPause === '1') return;
+    viewer.dataset.deappHoldPause='1';
+    installStoryTimerBridge();
+    let pressed=false, downAt=0, suppressUntil=0;
+    function interactiveBottom(target){ return !!(target && target.closest && target.closest('.story-bottom,.story-topbar,.story-sheet,.story-quick,input,textarea')); }
+    viewer.addEventListener('pointerdown',function(e){
+      if (viewer.hidden || interactiveBottom(e.target)) return;
+      pressed=true; downAt=Date.now();
+      pauseStoryTimer(true);
+      root.classList.add('deapp-story-press-paused');
+    },true);
+    function release(){
+      if (!pressed) return;
+      const heldFor=Date.now()-downAt;
+      pressed=false;
+      pauseStoryTimer(false);
+      root.classList.remove('deapp-story-press-paused');
+      if (heldFor >= 220) suppressUntil=Date.now()+480;
+    }
+    document.addEventListener('pointerup',release,true);
+    document.addEventListener('pointercancel',release,true);
+    viewer.addEventListener('click',function(e){
+      if (Date.now() < suppressUntil && e.target && e.target.closest && e.target.closest('.story-stage,.story-nav')) {
+        e.preventDefault(); e.stopImmediatePropagation();
+      }
+    },true);
+  }
+
   function scan() {
     document.querySelectorAll('.modal-overlay:not(#composer-modal) .modal-box,.deapp-cookie-modal .cookie-modal-card,dialog[open] .c-modal-box,.post-card .menu-wrap.open>.dropdown,.deapp-native-profile-options-sheet,#story-sheet:not([hidden]),.reel-sheet:not([hidden]) .reel-sheet-panel,.reel-sheet:not([hidden]) .reel-more-panel').forEach(wireSheet);
     document.querySelectorAll('.tabs,.story-tabs,.nx-studio-nav,[role="tablist"],.feed-tabs,.reels-tabs,.community-tabs,.settings-nav').forEach(wireHorizontalTabs);
@@ -2369,6 +2606,7 @@
     wireReelsChrome();
     enhancePostDetailComments();
     installReactionHaptics();
+    installStoryPressPause();
     wirePostActionCounts();
     optimizeMediaLoading();
     removePostTranslationUI();

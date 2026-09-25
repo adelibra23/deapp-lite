@@ -94,3 +94,15 @@ Versi: **1.9.15-lite · Build 25 · NativeMobile/9.15**.
 - DeApp AI dibersihkan menjadi pengalaman chat: tanpa FAB, burger, subtitle, pin/trash, thread rail, dan control strip.
 - Composer DeApp AI diperbarui menjadi composer fixed bawah yang lebih profesional.
 - Versi: **1.9.16-lite · Build 26 · NativeMobile/9.16**.
+
+
+## v1.9.17 — Reaction Audio + Threads Search + Story Hold
+
+- Header umum: ikon kiri menjadi Search dan menuju `explore.php`.
+- Explore dipoles seperti halaman pencarian Threads.
+- Reaction: haptic + audio native pendek.
+- Toast/pop notification: dipusatkan.
+- Post action row: compact reaction/comment/gift/share counts.
+- Story: tap kiri/kanan + press-hold pause/resume timer secara nyata.
+- Story composer: visual lebih dekat Instagram Stories.
+- Versi: **1.9.17-lite · Build 27 · NativeMobile/9.17**.
