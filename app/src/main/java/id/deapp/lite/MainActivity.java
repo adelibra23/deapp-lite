@@ -622,8 +622,19 @@ public class MainActivity extends Activity {
         logo.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(460).setStartDelay(80).start();
         welcome.animate().alpha(1f).translationY(0).setDuration(440).setStartDelay(310).start();
         sub.animate().alpha(1f).setDuration(380).setStartDelay(570).start();
-        splash.postDelayed(() -> splash.animate().alpha(0f).setDuration(300)
-                .withEndAction(() -> { if (root != null) root.removeView(splash); }).start(), 1550);
+        splash.postDelayed(() -> {
+            // Stop intercepting taps before the fade begins. If an animation callback is
+            // interrupted by lifecycle changes, the splash can no longer block the WebView.
+            splash.setClickable(false);
+            splash.setFocusable(false);
+            splash.animate().alpha(0f).setDuration(300)
+                    .withEndAction(() -> {
+                        if (root != null && splash.getParent() == root) root.removeView(splash);
+                    }).start();
+            splash.postDelayed(() -> {
+                if (root != null && splash.getParent() == root) root.removeView(splash);
+            }, 420);
+        }, 1550);
     }
 
     private FrameLayout buildOfflineOverlay() {
@@ -959,7 +970,7 @@ public class MainActivity extends Activity {
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.1 NativeMobile/9.1");
+        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.2 NativeMobile/9.2");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) s.setSafeBrowsingEnabled(true);
 
         CookieManager cm = CookieManager.getInstance();
@@ -1008,6 +1019,7 @@ public class MainActivity extends Activity {
             public void onPageCommitVisible(WebView view, String url) {
                 super.onPageCommitVisible(view, url);
                 injectNativeShell();
+                view.postDelayed(MainActivity.this::recoverWebScroll, 80);
                 if (loadingOverlay != null) loadingOverlay.setVisibility(View.GONE);
             }
 
@@ -1015,6 +1027,7 @@ public class MainActivity extends Activity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 injectNativeShell();
+                view.postDelayed(MainActivity.this::recoverWebScroll, 120);
                 swipeRefresh.setRefreshing(false);
                 loadingOverlay.setVisibility(View.GONE);
                 currentUrl = url == null ? "" : url;
@@ -1136,9 +1149,11 @@ public class MainActivity extends Activity {
     private void recoverWebScroll() {
         if (webView == null) return;
         String js = "(function(){try{var a=window.__DEAPP_NATIVE_V19__;" +
+                "if(a&&a.recoverInteraction){return a.recoverInteraction();}" +
                 "if(a&&a.recoverScroll){return a.recoverScroll();}" +
                 "document.documentElement.classList.remove('deapp-native-sheet-lock');" +
                 "if(document.body){document.body.classList.remove('deapp-native-sheet-lock-body');}" +
+                "document.querySelectorAll('.deapp-post-sheet-backdrop,.deapp-native-profile-options-backdrop').forEach(function(n){n.remove();});" +
                 "return true;}catch(e){return false;}})();";
         webView.evaluateJavascript(js, null);
     }
@@ -1278,21 +1293,42 @@ public class MainActivity extends Activity {
         });
     }
 
+    private void removeViewFromParent(View view) {
+        if (view == null) return;
+        android.view.ViewParent parent = view.getParent();
+        if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(view);
+    }
+
     private void dismissBottomSheet(boolean animate) {
         if (activeSheetOverlay == null || root == null) return;
         View overlay = activeSheetOverlay;
         View panel = activeSheetPanel;
         activeSheetOverlay = null;
         activeSheetPanel = null;
+
+        // Disable the closing layer immediately. The old implementation relied only on
+        // an animation end callback; if that callback was cancelled, an invisible full-screen
+        // overlay could remain above the WebView and swallow every tap.
+        overlay.setClickable(false);
+        overlay.setFocusable(false);
+        overlay.setEnabled(false);
+        if (panel != null) {
+            panel.setClickable(false);
+            panel.setFocusable(false);
+            panel.setEnabled(false);
+        }
+
         syncExternalSheetLock(false);
         if (webView != null) webView.postDelayed(this::recoverWebScroll, 60);
         updateRefreshAvailability();
         if (animate && panel != null) {
             panel.animate().translationY(Math.max(panel.getHeight(), dp(420))).setDuration(180)
-                    .withEndAction(() -> root.removeView(overlay)).start();
+                    .withEndAction(() -> removeViewFromParent(overlay)).start();
             overlay.animate().alpha(0f).setDuration(180).start();
+            // Fallback removal survives animation cancellation / lifecycle interruption.
+            overlay.postDelayed(() -> removeViewFromParent(overlay), 280);
         } else {
-            root.removeView(overlay);
+            removeViewFromParent(overlay);
         }
     }
 
@@ -1574,7 +1610,7 @@ public class MainActivity extends Activity {
                 conn.setInstanceFollowRedirects(true);
                 String cookie = CookieManager.getInstance().getCookie(avatarUrl);
                 if (cookie != null && !cookie.isEmpty()) conn.setRequestProperty("Cookie", cookie);
-                conn.setRequestProperty("User-Agent", "DeappLite/1.9.1");
+                conn.setRequestProperty("User-Agent", "DeappLite/1.9.2");
                 try (InputStream in = conn.getInputStream()) {
                     Bitmap bitmap = BitmapFactory.decodeStream(in);
                     if (bitmap != null) runOnUiThread(() -> {

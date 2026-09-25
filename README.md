@@ -1,5 +1,18 @@
 # Deapp Lite Android
 
+## v1.9.2-lite — Tap / Click Fix
+
+Patch ini memperbaiki bug halaman DeApp Lite Android yang dapat tetap bisa tampil atau di-scroll tetapi tidak merespons tap/klik. Penyebab utamanya adalah backdrop menu posting yang dapat tertinggal dan menutupi seluruh WebView ketika status `open` tidak sama dengan kondisi visual dropdown.
+
+Perbaikan:
+- backdrop menu posting hanya dibuat ketika dropdown benar-benar terlihat di viewport;
+- backdrop posting yang stale/orphan otomatis dibersihkan tanpa menutup modal yang masih aktif;
+- backdrop opsi profil yang kehilangan sheet pasangannya otomatis dihapus;
+- pemulihan interaksi dijalankan saat scan DOM, `pageshow`, focus, kembali dari background, serta sebelum gesture baru;
+- splash native berhenti menerima tap sebelum animasi fade dan memiliki fallback removal agar tidak mungkin tertinggal menutup WebView;
+- Android memanggil recovery interaksi setelah `onPageCommitVisible`, `onPageFinished`, dan saat resume;
+- build dinaikkan ke **1.9.2-lite (Build 12)**.
+
 ## v1.9.1-lite — Scroll Fix
 
 Patch ini memperbaiki bug halaman Android DeApp Lite yang tidak bisa di-scroll setelah modal/bottom sheet dibuka atau ditutup. Scroll lock sekarang hanya berlaku untuk sheet berbasis web yang benar-benar terlihat, tidak lagi mengunci DOM saat bottom sheet native Android aktif, dan memiliki pemulihan otomatis saat sheet ditutup, halaman tampil kembali, aplikasi kembali dari background, atau status modal tidak sinkron.

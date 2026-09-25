@@ -310,13 +310,42 @@
     document.querySelectorAll('.deapp-post-sheet-backdrop').forEach(function (x) { x.remove(); });
   }
 
+  function visibleOpenPostMenu() {
+    const menus = document.querySelectorAll('.post-card .menu-wrap.open>.dropdown');
+    for (const menu of menus) {
+      if (!menu || !menu.isConnected) continue;
+      let node = menu, hidden = false;
+      while (node && node.nodeType === 1) {
+        const cs = getComputedStyle(node);
+        if (cs.display === 'none' || cs.visibility === 'hidden') { hidden = true; break; }
+        node = node.parentElement;
+      }
+      if (hidden) continue;
+      const r = menu.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < innerHeight) return menu;
+    }
+    return null;
+  }
+
   function ensurePostBackdrop() {
-    const open = document.querySelector('.post-card .menu-wrap.open>.dropdown');
-    if (!open) { removePostBackdrop(); return; }
-    if (document.querySelector('.deapp-post-sheet-backdrop')) return;
+    const open = visibleOpenPostMenu();
+    if (!open) {
+      removePostBackdrop();
+      return;
+    }
+    const existing = document.querySelector('.deapp-post-sheet-backdrop');
+    if (existing) {
+      existing.dataset.deappForVisibleMenu = '1';
+      return;
+    }
     const b = document.createElement('div');
     b.className = 'deapp-post-sheet-backdrop';
-    b.addEventListener('click', function () { closePostMenu(open); });
+    b.dataset.deappForVisibleMenu = '1';
+    b.addEventListener('click', function () {
+      const active = visibleOpenPostMenu();
+      if (active) closePostMenu(active);
+      else removePostBackdrop();
+    });
     document.body.appendChild(b);
   }
 
@@ -670,6 +699,25 @@
     }
   }
 
+  function recoverPageInteraction() {
+    try {
+      // A post-menu backdrop must never survive without a genuinely visible menu.
+      // A stale full-screen backdrop is enough to absorb every tap in the WebView.
+      if (!visibleOpenPostMenu()) removePostBackdrop();
+
+      // Likewise, remove only an orphan profile backdrop. The live sheet remains untouched.
+      const profileSheet = document.querySelector('.deapp-native-profile-options-sheet');
+      if (!profileSheet || !isVisible(profileSheet)) {
+        document.querySelectorAll('.deapp-native-profile-options-backdrop').forEach(function(n){ n.remove(); });
+      }
+
+      recoverPageScroll();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   function syncWebSheetState() {
     try {
       const open = hasVisibleWebSheet();
@@ -743,21 +791,29 @@
     syncPageChrome();
     syncComposer();
     syncWebSheetState();
+    recoverPageInteraction();
   }
 
   scan();
-  recoverPageScroll();
+  recoverPageInteraction();
   const observer = new MutationObserver(scan);
   observer.observe(document.body, {subtree:true, childList:true, attributes:true, attributeFilter:['class','open','hidden','aria-expanded']});
-  window.addEventListener('pageshow', recoverPageScroll);
-  window.addEventListener('focus', recoverPageScroll);
+  window.addEventListener('pageshow', recoverPageInteraction);
+  window.addEventListener('focus', recoverPageInteraction);
   document.addEventListener('visibilitychange', function(){
-    if (!document.hidden) recoverPageScroll();
+    if (!document.hidden) recoverPageInteraction();
   });
+  document.addEventListener('pointerdown', function(){
+    recoverPageInteraction();
+  }, {passive:true,capture:true});
+  document.addEventListener('touchstart', function(){
+    recoverPageInteraction();
+  }, {passive:true,capture:true});
 
   window.__DEAPP_NATIVE_V19__ = {
     refresh: scan,
     recoverScroll: recoverPageScroll,
+    recoverInteraction: recoverPageInteraction,
     openComposer: openComposer,
     closeComposer: closeComposer,
     submitComposer: submitComposer,
