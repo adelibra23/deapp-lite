@@ -96,6 +96,8 @@ public class MainActivity extends Activity {
     private boolean profilePage = false;
     private boolean ownProfilePage = false;
     private boolean composerOpen = false;
+    private boolean postDetailPage = false;
+    private String postAuthorName = "";
     private boolean webSheetOpen = false;
     private boolean welcomeShown = false;
     private View activeSheetOverlay;
@@ -109,6 +111,7 @@ public class MainActivity extends Activity {
     private boolean imeVisible = false;
     private String currentUrl = "";
     private String nativeScript;
+    private int pageLoadToken = 0;
 
     private SharedPreferences prefs;
     private ValueCallback<Uri[]> fileCallback;
@@ -414,6 +417,8 @@ public class MainActivity extends Activity {
         profilePage = false;
         ownProfilePage = false;
         composerOpen = false;
+        postDetailPage = false;
+        postAuthorName = "";
         webSheetOpen = false;
 
         root = new FrameLayout(this);
@@ -459,7 +464,13 @@ public class MainActivity extends Activity {
         toolbar.addView(toolbarLogo, leftLp);
         toolbarLogo.setOnClickListener(v -> {
             haptic(v);
-            if (composerOpen) closeComposer(); else loadRelative("index.php");
+            if (composerOpen) {
+                closeComposer();
+            } else if (postDetailPage || isPostDetailUrl(currentUrl)) {
+                navigateBackOrHome();
+            } else {
+                loadRelative("index.php");
+            }
         });
 
         toolbarTitle = text("Deapp", 20, cText);
@@ -480,6 +491,7 @@ public class MainActivity extends Activity {
         featureMenuButton.setOnClickListener(v -> {
             haptic(v);
             if (composerOpen) publishComposer();
+            else if (postDetailPage || isPostDetailUrl(currentUrl)) return;
             else if (profilePage) openProfileOptions();
             else showFeatureMenuSheet();
         });
@@ -514,6 +526,7 @@ public class MainActivity extends Activity {
         webView.setVerticalScrollBarEnabled(false);
         webView.setHorizontalScrollBarEnabled(false);
         webView.setScrollbarFadingEnabled(true);
+        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
         webView.addJavascriptInterface(new NativeBridge(), "DeappNative");
         swipeRefresh.addView(webView, new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -609,11 +622,11 @@ public class MainActivity extends Activity {
         subLp.topMargin = dp(7);
         center.addView(sub, subLp);
 
-        logo.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(460).setStartDelay(80).start();
-        welcome.animate().alpha(1f).translationY(0).setDuration(440).setStartDelay(310).start();
-        sub.animate().alpha(1f).setDuration(380).setStartDelay(570).start();
-        splash.postDelayed(() -> splash.animate().alpha(0f).setDuration(300)
-                .withEndAction(() -> { if (root != null) root.removeView(splash); }).start(), 1550);
+        logo.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(360).setStartDelay(50).start();
+        welcome.animate().alpha(1f).translationY(0).setDuration(360).setStartDelay(230).start();
+        sub.animate().alpha(1f).setDuration(300).setStartDelay(430).start();
+        splash.postDelayed(() -> splash.animate().alpha(0f).setDuration(240)
+                .withEndAction(() -> { if (root != null) root.removeView(splash); }).start(), 1120);
     }
 
     private FrameLayout buildOfflineOverlay() {
@@ -856,6 +869,22 @@ public class MainActivity extends Activity {
         }
     }
 
+    private boolean isPostDetailUrl(String url) {
+        if (url == null) return false;
+        try {
+            String path = URI.create(url).getPath();
+            return path != null && path.toLowerCase(Locale.US).endsWith("/post.php");
+        } catch (Exception e) {
+            return url.toLowerCase(Locale.US).contains("/post.php");
+        }
+    }
+
+    private void navigateBackOrHome() {
+        if (webView == null) return;
+        if (webView.canGoBack()) webView.goBack();
+        else loadRelative("index.php");
+    }
+
     private boolean isAuthUrl(String url) {
         if (url == null) return false;
         String low = url.toLowerCase(Locale.US);
@@ -865,13 +894,17 @@ public class MainActivity extends Activity {
     private void updateChromeVisibility() {
         boolean fullscreen = customView != null;
         boolean authPage = isAuthUrl(currentUrl);
+        boolean postPage = postDetailPage || isPostDetailUrl(currentUrl);
         boolean showTop = isLoggedIn && !fullscreen && !authPage;
         if (topContainer != null) topContainer.setVisibility(showTop ? View.VISIBLE : View.GONE);
         updateTopBarMode();
 
-        boolean showBottom = isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage;
+        boolean showBottom = isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage && !postPage;
         if (bottomContainer != null) bottomContainer.setVisibility(showBottom ? View.VISIBLE : View.GONE);
-        boolean showFloatingCompose = showBottom && (isHomeUrl(currentUrl) || (profilePage && ownProfilePage));
+
+        // v1.9: tombol plus tersedia di semua halaman utama yang sudah login,
+        // kecuali composer, detail postingan, auth, fullscreen dan saat keyboard terbuka.
+        boolean showFloatingCompose = isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage && !postPage;
         if (composeFab != null) {
             composeFab.setVisibility(showFloatingCompose ? View.VISIBLE : View.GONE);
             composeFab.setContentDescription(profilePage ? "Buat postingan di profil" : "Buat postingan");
@@ -887,14 +920,38 @@ public class MainActivity extends Activity {
     }
 
     private void updateTopBarMode() {
-        if (toolbarTitle == null || featureMenuButton == null) return;
+        if (toolbarTitle == null || featureMenuButton == null || toolbarLogo == null) return;
+
         if (composerOpen) {
+            toolbarLogo.setImageResource(R.drawable.ic_native_back);
+            toolbarLogo.setColorFilter(cText);
+            toolbarLogo.setPadding(dp(7), dp(7), dp(7), dp(7));
+            toolbarLogo.setContentDescription("Batal dan kembali");
             toolbarTitle.setText("Buat postingan");
+            featureMenuButton.setVisibility(View.VISIBLE);
             featureMenuButton.setImageResource(R.drawable.ic_native_send);
             featureMenuButton.setContentDescription("Terbitkan postingan");
             featureMenuButton.setColorFilter(cText);
             return;
         }
+
+        if (postDetailPage || isPostDetailUrl(currentUrl)) {
+            toolbarLogo.setImageResource(R.drawable.ic_native_back);
+            toolbarLogo.setColorFilter(cText);
+            toolbarLogo.setPadding(dp(7), dp(7), dp(7), dp(7));
+            toolbarLogo.setContentDescription("Kembali");
+            String title = postAuthorName == null ? "" : postAuthorName.trim();
+            toolbarTitle.setText(title.isEmpty() ? "Postingan" : title);
+            featureMenuButton.setVisibility(View.INVISIBLE);
+            return;
+        }
+
+        toolbarLogo.setImageResource(R.drawable.deapp_logo);
+        toolbarLogo.clearColorFilter();
+        toolbarLogo.setPadding(0, 0, 0, 0);
+        toolbarLogo.setContentDescription("Logo Deapp");
+        featureMenuButton.setVisibility(View.VISIBLE);
+
         if (profilePage || isProfileUrl(currentUrl)) {
             String title = profileDisplayName == null ? "" : profileDisplayName.trim();
             toolbarTitle.setText(title.isEmpty() ? "Profil" : title);
@@ -921,8 +978,10 @@ public class MainActivity extends Activity {
         s.setBuiltInZoomControls(false);
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
+        s.setCacheMode(WebSettings.LOAD_DEFAULT);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) s.setOffscreenPreRaster(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.8 NativeMobile/8");
+        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9 NativeMobile/9");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) s.setSafeBrowsingEnabled(true);
 
         CookieManager cm = CookieManager.getInstance();
@@ -944,15 +1003,26 @@ public class MainActivity extends Activity {
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
                 showOffline(false);
-                if (loadingOverlay != null) {
-                    boolean pullRefreshing = swipeRefresh != null && swipeRefresh.isRefreshing();
-                    loadingOverlay.setVisibility(pullRefreshing ? View.GONE : View.VISIBLE);
-                }
                 currentUrl = url == null ? "" : url;
                 profilePage = isProfileUrl(currentUrl);
+                postDetailPage = isPostDetailUrl(currentUrl);
                 profileDisplayName = "";
+                postAuthorName = "";
                 composerOpen = false;
                 webSheetOpen = false;
+
+                // Jangan langsung menutup konten dengan spinner. Spinner baru muncul jika navigasi
+                // benar-benar lambat sehingga perpindahan halaman cepat terasa instan.
+                final int token = ++pageLoadToken;
+                if (loadingOverlay != null) loadingOverlay.setVisibility(View.GONE);
+                if (root != null) root.postDelayed(() -> {
+                    boolean pullRefreshing = swipeRefresh != null && swipeRefresh.isRefreshing();
+                    if (token == pageLoadToken && !pullRefreshing && loadingOverlay != null &&
+                            webView != null && webView.getProgress() < 70) {
+                        loadingOverlay.setVisibility(View.VISIBLE);
+                    }
+                }, 220);
+
                 updateNativeNav(url);
                 updateChromeVisibility();
                 updateKeepScreenOn(url);
@@ -962,15 +1032,18 @@ public class MainActivity extends Activity {
             public void onPageCommitVisible(WebView view, String url) {
                 super.onPageCommitVisible(view, url);
                 injectNativeShell();
+                if (loadingOverlay != null) loadingOverlay.setVisibility(View.GONE);
             }
 
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
+                ++pageLoadToken;
                 injectNativeShell();
                 swipeRefresh.setRefreshing(false);
                 loadingOverlay.setVisibility(View.GONE);
                 currentUrl = url == null ? "" : url;
+                postDetailPage = isPostDetailUrl(currentUrl);
                 updateNativeNav(url);
                 updateChromeVisibility();
             }
@@ -978,6 +1051,7 @@ public class MainActivity extends Activity {
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (request.isForMainFrame()) {
+                    ++pageLoadToken;
                     swipeRefresh.setRefreshing(false);
                     loadingOverlay.setVisibility(View.GONE);
                     showOffline(true);
@@ -1076,7 +1150,7 @@ public class MainActivity extends Activity {
     private void injectNativeShell() {
         if (webView == null) return;
         if (nativeScript == null || nativeScript.isEmpty()) {
-            nativeScript = readAssetText("deapp_native_v18.js");
+            nativeScript = readAssetText("deapp_native_v19.js");
         }
         if (!nativeScript.isEmpty()) {
             webView.evaluateJavascript(nativeScript, value -> {
@@ -1087,7 +1161,7 @@ public class MainActivity extends Activity {
 
     private void syncExternalSheetLock(boolean open) {
         if (webView == null) return;
-        String js = "(function(){try{var a=window.__DEAPP_NATIVE_V18__;if(a&&a.setExternalSheetOpen){a.setExternalSheetOpen(" +
+        String js = "(function(){try{var a=window.__DEAPP_NATIVE_V19__;if(a&&a.setExternalSheetOpen){a.setExternalSheetOpen(" +
                 (open ? "true" : "false") + " );}}catch(e){}})();";
         webView.evaluateJavascript(js, null);
     }
@@ -1097,9 +1171,18 @@ public class MainActivity extends Activity {
         private float downX;
         private float downY;
         private boolean dragging;
+        private boolean dragEligible;
 
         DraggableSheet() {
             super(MainActivity.this);
+        }
+
+        @Override
+        protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+            int screen = getResources().getDisplayMetrics().heightPixels;
+            int max = Math.max(dp(280), (int)(screen * .88f));
+            int cappedHeight = View.MeasureSpec.makeMeasureSpec(max, View.MeasureSpec.AT_MOST);
+            super.onMeasure(widthMeasureSpec, cappedHeight);
         }
 
         @Override
@@ -1109,11 +1192,14 @@ public class MainActivity extends Activity {
                     downX = ev.getX();
                     downY = ev.getY();
                     dragging = false;
+                    // Drag sheet hanya dimulai dari area handle/header agar scroll dan kontrol
+                    // di dalam sheet tidak ikut terseret.
+                    dragEligible = downY <= dp(64);
                     break;
                 case MotionEvent.ACTION_MOVE:
                     float dx = Math.abs(ev.getX() - downX);
                     float dy = ev.getY() - downY;
-                    if (dy > touchSlop * 1.4f && dy > dx * 1.15f) {
+                    if (dragEligible && dy > touchSlop * 1.4f && dy > dx * 1.15f) {
                         dragging = true;
                         getParent().requestDisallowInterceptTouchEvent(true);
                         return true;
@@ -1196,8 +1282,15 @@ public class MainActivity extends Activity {
             tlp.bottomMargin = dp(14);
             sheet.addView(tv, tlp);
         }
-        sheet.addView(content, new LinearLayout.LayoutParams(
+        ScrollView sheetScroll = new ScrollView(this);
+        sheetScroll.setFillViewport(false);
+        sheetScroll.setVerticalScrollBarEnabled(false);
+        sheetScroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        sheetScroll.addView(content, new ScrollView.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        sheet.addView(sheetScroll, scrollLp);
 
         FrameLayout.LayoutParams sheetLp = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
@@ -1349,14 +1442,7 @@ public class MainActivity extends Activity {
         addFeatureTile(grid, R.drawable.ic_native_code, "Developer", () -> loadRelative("developer.php"));
         addFeatureTile(grid, R.drawable.ic_native_shop, "Toko", () -> loadRelative("shop.php"));
         addFeatureTile(grid, R.drawable.ic_native_game, "Mini Game", () -> loadRelative("games.php"));
-        addFeatureTile(grid, R.drawable.ic_native_shield, "Perizinan", this::showPermissionsSheet);
         addFeatureTile(grid, R.drawable.ic_native_settings, "Pengaturan", () -> loadRelative("settings.php"));
-
-        View actions = sheetAction("Ganti server", "Hosting, XAMPP atau alamat Deapp lain", this::showServerBottomSheet);
-        LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        alp.topMargin = dp(10);
-        content.addView(actions, alp);
 
         showBottomSheet("Menu", content);
     }
@@ -1427,7 +1513,6 @@ public class MainActivity extends Activity {
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
         addSheetAction(list, "Tetap di Deapp", "Tutup lembar ini dan lanjut menggunakan aplikasi", () -> {});
-        addSheetAction(list, "Ganti server", "Gunakan hosting atau server Deapp lain", this::showServerBottomSheet);
         addSheetAction(list, "Tutup aplikasi", "Keluar dari Deapp Lite", this::finish);
         showBottomSheet("Keluar dari Deapp?", list);
     }
@@ -1456,8 +1541,10 @@ public class MainActivity extends Activity {
             runOnUiThread(() -> {
                 String type = pageType == null ? "" : pageType.trim().toLowerCase(Locale.US);
                 profilePage = "profile".equals(type) || isProfileUrl(currentUrl);
+                postDetailPage = "post".equals(type) || isPostDetailUrl(currentUrl);
                 ownProfilePage = profilePage && ownProfile;
-                profileDisplayName = title == null ? "" : title.trim();
+                if (profilePage) profileDisplayName = title == null ? "" : title.trim();
+                if (postDetailPage) postAuthorName = title == null ? "" : title.trim();
                 updateChromeVisibility();
             });
         }
@@ -1486,6 +1573,11 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void showPermissions() {
             runOnUiThread(MainActivity.this::showPermissionsSheet);
+        }
+
+        @JavascriptInterface
+        public void showServerSettings() {
+            runOnUiThread(MainActivity.this::showServerBottomSheet);
         }
 
         @JavascriptInterface
@@ -1725,7 +1817,7 @@ public class MainActivity extends Activity {
         name.setGravity(Gravity.CENTER);
         box.addView(name);
 
-        TextView version = text("Versi 1.8.0-lite · Build 9", 13, cMuted);
+        TextView version = text("Versi 1.9.0-lite · Build 10", 13, cMuted);
         version.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams versionLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -1912,6 +2004,10 @@ public class MainActivity extends Activity {
             closeComposer();
             return;
         }
+        if (postDetailPage || isPostDetailUrl(currentUrl)) {
+            navigateBackOrHome();
+            return;
+        }
         if (webView != null && webView.canGoBack()) {
             webView.goBack();
             return;
@@ -1946,7 +2042,10 @@ public class MainActivity extends Activity {
         profilePage = false;
         ownProfilePage = false;
         composerOpen = false;
+        postDetailPage = false;
+        postAuthorName = "";
         webSheetOpen = false;
+        ++pageLoadToken;
         navHome = null;
         navMessage = null;
         navCompose = null;
