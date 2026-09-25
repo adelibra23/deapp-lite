@@ -31,6 +31,7 @@ import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
+import android.view.animation.LinearInterpolator;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.GeolocationPermissions;
@@ -89,6 +90,9 @@ public class MainActivity extends Activity {
     private FrameLayout loadingOverlay;
     private ImageView loadingLogo;
     private boolean loadingLogoPulseUp = true;
+    private FrameLayout refreshIndicator;
+    private ImageView refreshIcon;
+    private boolean refreshIconAnimating = false;
     private FrameLayout startupSplashOverlay;
     private ImageView startupSplashLogo;
     private boolean startupSplashVisible = false;
@@ -107,6 +111,8 @@ public class MainActivity extends Activity {
     private String pageChromeType = "";
     private boolean composerOpen = false;
     private boolean webSheetOpen = false;
+    private boolean uiScrolling = false;
+    private int scrollUiGeneration = 0;
     private View activeSheetOverlay;
     private View activeSheetPanel;
     private NavItem navHome;
@@ -166,10 +172,14 @@ public class MainActivity extends Activity {
     }
 
     private void readPalette() {
-        dark = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
+        boolean systemDark = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
                 == Configuration.UI_MODE_NIGHT_YES;
-        // v1.4: palet monokrom ala aplikasi sosial native modern / Threads-inspired.
-        // Biru Deapp tetap dipakai untuk aksi primer dan progress agar identitas brand tidak hilang.
+        setPalette(systemDark);
+    }
+
+    private void setPalette(boolean isDark) {
+        dark = isDark;
+        // Palet monokrom ala Threads. Mode web Deapp dapat menyinkronkan nilai ini saat runtime.
         cBg = Color.parseColor(dark ? "#000000" : "#FFFFFF");
         cSurface = Color.parseColor(dark ? "#000000" : "#FFFFFF");
         cSurface2 = Color.parseColor(dark ? "#171717" : "#F5F5F5");
@@ -521,10 +531,11 @@ public class MainActivity extends Activity {
         shell.addView(content, contentLp);
 
         swipeRefresh = new SwipeRefreshLayout(this);
-        // v1.8: pull-to-refresh memakai satu spinner native dan dinonaktifkan saat sheet/modal aktif.
+        // v1.9.12: gesture refresh tetap native, tetapi spinner bawaan dibuat transparan
+        // dan diganti indikator ikon refresh yang lebih bersih di atas WebView.
         swipeRefresh.setSize(SwipeRefreshLayout.DEFAULT);
-        swipeRefresh.setColorSchemeColors(cAccent);
-        swipeRefresh.setProgressBackgroundColorSchemeColor(cSurface);
+        swipeRefresh.setColorSchemeColors(Color.TRANSPARENT);
+        swipeRefresh.setProgressBackgroundColorSchemeColor(Color.TRANSPARENT);
         swipeRefresh.setDistanceToTriggerSync(dp(72));
         swipeRefresh.setSlingshotDistance(dp(92));
         swipeRefresh.setProgressViewOffset(false, dp(6), dp(58));
@@ -539,15 +550,31 @@ public class MainActivity extends Activity {
         webView.setHorizontalScrollBarEnabled(false);
         webView.setScrollbarFadingEnabled(true);
         webView.addJavascriptInterface(new NativeBridge(), "DeappNative");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            webView.setOnScrollChangeListener((v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
+                if (Math.abs(scrollY - oldScrollY) < dp(1)) return;
+                final int generation = ++scrollUiGeneration;
+                setUiScrolling(true);
+                webView.postDelayed(() -> {
+                    if (generation == scrollUiGeneration) setUiScrolling(false);
+                }, 190);
+            });
+        }
         swipeRefresh.addView(webView, new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         swipeRefresh.setOnRefreshListener(() -> {
             haptic(swipeRefresh);
-            if (webView != null) webView.reload();
+            showRefreshIndicator(true);
+            refreshCurrentPage();
         });
         swipeRefresh.setOnChildScrollUpCallback((parent, child) ->
                 activeSheetOverlay != null || webSheetOpen || composerOpen ||
                         (webView != null && webView.canScrollVertically(-1)));
+
+        refreshIndicator = buildRefreshIndicator();
+        FrameLayout.LayoutParams refreshLp = new FrameLayout.LayoutParams(dp(46), dp(46), Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        refreshLp.topMargin = dp(10);
+        content.addView(refreshIndicator, refreshLp);
 
         loadingOverlay = buildLoadingOverlay();
         content.addView(loadingOverlay, new FrameLayout.LayoutParams(
@@ -636,6 +663,60 @@ public class MainActivity extends Activity {
                             .withEndAction(this::startStartupLogoAnimation)
                             .start();
                 }).start();
+    }
+
+    private FrameLayout buildRefreshIndicator() {
+        FrameLayout holder = new FrameLayout(this);
+        holder.setBackground(bordered(cSurface, cBorder, 99));
+        holder.setElevation(dp(8));
+        holder.setVisibility(View.GONE);
+        holder.setAlpha(0f);
+        holder.setScaleX(.84f);
+        holder.setScaleY(.84f);
+        holder.setClickable(false);
+        holder.setFocusable(false);
+
+        refreshIcon = new ImageView(this);
+        refreshIcon.setImageResource(R.drawable.ic_native_refresh);
+        refreshIcon.setColorFilter(cText);
+        refreshIcon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        refreshIcon.setPadding(dp(11), dp(11), dp(11), dp(11));
+        refreshIcon.setContentDescription("Memperbarui halaman");
+        holder.addView(refreshIcon, new FrameLayout.LayoutParams(dp(46), dp(46), Gravity.CENTER));
+        return holder;
+    }
+
+    private void showRefreshIndicator(boolean show) {
+        if (refreshIndicator == null) return;
+        refreshIndicator.animate().cancel();
+        if (show) {
+            refreshIndicator.setVisibility(View.VISIBLE);
+            refreshIndicator.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(150).start();
+            refreshIconAnimating = true;
+            startRefreshIconAnimation();
+        } else {
+            refreshIconAnimating = false;
+            if (refreshIcon != null) refreshIcon.animate().cancel();
+            refreshIndicator.animate().alpha(0f).scaleX(.88f).scaleY(.88f).setDuration(140)
+                    .withEndAction(() -> {
+                        if (!refreshIconAnimating && refreshIndicator != null) refreshIndicator.setVisibility(View.GONE);
+                    }).start();
+        }
+    }
+
+    private void startRefreshIconAnimation() {
+        if (!refreshIconAnimating || refreshIcon == null || refreshIndicator == null || refreshIndicator.getVisibility() != View.VISIBLE) return;
+        refreshIcon.animate().cancel();
+        refreshIcon.animate().rotationBy(360f).setDuration(620).setInterpolator(new LinearInterpolator())
+                .withEndAction(this::startRefreshIconAnimation).start();
+    }
+
+    private void refreshCurrentPage() {
+        if (webView == null) return;
+        String active = webView.getUrl();
+        if (active != null && !active.trim().isEmpty()) currentUrl = active;
+        // reload() mempertahankan URL aktif lengkap (query/hash) tanpa menambah entri history baru.
+        webView.reload();
     }
 
     private FrameLayout buildLoadingOverlay() {
@@ -813,6 +894,7 @@ public class MainActivity extends Activity {
         final ImageView icon;
         final boolean primary;
         Bitmap avatarBitmap;
+        boolean activeState = false;
 
         NavItem(int iconRes, String description, boolean primary, Runnable action) {
             this.primary = primary;
@@ -823,12 +905,12 @@ public class MainActivity extends Activity {
 
             icon = new ImageView(MainActivity.this);
             icon.setImageResource(iconRes);
-            icon.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
             icon.setClipToOutline(true);
             icon.setColorFilter(primary ? cBg : cMuted);
-            icon.setPadding(primary ? dp(9) : dp(10), primary ? dp(9) : dp(10), primary ? dp(9) : dp(10), primary ? dp(9) : dp(10));
-            icon.setBackground(primary ? rounded(cText, 99) : rounded(Color.TRANSPARENT, 16));
-            FrameLayout.LayoutParams iconLp = new FrameLayout.LayoutParams(primary ? dp(42) : dp(44), primary ? dp(42) : dp(44), Gravity.CENTER);
+            icon.setPadding(primary ? dp(10) : dp(9), primary ? dp(10) : dp(9), primary ? dp(10) : dp(9), primary ? dp(10) : dp(9));
+            icon.setBackground(primary ? rounded(cText, 99) : rounded(Color.TRANSPARENT, 14));
+            FrameLayout.LayoutParams iconLp = new FrameLayout.LayoutParams(primary ? dp(42) : dp(40), primary ? dp(42) : dp(40), Gravity.CENTER);
             root.addView(icon, iconLp);
 
             root.setOnClickListener(v -> {
@@ -850,11 +932,12 @@ public class MainActivity extends Activity {
             if (primary) return;
             avatarBitmap = null;
             icon.setImageResource(fallbackRes);
-            icon.setPadding(dp(10), dp(10), dp(10), dp(10));
-            icon.setBackground(rounded(Color.TRANSPARENT, 16));
+            icon.setPadding(dp(9), dp(9), dp(9), dp(9));
+            icon.setBackground(rounded(Color.TRANSPARENT, 14));
         }
 
         void setActive(boolean active) {
+            activeState = active;
             if (primary) {
                 icon.setColorFilter(cBg);
                 icon.setAlpha(1f);
@@ -872,10 +955,18 @@ public class MainActivity extends Activity {
                 return;
             }
             icon.setColorFilter(active ? cText : cMuted);
-            icon.setAlpha(active ? 1f : .72f);
-            icon.setBackground(rounded(Color.TRANSPARENT, 16));
-            icon.setScaleX(active ? 1.05f : 1f);
-            icon.setScaleY(active ? 1.05f : 1f);
+            icon.setAlpha(active ? 1f : .76f);
+            icon.setBackground(active ? rounded(cSurface2, 14) : rounded(Color.TRANSPARENT, 14));
+            icon.setScaleX(active ? 1.03f : 1f);
+            icon.setScaleY(active ? 1.03f : 1f);
+        }
+
+        void refreshTheme() {
+            if (avatarBitmap != null && !primary) {
+                icon.clearColorFilter();
+                icon.setBackground(bordered(cSurface, activeState ? cText : cBorder, 99));
+            }
+            setActive(activeState);
         }
     }
 
@@ -942,6 +1033,16 @@ public class MainActivity extends Activity {
         }
     }
 
+    private boolean isNotificationsUrl(String url) {
+        if (url == null) return false;
+        try {
+            String path = URI.create(url).getPath();
+            return path != null && path.toLowerCase(Locale.US).endsWith("/notifications.php");
+        } catch (Exception e) {
+            return url.toLowerCase(Locale.US).contains("/notifications.php");
+        }
+    }
+
     private boolean isReelsUrl(String url) {
         if (url == null) return false;
         try {
@@ -993,6 +1094,18 @@ public class MainActivity extends Activity {
         boolean authPage = isAuthUrl(currentUrl);
         boolean shortVideoPage = reelsPage || isReelsUrl(currentUrl);
         boolean specialWebChrome = isSpecialWebChromeType(pageChromeType) || isSpecialSectionUrl(currentUrl);
+        boolean notificationPage = "notifications".equalsIgnoreCase(pageChromeType) || isNotificationsUrl(currentUrl);
+        // Notifikasi tetap memakai header web khusus, tetapi bottom bar kembali ke navigasi umum Android.
+        boolean specialWebOwnsBottom = specialWebChrome && !notificationPage;
+        boolean homePage = isHomeUrl(currentUrl);
+        if (refreshIndicator != null && refreshIndicator.getLayoutParams() instanceof FrameLayout.LayoutParams) {
+            FrameLayout.LayoutParams rlp = (FrameLayout.LayoutParams) refreshIndicator.getLayoutParams();
+            int wantedTop = (isSpecialWebChromeType(pageChromeType) || isSpecialSectionUrl(currentUrl)) ? dp(62) : dp(10);
+            if (rlp.topMargin != wantedTop) {
+                rlp.topMargin = wantedTop;
+                refreshIndicator.setLayoutParams(rlp);
+            }
+        }
 
         // Reels serta section khusus v1.9.6+ menggambar header/footer kontekstual di dalam WebView.
         // Chrome Android generik disembunyikan supaya tidak ada dua toolbar/nav yang bertumpuk.
@@ -1001,12 +1114,15 @@ public class MainActivity extends Activity {
         updateTopBarMode();
 
         boolean sheetActive = activeSheetOverlay != null || webSheetOpen;
-        boolean showBottom = isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage && !postDetailPage && !shortVideoPage && !specialWebChrome && !sheetActive;
+        boolean showBottom = isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage && !postDetailPage && !shortVideoPage && !specialWebOwnsBottom && !sheetActive;
         if (bottomContainer != null) bottomContainer.setVisibility(showBottom ? View.VISIBLE : View.GONE);
-        boolean showFloatingCompose = isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage && !postDetailPage && !shortVideoPage && !specialWebChrome && !sheetActive;
+        // Aksi membuat postingan hanya ada di Beranda. Di halaman lain bottom bar tetap dapat tampil,
+        // tetapi slot + disingkirkan supaya tidak terasa sebagai tombol global.
+        if (navCompose != null) navCompose.root.setVisibility(showBottom && homePage ? View.VISIBLE : View.GONE);
+        boolean showFloatingCompose = homePage && isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage && !postDetailPage && !shortVideoPage && !specialWebChrome && !sheetActive && !uiScrolling;
         if (composeFab != null) {
             composeFab.setVisibility(showFloatingCompose ? View.VISIBLE : View.GONE);
-            composeFab.setContentDescription(profilePage ? "Buat postingan di profil" : "Buat postingan");
+            composeFab.setContentDescription("Buat postingan");
         }
 
         // Web bottom sheets berada di dalam WebView sehingga tidak otomatis meredupkan
@@ -1027,10 +1143,63 @@ public class MainActivity extends Activity {
         updateRefreshAvailability();
     }
 
+    private void setUiScrolling(boolean scrolling) {
+        if (uiScrolling == scrolling) return;
+        uiScrolling = scrolling;
+        updateChromeVisibility();
+    }
+
+    private void applyRuntimeTheme(boolean isDark) {
+        if (dark == isDark) {
+            if (root != null) applySystemBarAppearance(root);
+            return;
+        }
+        setPalette(isDark);
+        if (root != null) root.setBackgroundColor(cBg);
+        if (shell != null) shell.setBackgroundColor(cBg);
+        if (webView != null) webView.setBackgroundColor(cBg);
+        if (topContainer != null) {
+            topContainer.setBackgroundColor(cSurface);
+            if (topContainer.getChildCount() > 1) topContainer.getChildAt(topContainer.getChildCount() - 1).setBackgroundColor(cBorder);
+        }
+        if (bottomContainer != null) {
+            bottomContainer.setBackgroundColor(cSurface);
+            if (bottomContainer.getChildCount() > 1) bottomContainer.getChildAt(bottomContainer.getChildCount() - 1).setBackgroundColor(cBorder);
+        }
+        if (toolbarTitle != null) toolbarTitle.setTextColor(cText);
+        if (featureMenuButton != null) featureMenuButton.setColorFilter(cText);
+        if (composeFab != null) {
+            composeFab.setColorFilter(dark ? Color.BLACK : Color.WHITE);
+            composeFab.setBackground(rounded(dark ? Color.WHITE : Color.BLACK, 18));
+        }
+        if (swipeRefresh != null) {
+            swipeRefresh.setColorSchemeColors(Color.TRANSPARENT);
+            swipeRefresh.setProgressBackgroundColorSchemeColor(Color.TRANSPARENT);
+        }
+        if (refreshIndicator != null) refreshIndicator.setBackground(bordered(cSurface, cBorder, 99));
+        if (refreshIcon != null) refreshIcon.setColorFilter(cText);
+        if (navHome != null) navHome.refreshTheme();
+        if (navMessage != null) navMessage.refreshTheme();
+        if (navCompose != null) navCompose.refreshTheme();
+        if (navNotif != null) navNotif.refreshTheme();
+        if (navProfile != null) navProfile.refreshTheme();
+        updateTopBarMode();
+        updateChromeVisibility();
+    }
+
     private void updateRefreshAvailability() {
         if (swipeRefresh == null) return;
-        boolean enabled = isHomeUrl(currentUrl) && activeSheetOverlay == null && !webSheetOpen && !composerOpen && customView == null;
-        if (!enabled && swipeRefresh.isRefreshing()) swipeRefresh.setRefreshing(false);
+        String low = currentUrl == null ? "" : currentUrl.toLowerCase(Locale.US);
+        boolean messageThread = low.contains("/messages.php") && (low.contains("?c=") || low.contains("&c="));
+        boolean formHeavy = low.contains("/settings.php") || low.contains("/security") || low.contains("/profile-edit.php") ||
+                low.contains("/ai.php") || low.contains("/login.php") || low.contains("/register.php") || low.contains("/forgot-password.php");
+        boolean immersive = reelsPage || isReelsUrl(currentUrl) || "story".equalsIgnoreCase(pageChromeType);
+        boolean enabled = isLoggedIn && !messageThread && !formHeavy && !immersive && !postDetailPage &&
+                activeSheetOverlay == null && !webSheetOpen && !composerOpen && customView == null;
+        if (!enabled && swipeRefresh.isRefreshing()) {
+            swipeRefresh.setRefreshing(false);
+            showRefreshIndicator(false);
+        }
         swipeRefresh.setEnabled(enabled);
     }
 
@@ -1090,7 +1259,7 @@ public class MainActivity extends Activity {
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.7 NativeMobile/9.7");
+        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.13 NativeMobile/9.13");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) s.setSafeBrowsingEnabled(true);
 
         CookieManager cm = CookieManager.getInstance();
@@ -1154,6 +1323,7 @@ public class MainActivity extends Activity {
                 injectNativeShell();
                 view.postDelayed(MainActivity.this::recoverWebScroll, 120);
                 swipeRefresh.setRefreshing(false);
+                showRefreshIndicator(false);
                 hideLoading();
                 currentUrl = url == null ? "" : url;
                 profilePage = isProfileUrl(currentUrl);
@@ -1169,6 +1339,7 @@ public class MainActivity extends Activity {
                 if (request.isForMainFrame()) {
                     loadingGeneration++;
                     swipeRefresh.setRefreshing(false);
+                    showRefreshIndicator(false);
                     hideLoading();
                     showOffline(true);
                 }
@@ -1510,25 +1681,26 @@ public class MainActivity extends Activity {
         LinearLayout tile = new LinearLayout(this);
         tile.setOrientation(LinearLayout.VERTICAL);
         tile.setGravity(Gravity.CENTER);
-        tile.setPadding(dp(7), dp(11), dp(7), dp(10));
-        tile.setBackground(bordered(cSurface2, dark ? Color.parseColor("#242424") : Color.parseColor("#ECECEC"), 18));
+        tile.setPadding(dp(7), dp(12), dp(7), dp(10));
+        tile.setBackground(bordered(cSurface, dark ? Color.parseColor("#292929") : Color.parseColor("#E7E7E7"), 18));
+        tile.setElevation(dp(1));
         tile.setClickable(true);
         tile.setFocusable(true);
         tile.setContentDescription(label);
 
         FrameLayout iconBubble = new FrameLayout(this);
-        iconBubble.setBackground(rounded(iconBg, 14));
-        LinearLayout.LayoutParams bubbleLp = new LinearLayout.LayoutParams(dp(44), dp(44));
+        iconBubble.setBackground(rounded(iconBg, 16));
+        LinearLayout.LayoutParams bubbleLp = new LinearLayout.LayoutParams(dp(46), dp(46));
         tile.addView(iconBubble, bubbleLp);
 
         ImageView icon = new ImageView(this);
         icon.setImageResource(iconRes);
         icon.setColorFilter(iconColor);
-        icon.setPadding(dp(10), dp(10), dp(10), dp(10));
-        FrameLayout.LayoutParams iconLp = new FrameLayout.LayoutParams(dp(44), dp(44), Gravity.CENTER);
+        icon.setPadding(dp(11), dp(11), dp(11), dp(11));
+        FrameLayout.LayoutParams iconLp = new FrameLayout.LayoutParams(dp(46), dp(46), Gravity.CENTER);
         iconBubble.addView(icon, iconLp);
 
-        TextView name = text(label, 11.5f, cText);
+        TextView name = text(label, 11.8f, cText);
         name.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         name.setGravity(Gravity.CENTER);
         name.setMaxLines(1);
@@ -1711,6 +1883,16 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void syncTheme(boolean darkMode) {
+            runOnUiThread(() -> applyRuntimeTheme(darkMode));
+        }
+
+        @JavascriptInterface
+        public void syncScrollState(boolean scrolling) {
+            runOnUiThread(() -> setUiScrolling(scrolling));
+        }
+
+        @JavascriptInterface
         public void postPublished() {
             runOnUiThread(MainActivity.this::playPostPublishedSound);
         }
@@ -1752,7 +1934,7 @@ public class MainActivity extends Activity {
                 conn.setInstanceFollowRedirects(true);
                 String cookie = CookieManager.getInstance().getCookie(avatarUrl);
                 if (cookie != null && !cookie.isEmpty()) conn.setRequestProperty("Cookie", cookie);
-                conn.setRequestProperty("User-Agent", "DeappLite/1.9.7");
+                conn.setRequestProperty("User-Agent", "DeappLite/1.9.13");
                 try (InputStream in = conn.getInputStream()) {
                     Bitmap bitmap = BitmapFactory.decodeStream(in);
                     if (bitmap != null) runOnUiThread(() -> {
@@ -1966,7 +2148,7 @@ public class MainActivity extends Activity {
         name.setGravity(Gravity.CENTER);
         box.addView(name);
 
-        TextView version = text("Versi 1.9.10-lite · Build 20", 13, cMuted);
+        TextView version = text("Versi 1.9.13-lite · Build 23", 13, cMuted);
         version.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams versionLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -2200,6 +2382,10 @@ public class MainActivity extends Activity {
         composeFab = null;
         if (loadingLogo != null) loadingLogo.animate().cancel();
         loadingLogo = null;
+        refreshIconAnimating = false;
+        if (refreshIcon != null) refreshIcon.animate().cancel();
+        refreshIcon = null;
+        refreshIndicator = null;
         startupSplashVisible = false;
         if (startupSplashLogo != null) startupSplashLogo.animate().cancel();
         startupSplashLogo = null;

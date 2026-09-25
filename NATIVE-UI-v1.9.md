@@ -29,3 +29,38 @@ Versi: **1.9.7-lite · Build 17 · NativeMobile/9.7**.
 - Ringkasan harian Beranda disembunyikan agar Story lebih cepat terlihat.
 - Feed tabs diperbesar sedikit dan diberi aksen warna.
 - Reaction postingan/QA memberi haptic feedback melalui native bridge.
+
+## v1.9.11 — WhatsApp Story, Settings & Dark UI
+
+- Story tray memakai aksen hijau untuk story belum dilihat dan viewer dibuat full-screen seperti Status WhatsApp.
+- Progress, identitas pengguna, media, area tap navigasi, reply bar, reaction dan sheet komentar disusun ulang tanpa mengganti handler backend Story.
+- Footer khusus Pengaturan dihapus; header Pengaturan hanya Back + judul tengah.
+- Visual Pengaturan dirapikan dengan chip kategori dan section yang lebih ringan.
+- Theme `html.is-dark` disinkronkan ke palet native Android melalui `syncTheme`.
+- Floating/action button disembunyikan ketika scroll dan kembali setelah scroll berhenti.
+- Tombol compose/post hanya aktif pada Beranda.
+- Kartu postingan mendapat penyempurnaan tipografi, media, stats dan action spacing.
+
+Versi: **1.9.11-lite · Build 21**.
+
+## v1.9.12 — Professional Icons, WhatsApp Chat & Refresh
+
+- Bottom navigation memakai ikon outline baru dan active-state yang lebih bersih.
+- Menu fitur DeApp memakai ikon native outline yang konsisten.
+- Toko & Dompet tidak memakai footer navigasi khusus.
+- Daftar Chat tidak memakai footer navigasi khusus.
+- Riwayat Chat dan body Chat dipoles ala WhatsApp.
+- Refresh memakai indikator ikon profesional dan mempertahankan URL aktif.
+
+Versi: **1.9.12-lite · Build 22**.
+
+## v1.9.13 — Post Counts, Profile Header & Notification Tabs
+
+- Angka reaction, komentar, dan bagikan diposisikan langsung di samping ikon aksi masing-masing.
+- Ringkasan statistik lama otomatis disederhanakan setelah angka dipindahkan.
+- Header Profil: logo DeApp kiri, `@username` tengah, tiga titik kanan.
+- Notifikasi memakai bottom navigation umum Android.
+- Navigasi kategori Notifikasi dipindahkan ke tab horizontal-scroll di atas konten.
+- Tab memakai link/filter asli DeApp agar seluruh kategori backend tetap berfungsi.
+
+Versi: **1.9.13-lite · Build 23 · NativeMobile/9.13**.

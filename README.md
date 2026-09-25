@@ -1,19 +1,18 @@
-# DeApp Lite Android v1.9.10 — Home & Reaction Visual Refresh
+# DeApp Lite Android v1.9.13 — Post Counts, Profile Header & Notification Tabs
 
-Patch ini melanjutkan DeApp Lite v1.9.9 dan berfokus pada tampilan Beranda, menu fitur, serta feedback reaction.
+Patch ini melanjutkan DeApp Lite v1.9.12.
 
-## Perubahan utama
+Perubahan utama:
 
-- Menu fitur DeApp pada bottom sheet native sekarang memakai ikon dengan warna berbeda per fitur dan bubble warna lembut agar lebih hidup serta cepat dikenali.
-- Ringkasan harian di Beranda (`daily-strip`) disembunyikan di DeApp Lite. Bagian koin, absen/streak, misi harian, tiket di tas, dan level tidak lagi memenuhi area sebelum Story. Fitur aslinya tetap tersedia di Toko & Dompet/halaman terkait.
-- Story langsung naik ke bagian atas Beranda setelah header.
-- Tab Beranda **Untukmu, Mengikuti, Topik, Populer, Media, Tanya-jawab** dibuat sedikit lebih besar, berbentuk pill, dan mendapat aksen warna berbeda.
-- Tab aktif memiliki border/aksen yang lebih jelas tanpa mengubah URL atau handler tab asli DeApp.
-- Tombol reaction postingan dan pilihan emoji reaction memberi feedback haptic/getaran Android ketika ditap.
-- Haptic dipicu lewat bridge `DeappNative.tap()`, sehingga tidak mengganggu request reaction atau gesture scroll.
+- jumlah reaction dipindahkan dekat ikon reaction pada bar aksi postingan;
+- jumlah komentar dipindahkan dekat ikon komentar;
+- jumlah bagikan dipindahkan dekat ikon bagikan;
+- ringkasan lama untuk angka yang sudah dipindahkan disembunyikan agar kartu lebih ringkas;
+- header Profil memakai logo DeApp di kiri, @username profil di tengah, dan menu tiga titik di kanan;
+- Notifikasi kembali memakai bottom navigation umum Android;
+- footer kategori Notifikasi khusus dihapus;
+- filter Notifikasi memakai tab asli DeApp di bagian atas dan dapat digeser horizontal;
+- semua kategori asli tetap tersedia: Semua, Sebutan, Balasan, Reaksi, Hadiah & koin, Pengikut, Prediksi, Live, dan Sistem;
+- dark mode, modal handling, refresh, Story, Chat, AI, Reels, dan perbaikan versi sebelumnya tetap dipertahankan.
 
-## Stabilitas yang dipertahankan
-
-Patch tetap membawa DeApp AI burger + FAB, universal bottom-sheet detection, UI chat Threads-style, Story/Reels chrome, posting 250 karakter, splash logo 5 detik, composer post fix, serta optimasi WebView dari versi sebelumnya.
-
-Versi Android: **1.9.10-lite (Build 20)**.
+Versi Android: **1.9.13-lite (Build 23)**.

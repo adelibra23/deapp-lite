@@ -15,6 +15,9 @@
   let lastSessionKey = '';
   let lastChromeKey = '';
   let lastComposerState = null;
+  let lastThemeDark = null;
+  let scrollUiTimer = 0;
+  let scrollUiActive = false;
   const root = document.documentElement;
   const path = (location.pathname || '').toLowerCase();
   const isProfilePage = /\/profile\.php$/.test(path);
@@ -152,14 +155,24 @@
     }
     .post-card:not(.post-embedded) .post-stats .stat-right{margin-left:0!important;gap:10px!important;flex-wrap:wrap!important}
     .post-card:not(.post-embedded) .stat-reactions,.post-card:not(.post-embedded) .stat-link{font-size:12px!important}
+    .post-card:not(.post-embedded) .post-stats .deapp-stat-relocated{display:none!important}
+    .post-card:not(.post-embedded) .post-stats.deapp-stats-empty{display:none!important}
     .post-card:not(.post-embedded) .post-actions{
-      justify-content:flex-start!important;gap:1px!important;padding:3px 10px 1px 56px!important;border-top:0!important;min-height:44px!important;overflow:visible!important;
+      justify-content:flex-start!important;gap:2px!important;padding:3px 10px 3px 56px!important;border-top:0!important;min-height:44px!important;overflow:visible!important;
     }
     .post-card:not(.post-embedded) .post-actions .react-wrap{flex:0 0 auto!important}
     .post-card:not(.post-embedded) .act-btn{
       flex:0 0 42px!important;width:42px!important;min-width:42px!important;height:42px!important;min-height:42px!important;
       padding:9px!important;border-radius:50%!important;gap:0!important;color:var(--text)!important;background:transparent!important;
     }
+    .post-card:not(.post-embedded) .act-btn.deapp-counted-action{
+      flex:0 0 auto!important;width:auto!important;min-width:48px!important;padding:8px 9px!important;border-radius:22px!important;gap:5px!important;
+    }
+    .post-card:not(.post-embedded) .deapp-action-count{
+      display:inline-flex!important;align-items:center!important;justify-content:flex-start!important;min-width:8px!important;
+      font-size:12.5px!important;line-height:1!important;font-weight:750!important;color:var(--text-muted)!important;font-variant-numeric:tabular-nums!important;
+    }
+    .post-card:not(.post-embedded) .js-react-btn.reacted .deapp-action-count{color:currentColor!important}
     .post-card:not(.post-embedded) .act-btn:hover{background:transparent!important}
     .post-card:not(.post-embedded) .act-btn .act-label{display:none!important}
     .post-card:not(.post-embedded) .act-btn svg{width:21px!important;height:21px!important}
@@ -448,8 +461,30 @@
     .deapp-section-nav.is-active:after{content:"";width:4px;height:4px;border-radius:50%;background:currentColor;margin-top:-1px}
     .deapp-section-nav.deapp-section-primary span{width:42px;height:34px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(135deg,var(--acc-from),var(--acc-to));color:#fff;box-shadow:0 7px 18px color-mix(in srgb,var(--acc) 22%,transparent)}
     .deapp-section-nav.deapp-section-primary svg{width:20px;height:20px}
-    html.deapp-native-notifications .page-head,html.deapp-native-notifications .tabs.sticky-tabs{display:none!important}
-    html.deapp-native-notifications .nx-filter{margin-top:0!important}
+    /* v1.9.13 — Notifikasi memakai bottom navigation umum Android. Filter kategori
+       dipindahkan ke tab horizontal di atas konten seperti tab sosial modern. */
+    html.deapp-native-notifications.deapp-has-section-chrome body{padding-bottom:14px!important}
+    html.deapp-native-notifications .page-head{display:none!important}
+    html.deapp-native-notifications .tabs.sticky-tabs,html.deapp-native-notifications .deapp-notification-tabs{
+      display:flex!important;position:sticky!important;top:calc(58px + env(safe-area-inset-top))!important;z-index:4430!important;
+      width:100%!important;max-width:none!important;margin:0!important;padding:7px 9px 8px!important;gap:6px!important;
+      overflow-x:auto!important;overflow-y:hidden!important;flex-wrap:nowrap!important;scrollbar-width:none!important;overscroll-behavior-x:contain!important;
+      background:color-mix(in srgb,var(--surface) 96%,transparent)!important;border:0!important;border-bottom:1px solid color-mix(in srgb,var(--border) 82%,transparent)!important;
+      border-radius:0!important;box-shadow:none!important;backdrop-filter:blur(18px)!important;-webkit-backdrop-filter:blur(18px)!important;
+      scroll-padding-inline:10px!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-x!important
+    }
+    html.deapp-native-notifications .tabs.sticky-tabs::-webkit-scrollbar,html.deapp-native-notifications .deapp-notification-tabs::-webkit-scrollbar{display:none!important}
+    html.deapp-native-notifications .deapp-notification-tabs .tab{
+      flex:0 0 auto!important;min-width:max-content!important;min-height:38px!important;padding:8px 13px!important;border-radius:19px!important;
+      border:1px solid color-mix(in srgb,var(--border) 88%,transparent)!important;background:var(--surface)!important;color:var(--text-muted)!important;
+      font-size:12.5px!important;font-weight:760!important;gap:6px!important;white-space:nowrap!important;box-shadow:none!important
+    }
+    html.deapp-native-notifications .deapp-notification-tabs .tab svg{width:16px!important;height:16px!important}
+    html.deapp-native-notifications .deapp-notification-tabs .tab.active{
+      color:var(--text)!important;border-color:color-mix(in srgb,var(--acc) 42%,var(--border))!important;
+      background:color-mix(in srgb,var(--acc) 11%,var(--surface))!important
+    }
+    html.deapp-native-notifications .nx-filter{margin-top:8px!important}
     html.deapp-native-live .live-discover-head,html.deapp-native-live .live-tabs{display:none!important}
     html.deapp-native-live .live-page-shell{padding-top:8px!important;padding-bottom:92px!important}
     html.deapp-native-ai .deapp-ai-hero{margin-top:0!important}
@@ -622,6 +657,238 @@
     html.deapp-native-settings-family .deapp-section-header .deapp-section-action{width:40px;height:40px;background:transparent!important}
     html.deapp-native-settings-family .deapp-section-header .deapp-section-left:active,
     html.deapp-native-settings-family .deapp-section-header .deapp-section-action:active{background:var(--surface-2)!important}
+
+
+    /* v1.9.11 — Story bergaya Status WhatsApp: media edge-to-edge, progress/user overlay,
+       area tap kiri/kanan transparan, serta reply bar menempel di bawah. */
+    .page-home .story-tray{gap:10px!important;padding:8px 10px 14px!important;background:var(--surface)!important}
+    .page-home .story-cell{width:68px!important;gap:5px!important}
+    .page-home .story-ring,.page-home .story-add-img{width:60px!important;height:60px!important;padding:2.5px!important}
+    .page-home .story-ring.unseen{background:#25D366!important}
+    .page-home .story-ring.seen{background:color-mix(in srgb,var(--text-muted) 42%,var(--surface))!important}
+    .page-home .story-ring img,.page-home .story-add-img img{border:2.5px solid var(--surface)!important}
+    .page-home .story-add-img{background:color-mix(in srgb,#25D366 20%,var(--surface))!important}
+    .page-home .story-add-plus{width:22px!important;height:22px!important;right:-1px!important;bottom:-1px!important;background:#25D366!important;border-color:var(--surface)!important}
+    .page-home .story-cell-name{font-size:10.8px!important;font-weight:650!important;color:var(--text)!important}
+
+    html.deapp-native-story-open #story-viewer{position:fixed!important;inset:0!important;display:block!important;background:#000!important;color:#fff!important;overflow:hidden!important}
+    html.deapp-native-story-open .story-progress{
+      position:absolute!important;left:0!important;right:0!important;top:0!important;z-index:30!important;
+      padding:calc(env(safe-area-inset-top) + 7px) 7px 0!important;gap:3px!important;background:transparent!important
+    }
+    html.deapp-native-story-open .story-progress i{height:2.5px!important;background:rgba(255,255,255,.34)!important;border-radius:99px!important}
+    html.deapp-native-story-open .story-progress i b{background:#fff!important}
+    html.deapp-native-story-open .story-topbar{
+      position:absolute!important;left:0!important;right:0!important;top:calc(env(safe-area-inset-top) + 12px)!important;z-index:29!important;
+      padding:11px 10px 16px!important;background:linear-gradient(to bottom,rgba(0,0,0,.68),rgba(0,0,0,.22),transparent)!important;
+      gap:9px!important;align-items:center!important
+    }
+    html.deapp-native-story-open .story-user{gap:9px!important;min-width:0!important;text-shadow:0 1px 4px rgba(0,0,0,.65)!important}
+    html.deapp-native-story-open .story-user img{width:38px!important;height:38px!important;border:1.5px solid rgba(255,255,255,.78)!important}
+    html.deapp-native-story-open .story-user b{font-size:14px!important;font-weight:750!important;color:#fff!important}
+    html.deapp-native-story-open .story-user small{font-size:11px!important;color:rgba(255,255,255,.78)!important;opacity:1!important}
+    html.deapp-native-story-open .story-close{width:40px!important;height:40px!important;background:transparent!important;color:#fff!important;backdrop-filter:none!important}
+    html.deapp-native-story-open .story-stage{
+      position:absolute!important;inset:0!important;margin:0!important;border-radius:0!important;padding:76px 22px 116px!important;
+      width:100%!important;height:100%!important;min-height:100%!important;background:#000!important;overflow:hidden!important
+    }
+    html.deapp-native-story-open .story-stage img{object-fit:contain!important;background:#000!important}
+    html.deapp-native-story-open .story-stage video{width:100%!important;height:100%!important;object-fit:contain!important;background:#000!important}
+    html.deapp-native-story-open .story-stage .story-cap-overlay{padding:70px 18px 116px!important;background:linear-gradient(transparent 44%,rgba(0,0,0,.72))!important;font-size:15px!important;font-weight:650!important}
+    html.deapp-native-story-open .story-nav{
+      top:64px!important;bottom:86px!important;height:auto!important;width:38%!important;transform:none!important;border-radius:0!important;background:transparent!important;
+      backdrop-filter:none!important;-webkit-backdrop-filter:none!important;opacity:1!important;z-index:18!important
+    }
+    html.deapp-native-story-open .story-nav svg{opacity:0!important}
+    html.deapp-native-story-open .story-prev{left:0!important}
+    html.deapp-native-story-open .story-next{right:0!important}
+    html.deapp-native-story-open .story-bottom{
+      position:absolute!important;left:0!important;right:0!important;bottom:0!important;z-index:31!important;max-width:none!important;margin:0!important;
+      padding:18px 9px calc(8px + env(safe-area-inset-bottom))!important;background:linear-gradient(to top,rgba(0,0,0,.72),rgba(0,0,0,.20),transparent)!important
+    }
+    html.deapp-native-story-open .story-bar{gap:3px!important;max-width:720px!important;margin:0 auto!important}
+    html.deapp-native-story-open .story-reply input{
+      height:44px!important;border-radius:23px!important;background:rgba(0,0,0,.24)!important;border:1.2px solid rgba(255,255,255,.66)!important;
+      padding:0 46px 0 16px!important;color:#fff!important;box-shadow:none!important;backdrop-filter:blur(7px)!important
+    }
+    html.deapp-native-story-open .story-reply input::placeholder{color:rgba(255,255,255,.78)!important}
+    html.deapp-native-story-open .story-send{width:34px!important;height:34px!important;right:5px!important;background:#25D366!important;color:#fff!important;box-shadow:none!important}
+    html.deapp-native-story-open .story-act{height:44px!important;min-width:42px!important;width:auto!important;padding:0 8px!important;background:transparent!important;border-radius:22px!important;backdrop-filter:none!important}
+    html.deapp-native-story-open .story-act-ico svg{width:24px!important;height:24px!important}
+    html.deapp-native-story-open .story-views{bottom:82px!important;background:rgba(0,0,0,.40)!important}
+    html.deapp-native-story-open .story-sheet{
+      position:absolute!important;left:0!important;right:0!important;bottom:0!important;margin:0!important;z-index:50!important;
+      max-height:min(66dvh,560px)!important;border-radius:22px 22px 0 0!important;border:0!important;background:#171717!important;
+      box-shadow:0 -12px 42px rgba(0,0,0,.42)!important;padding-bottom:env(safe-area-inset-bottom)!important
+    }
+    html.deapp-native-story-open .story-sheet:before{content:"";display:block;width:38px;height:4px;border-radius:99px;background:#777;margin:8px auto 2px}
+    html.deapp-native-story-open .story-quick{left:10px!important;right:10px!important;bottom:calc(60px + env(safe-area-inset-bottom))!important;background:rgba(30,30,30,.96)!important;border-color:rgba(255,255,255,.13)!important}
+
+    /* v1.9.11 — Pengaturan lebih sederhana: tanpa footer khusus, header hanya kembali + judul tengah. */
+    html.deapp-native-settings-family.deapp-has-section-chrome body{padding-bottom:18px!important}
+    html.deapp-native-settings-family .deapp-section-footer{display:none!important}
+    html.deapp-native-settings-family .deapp-section-header{grid-template-columns:44px minmax(0,1fr) 44px!important}
+    html.deapp-native-settings-family .deapp-section-header .deapp-section-action{visibility:hidden!important;pointer-events:none!important}
+    html.deapp-native-settings-family .settings-wrap{display:block!important;width:min(100%,760px)!important;margin:0 auto!important;padding:0 10px 24px!important}
+    html.deapp-native-settings-family .settings-nav{
+      position:relative!important;top:auto!important;display:flex!important;gap:7px!important;width:100%!important;margin:8px 0 12px!important;padding:7px 2px!important;
+      overflow-x:auto!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;backdrop-filter:none!important
+    }
+    html.deapp-native-settings-family .settings-nav .snav{
+      flex:0 0 auto!important;min-height:38px!important;padding:8px 12px!important;border-radius:999px!important;border:1px solid var(--border)!important;
+      background:var(--surface-2)!important;font-size:12.5px!important
+    }
+    html.deapp-native-settings-family .settings-nav .snav svg{width:17px!important;height:17px!important}
+    html.deapp-native-settings-family .settings-nav .snav span{display:block!important}
+    html.deapp-native-settings-family .settings-nav .snav b{font-size:12.5px!important;font-weight:720!important}
+    html.deapp-native-settings-family .settings-nav .snav small,html.deapp-native-settings-family .settings-nav .snav-group{display:none!important}
+    html.deapp-native-settings-family .settings-nav .snav.active{background:var(--text)!important;color:var(--surface)!important;border-color:var(--text)!important}
+    html.deapp-native-settings-family .settings-body{min-width:0!important}
+    html.deapp-native-settings-family .settings-section,
+    html.deapp-native-settings-family .security-card,
+    html.deapp-native-settings-family .card.settings-section{
+      margin:0 0 10px!important;padding:15px!important;border:1px solid color-mix(in srgb,var(--border) 82%,transparent)!important;
+      border-radius:18px!important;box-shadow:none!important;background:var(--surface)!important
+    }
+    html.deapp-native-settings-family .settings-section h3{font-size:16px!important;font-weight:800!important;margin-bottom:10px!important}
+    html.deapp-native-settings-family .toggle-row{border-bottom:1px solid color-mix(in srgb,var(--border) 72%,transparent)!important}
+    html.deapp-native-settings-family .toggle-row:last-child{border-bottom:0!important}
+
+    /* Mode gelap harus konsisten sampai chrome paling luar, bukan hanya isi halaman web. */
+    html.is-dark,html.is-dark body{background:#000!important;color:#f5f5f5!important;color-scheme:dark!important}
+    html.is-dark .deapp-section-header,html.is-dark .deapp-section-footer,
+    html.is-dark .deapp-reels-header,html.is-dark .deapp-reels-footer,
+    html.is-dark .deapp-ai-composer-wrap,html.is-dark .chat-head,html.is-dark .chat-compose{
+      background:rgba(0,0,0,.94)!important;border-color:#252525!important;color:#f5f5f5!important
+    }
+    html.is-dark .post-card:not(.post-embedded),html.is-dark .page-home .feed,html.is-dark .page-home .feed-tabs,
+    html.is-dark .settings-section,html.is-dark .card.settings-section{background:#000!important;border-color:#252525!important}
+    html.is-dark .settings-nav .snav{background:#171717!important;border-color:#2a2a2a!important;color:#f3f3f3!important}
+    html.is-dark .settings-nav .snav.active{background:#f5f5f5!important;color:#080808!important;border-color:#f5f5f5!important}
+
+    /* Saat halaman sedang bergerak, aksi sekunder/floating menyingkir; muncul lagi setelah scroll berhenti. */
+    html.deapp-native-scrolling .deapp-ai-fab,
+    html.deapp-native-scrolling .deapp-reels-header-create,
+    html.deapp-native-scrolling .deapp-section-action,
+    html.deapp-native-scrolling .deapp-native-scroll-hide{
+      opacity:0!important;visibility:hidden!important;pointer-events:none!important;transform:translateY(10px) scale(.96)!important;
+      transition:opacity .12s ease,transform .14s ease!important
+    }
+
+    /* Postingan: tipografi, media, statistik dan action dirapikan tanpa mengubah handler. */
+    .post-card:not(.post-embedded) .post-content{letter-spacing:-.006em!important;line-height:1.52!important}
+    .post-card:not(.post-embedded)>.media-grid,.post-card:not(.post-embedded) .media-grid,
+    .post-card:not(.post-embedded) .post-bg{border-radius:15px!important;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--border) 55%,transparent)!important}
+    .post-card:not(.post-embedded) .post-stats{min-height:28px!important;padding-top:5px!important;padding-bottom:4px!important;color:var(--text-muted)!important}
+    .post-card:not(.post-embedded) .post-actions{min-height:46px!important;gap:3px!important;padding-top:2px!important;padding-bottom:4px!important}
+    .post-card:not(.post-embedded) .act-btn{width:38px!important;height:38px!important;border-radius:50%!important;display:grid!important;place-items:center!important;padding:0!important}
+    .post-card:not(.post-embedded) .act-btn:active{background:var(--surface-2)!important;transform:scale(.94)!important}
+    .post-card:not(.post-embedded) .act-btn.on,.post-card:not(.post-embedded) .js-react-btn.on{color:#e83e66!important}
+    .post-card:not(.post-embedded) .post-head{padding-top:14px!important}
+    .post-card:not(.post-embedded) .post-name{letter-spacing:-.012em!important}
+
+
+    /* v1.9.12 — ikon/navigasi lebih profesional, Toko & Chat tanpa footer khusus,
+       daftar chat dan badan percakapan bergaya WhatsApp. */
+    .deapp-section-header svg,.deapp-section-footer svg,.dropdown-item svg,.settings-nav svg,
+    .shop-menu-grid svg,.menu-grid svg,.profile-menu svg,.nx-menu svg{stroke-width:1.8!important;shape-rendering:geometricPrecision}
+    .dropdown-item svg,.settings-nav .snav svg{flex:0 0 auto!important}
+
+    html.deapp-native-shop.deapp-has-section-chrome body{padding-bottom:18px!important}
+    html.deapp-native-shop .deapp-section-footer{display:none!important}
+    html.deapp-native-shop .shop-menu-grid a,html.deapp-native-shop .shop-menu-grid button{
+      border-radius:17px!important;border:1px solid color-mix(in srgb,var(--border) 78%,transparent)!important;
+      box-shadow:none!important;transition:transform .13s ease,background .13s ease!important
+    }
+    html.deapp-native-shop .shop-menu-grid a:active,html.deapp-native-shop .shop-menu-grid button:active{transform:scale(.97)!important;background:var(--surface-2)!important}
+
+    html.deapp-native-messages.deapp-chat-list.deapp-has-section-chrome body{padding-bottom:12px!important;background:var(--surface)!important}
+    html.deapp-native-messages.deapp-chat-list .deapp-section-footer{display:none!important}
+    html.deapp-native-messages.deapp-chat-list .messenger{display:block!important;height:auto!important;min-height:calc(100dvh - 62px - env(safe-area-inset-top))!important;margin:0!important}
+    html.deapp-native-messages.deapp-chat-list .msg-chat{display:none!important}
+    html.deapp-native-messages.deapp-chat-list .msg-list{
+      width:100%!important;max-width:none!important;height:auto!important;min-height:calc(100dvh - 62px - env(safe-area-inset-top))!important;
+      margin:0!important;padding:0 0 18px!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:var(--surface)!important
+    }
+    html.deapp-native-messages.deapp-chat-list .msg-search{
+      margin:9px 12px 7px!important;min-height:42px!important;border:0!important;border-radius:13px!important;
+      background:color-mix(in srgb,var(--surface-2) 94%,transparent)!important;padding:0 13px!important;color:var(--text-muted)!important
+    }
+    html.deapp-native-messages.deapp-chat-list .msg-search input{font-size:14.5px!important;background:transparent!important;border:0!important;box-shadow:none!important}
+    html.deapp-native-messages.deapp-chat-list .msg-filter{
+      display:flex!important;gap:7px!important;margin:0!important;padding:3px 12px 8px!important;overflow-x:auto!important;scrollbar-width:none!important
+    }
+    html.deapp-native-messages.deapp-chat-list .msg-filter::-webkit-scrollbar{display:none!important}
+    html.deapp-native-messages.deapp-chat-list .mfilter{
+      flex:0 0 auto!important;min-height:33px!important;padding:6px 12px!important;border-radius:999px!important;
+      border:1px solid color-mix(in srgb,var(--border) 88%,transparent)!important;background:var(--surface)!important;color:var(--text-muted)!important;
+      font-size:12.2px!important;font-weight:680!important
+    }
+    html.deapp-native-messages.deapp-chat-list .mfilter.active{background:#e7fce8!important;border-color:#b9edbe!important;color:#128c35!important}
+    html.is-dark.deapp-native-messages.deapp-chat-list .mfilter.active{background:#113a22!important;border-color:#245d38!important;color:#62d985!important}
+    html.deapp-native-messages.deapp-chat-list .thread-list{display:block!important;padding:0!important}
+    html.deapp-native-messages.deapp-chat-list .thread{
+      position:relative!important;display:grid!important;grid-template-columns:58px minmax(0,1fr) auto!important;align-items:center!important;
+      gap:11px!important;min-height:76px!important;margin:0!important;padding:8px 12px!important;border:0!important;border-radius:0!important;
+      background:var(--surface)!important;color:var(--text)!important;box-shadow:none!important
+    }
+    html.deapp-native-messages.deapp-chat-list .thread:after{
+      content:"";position:absolute;left:81px;right:0;bottom:0;height:1px;background:color-mix(in srgb,var(--border) 68%,transparent)
+    }
+    html.deapp-native-messages.deapp-chat-list .thread:last-child:after{display:none}
+    html.deapp-native-messages.deapp-chat-list .thread:active{background:var(--surface-2)!important}
+    html.deapp-native-messages.deapp-chat-list .thread-avatar{width:54px!important;height:54px!important;flex:0 0 54px!important}
+    html.deapp-native-messages.deapp-chat-list .thread-avatar img{width:54px!important;height:54px!important;border-radius:50%!important;object-fit:cover!important}
+    html.deapp-native-messages.deapp-chat-list .thread-avatar .online-dot{width:12px!important;height:12px!important;right:1px!important;bottom:1px!important;background:#25D366!important;border:2px solid var(--surface)!important}
+    html.deapp-native-messages.deapp-chat-list .thread-body{display:block!important;min-width:0!important}
+    html.deapp-native-messages.deapp-chat-list .thread-top{display:flex!important;align-items:center!important;gap:4px!important;min-width:0!important}
+    html.deapp-native-messages.deapp-chat-list .thread-top b{font-size:15.5px!important;font-weight:760!important;letter-spacing:-.012em!important}
+    html.deapp-native-messages.deapp-chat-list .thread-time{margin-left:auto!important;font-size:10.8px!important;color:var(--text-faint)!important;white-space:nowrap!important}
+    html.deapp-native-messages.deapp-chat-list .thread-preview{display:block!important;margin-top:3px!important;font-size:13px!important;color:var(--text-muted)!important;line-height:1.3!important}
+    html.deapp-native-messages.deapp-chat-list .thread-preview.unread{font-weight:720!important;color:var(--text)!important}
+    html.deapp-native-messages.deapp-chat-list .thread[data-unread="1"] .thread-time{color:#25a244!important;font-weight:720!important}
+    html.deapp-native-messages.deapp-chat-list .thread-mood{display:none!important}
+    html.deapp-native-messages.deapp-chat-list .thread>.pill-count{
+      min-width:20px!important;height:20px!important;padding:0 5px!important;border-radius:999px!important;background:#25D366!important;color:#fff!important;
+      display:grid!important;place-items:center!important;font-size:10px!important;font-weight:800!important
+    }
+
+    html.deapp-native-messages.deapp-chat-open .chat-scroll{
+      background-color:#efeae2!important;
+      background-image:radial-gradient(circle at 15% 20%,rgba(120,110,92,.055) 0 1px,transparent 1.4px),radial-gradient(circle at 78% 65%,rgba(120,110,92,.045) 0 1px,transparent 1.4px)!important;
+      background-size:28px 28px,34px 34px!important;padding:13px 8px 16px!important;gap:2px!important
+    }
+    html.is-dark.deapp-native-messages.deapp-chat-open .chat-scroll{
+      background-color:#0b141a!important;
+      background-image:radial-gradient(circle at 15% 20%,rgba(255,255,255,.028) 0 1px,transparent 1.4px),radial-gradient(circle at 78% 65%,rgba(255,255,255,.022) 0 1px,transparent 1.4px)!important
+    }
+    html.deapp-native-messages.deapp-chat-open .chat-mood{background:#f0f2f5!important;color:#667781!important;border:0!important}
+    html.is-dark.deapp-native-messages.deapp-chat-open .chat-mood{background:#111b21!important;color:#8696a0!important}
+    html.deapp-native-messages.deapp-chat-open .bubble{
+      max-width:min(84%,520px)!important;padding:7px 9px 5px!important;border-radius:8px!important;font-size:14.2px!important;line-height:1.4!important;
+      box-shadow:0 1px 1px rgba(0,0,0,.08)!important
+    }
+    html.deapp-native-messages.deapp-chat-open .bubble.them:not(.is-gift):not(.is-sticker){background:#fff!important;color:#111b21!important;border-radius:8px!important}
+    html.deapp-native-messages.deapp-chat-open .bubble.me:not(.is-gift):not(.is-sticker){background:#d9fdd3!important;color:#111b21!important;border-radius:8px!important}
+    html.is-dark.deapp-native-messages.deapp-chat-open .bubble.them:not(.is-gift):not(.is-sticker){background:#202c33!important;color:#e9edef!important}
+    html.is-dark.deapp-native-messages.deapp-chat-open .bubble.me:not(.is-gift):not(.is-sticker){background:#005c4b!important;color:#e9edef!important}
+    html.deapp-native-messages.deapp-chat-open .bubble.me+.bubble.me{border-top-right-radius:4px!important}
+    html.deapp-native-messages.deapp-chat-open .bubble.them+.bubble.them{border-top-left-radius:4px!important}
+    html.deapp-native-messages.deapp-chat-open .bubble-time{font-size:9.2px!important;color:#667781!important;opacity:.92!important;margin-top:2px!important}
+    html.is-dark.deapp-native-messages.deapp-chat-open .bubble-time{color:#8696a0!important}
+    html.deapp-native-messages.deapp-chat-open .chat-day{
+      width:max-content!important;max-width:85%!important;margin:10px auto!important;padding:5px 10px!important;border-radius:7px!important;
+      background:#fff!important;color:#667781!important;box-shadow:0 1px 1px rgba(0,0,0,.06)!important;font-size:10.4px!important
+    }
+    html.is-dark.deapp-native-messages.deapp-chat-open .chat-day{background:#182229!important;color:#8696a0!important}
+    html.deapp-native-messages.deapp-chat-open .chat-head{background:#f0f2f5!important;border-bottom:0!important}
+    html.is-dark.deapp-native-messages.deapp-chat-open .chat-head{background:#202c33!important;border-bottom:0!important}
+    html.deapp-native-messages.deapp-chat-open .chat-compose{background:#f0f2f5!important;border-top:0!important;padding:6px 7px calc(6px + env(safe-area-inset-bottom))!important}
+    html.is-dark.deapp-native-messages.deapp-chat-open .chat-compose{background:#202c33!important;border-top:0!important}
+    html.deapp-native-messages.deapp-chat-open .chat-input-wrap{background:#fff!important;border:0!important;border-radius:22px!important}
+    html.is-dark.deapp-native-messages.deapp-chat-open .chat-input-wrap{background:#2a3942!important;border:0!important}
+    html.deapp-native-messages.deapp-chat-open .chat-quick{padding:3px 2px 4px!important}
+    html.deapp-native-messages.deapp-chat-open .quick-react{font-size:19px!important}
 
     @media(max-width:560px){
       .deapp-section-header{grid-template-columns:44px minmax(0,1fr) 44px;padding-left:6px;padding-right:6px}
@@ -887,6 +1154,13 @@
   }
 
   function profileTitle() {
+    // Header profil memakai username/handle seperti aplikasi sosial modern.
+    const u = document.querySelector('.profile-username');
+    if (u) {
+      const text = (u.textContent || '').trim().replace(/\s+/g,' ');
+      const m = text.match(/@[A-Za-z0-9_.-]+/);
+      if (m) return m[0];
+    }
     const n = document.querySelector('.profile-name > span,.profile-name');
     return n ? (n.textContent || '').trim().replace(/\s+/g,' ') : 'Profil';
   }
@@ -1241,6 +1515,29 @@
   }
 
 
+  function syncTheme() {
+    try {
+      const on = root.classList.contains('is-dark');
+      if (lastThemeDark === on) return;
+      lastThemeDark = on;
+      if (API && API.syncTheme) API.syncTheme(on);
+    } catch (_) {}
+  }
+
+  function setScrollUiState(on) {
+    if (scrollUiActive === on) return;
+    scrollUiActive = on;
+    root.classList.toggle('deapp-native-scrolling', on);
+    try { if (API && API.syncScrollState) API.syncScrollState(on); } catch (_) {}
+  }
+
+  function onAnyScroll() {
+    setScrollUiState(true);
+    clearTimeout(scrollUiTimer);
+    scrollUiTimer = setTimeout(function(){ setScrollUiState(false); }, 190);
+  }
+
+
   function charArray(value) {
     return Array.from(String(value || ''));
   }
@@ -1416,6 +1713,10 @@
     const open = storyViewerOpen();
     root.classList.toggle('deapp-native-story-open', open);
     if (document.body) document.body.classList.toggle('deapp-story-open', open);
+    if (open) {
+      const reply = document.getElementById('story-reply-input');
+      if (reply && reply.placeholder !== 'Balas…') reply.placeholder = 'Balas…';
+    }
   }
 
   function wireMessagesChrome() {
@@ -1428,13 +1729,8 @@
       return;
     }
     sectionOn('messages');
-    sectionHeader('messages','Chat','Percakapan Deapp',{icon:'plus',label:'Mulai chat',href:'explore.php?tab=people'});
-    sectionFooter('messages',[
-      {label:'Chat',icon:'chat',href:'messages.php',active:true},
-      {label:'Orang',icon:'users',href:'explore.php?tab=people'},
-      {label:'Notifikasi',icon:'bell',href:'notifications.php'},
-      {label:'Pengaturan',icon:'settings',href:'settings.php'}
-    ]);
+    sectionHeader('messages','Chat','',{icon:'plus',label:'Mulai chat',href:'explore.php?tab=people'});
+    const oldFooter=document.querySelector('.deapp-section-footer[data-section="messages"]'); if(oldFooter) oldFooter.remove();
   }
 
   const notifLabels={all:'Semua',mentions:'Sebutan',comments:'Balasan',reactions:'Reaksi',gifts:'Hadiah & koin',follows:'Pengikut',predict:'Prediksi',live:'Live',system:'Sistem'};
@@ -1442,14 +1738,23 @@
     if (!isNotificationsPage || !document.body) return;
     const q=new URL(location.href).searchParams, f=q.get('f')||'all';
     sectionOn('notifications');
-    sectionHeader('notifications','Notifikasi',notifLabels[f]||'Aktivitas akun',{icon:'settings',label:'Preferensi notifikasi',href:'settings.php?tab=notifications'});
-    sectionFooter('notifications',[
-      {label:'Semua',icon:'bell',href:'notifications.php?f=all',active:f==='all'},
-      {label:'Sebutan',icon:'at',href:'notifications.php?f=mentions',active:f==='mentions'},
-      {label:'Balasan',icon:'chat',href:'notifications.php?f=comments',active:f==='comments'},
-      {label:'Reaksi',icon:'heart',href:'notifications.php?f=reactions',active:f==='reactions'},
-      {label:'Sistem',icon:'shield',href:'notifications.php?f=system',active:f==='system'}
-    ]);
+    sectionHeader('notifications','Notifikasi','',{icon:'settings',label:'Preferensi notifikasi',href:'settings.php?tab=notifications'});
+
+    // v1.9.13: footer kategori lama dibuang. Gunakan tab asli Deapp agar semua filter
+    // (termasuk hadiah, pengikut, prediksi dan Live) tetap mengikuti backend asli.
+    const oldFooter=document.querySelector('.deapp-section-footer[data-section="notifications"]');
+    if (oldFooter) oldFooter.remove();
+    const tabs=document.querySelector('.tabs.sticky-tabs');
+    const filter=document.querySelector('.nx-filter');
+    if (tabs) {
+      tabs.classList.add('deapp-notification-tabs');
+      if (filter && tabs.nextElementSibling !== filter && filter.parentNode) filter.parentNode.insertBefore(tabs, filter);
+      const active=tabs.querySelector('.tab.active');
+      if (active && tabs.dataset.deappCentered !== f) {
+        tabs.dataset.deappCentered=f;
+        setTimeout(function(){ try { active.scrollIntoView({behavior:'auto',block:'nearest',inline:'center'}); } catch (_) {} }, 40);
+      }
+    }
   }
 
   function wireLiveChrome() {
@@ -1578,14 +1883,8 @@
     if (!isShopPage || !document.body) return;
     const q=new URL(location.href).searchParams, tab=q.get('tab')||'wallet';
     sectionOn('shop');
-    sectionHeader('shop',shopTitles[tab]||'Toko & Dompet','Deapp Store',{icon:'plus',label:'Top Up',href:'settings.php?tab=topup'});
-    sectionFooter('shop',[
-      {label:'Dompet',icon:'wallet',href:'shop.php?tab=wallet',active:tab==='wallet'||tab==='kirim'||tab==='promo'},
-      {label:'Etalase',icon:'shop',href:'shop.php?tab=etalase',active:['etalase','wishlist','virtual','pet'].includes(tab)},
-      {label:'VIP',icon:'crown',href:'shop.php?tab=vip',active:tab==='vip'},
-      {label:'Hadiah',icon:'gift',href:'shop.php?tab=gifts',active:['gifts','ticket','bag'].includes(tab)},
-      {label:'Koleksi',icon:'bookmark',href:'shop.php?tab=koleksi',active:['koleksi','theme','frame','bubble','sticker','effect','level'].includes(tab)}
-    ]);
+    sectionHeader('shop',shopTitles[tab]||'Toko & Dompet','',{icon:'plus',label:'Top Up',href:'settings.php?tab=topup'});
+    const oldFooter=document.querySelector('.deapp-section-footer[data-section="shop"]'); if(oldFooter) oldFooter.remove();
   }
 
   const settingNames={profile:'Profil',appearance:'Tampilan',experience:'Pengalaman aplikasi',language:'Bahasa',ai:'Deapp AI',characters:'Karakter AI',access:'Aksesibilitas',premium:'Premium & mood',topup:'Top Up Koin',focus:'Ruang Fokus',notifications:'Notifikasi',privacy:'Privasi',words:'Kata dibisukan',blocked:'Diblokir & dibisukan',notes:'Catatan pribadi',away:'Arsip & mode rehat',security:'Keamanan',sessions:'Perangkat & sesi',verify:'Verifikasi',data:'Data saya',account:'Akun'};
@@ -1617,14 +1916,9 @@
     if (!(isSettingsPageFamily||isSettingsPage) || !document.body) return;
     const c=settingsContext();
     sectionOn('settings');
-    sectionHeader('settings',c.title,'',{icon:'help',label:'Pusat Bantuan',href:'help.php'});
-    sectionFooter('settings',[
-      {label:'Akun',icon:'user',href:'settings.php?tab=profile',active:c.group==='settings' && /settings\.php$/.test(path) && ['profile','experience','language','ai','characters','premium','topup','focus','notifications','notes','away','verify','data','account'].includes(new URL(location.href).searchParams.get('tab')||'profile')},
-      {label:'Tampilan',icon:'sun',href:'settings.php?tab=appearance',active:/settings\.php$/.test(path) && ['appearance','access'].includes(new URL(location.href).searchParams.get('tab')||'')},
-      {label:'Privasi',icon:'lock',href:'settings.php?tab=privacy',active:c.group==='privacy'},
-      {label:'Keamanan',icon:'shield',href:'security.php',active:c.group==='security'},
-      {label:'Bantuan',icon:'help',href:'help.php',active:c.group==='help'}
-    ]);
+    const oldFooter=document.querySelector('.deapp-section-footer[data-section="settings"]'); if(oldFooter) oldFooter.remove();
+    // Threads-style: header Pengaturan hanya tombol kembali dan judul yang benar-benar di tengah.
+    sectionHeader('settings',c.title,'',null);
   }
 
   function wireSectionChrome() {
@@ -1778,6 +2072,55 @@
     }, true);
   }
 
+  // v1.9.13 — angka reaction, komentar dan bagikan berada tepat di samping ikon aksi.
+  function wirePostActionCounts() {
+    document.querySelectorAll('.post-card:not(.post-embedded)').forEach(function(card){
+      const stats=card.querySelector('.post-stats');
+      const actions=card.querySelector('.post-actions');
+      if (!stats || !actions) return;
+
+      function valueOf(el) {
+        if (!el) return '';
+        const t=(el.textContent || '').trim().replace(/\s+/g,' ');
+        const m=t.match(/[0-9][0-9.,]*\s*(?:rb|jt|k|m)?/i);
+        return m ? m[0].replace(/\s+/g,'') : '';
+      }
+      function attach(btn, src, kind, explicit) {
+        if (!btn || !src) return;
+        src.classList.add('deapp-stat-relocated');
+        const val=explicit || valueOf(src);
+        let count=btn.querySelector('.deapp-action-count[data-count-kind="'+kind+'"]');
+        if (!val) {
+          if (count) count.remove();
+          btn.classList.toggle('deapp-counted-action', !!btn.querySelector('.deapp-action-count'));
+          return;
+        }
+        if (!count) {
+          count=document.createElement('span');
+          count.className='deapp-action-count';
+          count.dataset.countKind=kind;
+          count.setAttribute('aria-hidden','true');
+          btn.appendChild(count);
+        }
+        if (count.textContent !== val) count.textContent=val;
+        btn.classList.add('deapp-counted-action');
+      }
+
+      const reactSrc=stats.querySelector('.stat-reactions');
+      const reactCount=stats.querySelector('.js-react-count');
+      attach(actions.querySelector('.js-react-btn'), reactSrc, 'reactions', valueOf(reactCount));
+
+      const commentSrc=stats.querySelector('.stat-link.js-toggle-comments');
+      attach(actions.querySelector('.js-toggle-comments'), commentSrc, 'comments', valueOf(commentSrc));
+
+      const shareSrc=stats.querySelector('a.stat-link[href*="tab=shares"]');
+      attach(actions.querySelector('.js-share'), shareSrc, 'shares', valueOf(shareSrc));
+
+      const remaining=stats.querySelector('.stat-reactions:not(.deapp-stat-relocated),.stat-link:not(.deapp-stat-relocated)');
+      stats.classList.toggle('deapp-stats-empty', !remaining);
+    });
+  }
+
   function optimizeMediaLoading() {
     try {
       const eagerLimit = Math.max(innerHeight * 1.35, 900);
@@ -1917,11 +2260,13 @@
     wireReelsChrome();
     enhancePostDetailComments();
     installReactionHaptics();
+    wirePostActionCounts();
     optimizeMediaLoading();
     removePostTranslationUI();
     installPostPublishedHook();
     wireSectionChrome();
     syncSession();
+    syncTheme();
     syncPageChrome();
     syncComposer();
     syncWebSheetState();
@@ -1947,6 +2292,10 @@
   }
   const observer = new MutationObserver(scheduleScan);
   observer.observe(document.body, {subtree:true, childList:true, attributes:true, attributeFilter:['class','open','hidden','aria-expanded','aria-hidden','style']});
+  observer.observe(root, {attributes:true, attributeFilter:['class','data-theme']});
+  // Capture juga scroll pada panel internal (chat, AI, modal), bukan hanya window.
+  document.addEventListener('scroll', onAnyScroll, {passive:true,capture:true});
+  window.addEventListener('scroll', onAnyScroll, {passive:true});
   window.addEventListener('pageshow', recoverPageInteraction, {passive:true});
   window.addEventListener('focus', recoverPageInteraction, {passive:true});
   document.addEventListener('visibilitychange', function(){
