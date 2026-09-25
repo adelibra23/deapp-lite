@@ -2,14 +2,16 @@ package id.deapp.lite;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.DownloadManager;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.Outline;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
@@ -18,12 +20,13 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
-import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewOutlineProvider;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.webkit.CookieManager;
+import android.webkit.JavascriptInterface;
 import android.webkit.GeolocationPermissions;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
@@ -39,7 +42,6 @@ import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.PopupMenu;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -54,7 +56,10 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import org.json.JSONArray;
 
+import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.URI;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Locale;
 
@@ -65,17 +70,6 @@ public class MainActivity extends Activity {
     private static final int REQ_WEBRTC = 2102;
     private static final int REQ_GEO = 2103;
 
-    private static final int MENU_FULL = 1;
-    private static final int MENU_HOME = 2;
-    private static final int MENU_EXPLORE = 3;
-    private static final int MENU_LIVE = 4;
-    private static final int MENU_TAP = 5;
-    private static final int MENU_SETTINGS = 6;
-    private static final int MENU_REFRESH = 7;
-    private static final int MENU_SHARE = 8;
-    private static final int MENU_BROWSER = 9;
-    private static final int MENU_SERVER = 10;
-
     private FrameLayout root;
     private LinearLayout shell;
     private FrameLayout topContainer;
@@ -85,9 +79,10 @@ public class MainActivity extends Activity {
     private ProgressBar progress;
     private FrameLayout offlineOverlay;
     private FrameLayout loadingOverlay;
-    private TextView toolbarTitle;
-    private View connectionDot;
-    private ImageButton backButton;
+    private ImageView profileAvatar;
+    private String profileUrl = "";
+    private View activeSheetOverlay;
+    private View activeSheetPanel;
     private NavItem navHome;
     private NavItem navVideo;
     private NavItem navNotif;
@@ -204,6 +199,10 @@ public class MainActivity extends Activity {
     }
 
     private void showServerSetup(boolean changing) {
+        if (changing && webView != null) {
+            showServerBottomSheet();
+            return;
+        }
         destroyWebView();
         readPalette();
 
@@ -215,6 +214,8 @@ public class MainActivity extends Activity {
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setClipToPadding(false);
+        scroll.setVerticalScrollBarEnabled(false);
+        scroll.setHorizontalScrollBarEnabled(false);
         root.addView(scroll, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
@@ -403,81 +404,48 @@ public class MainActivity extends Activity {
         topContainer = new FrameLayout(this);
         topContainer.setBackgroundColor(cSurface);
         shell.addView(topContainer, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(58)));
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(54)));
 
         LinearLayout toolbar = new LinearLayout(this);
         toolbar.setOrientation(LinearLayout.HORIZONTAL);
         toolbar.setGravity(Gravity.CENTER_VERTICAL);
-        toolbar.setPadding(dp(7), 0, dp(7), 0);
+        toolbar.setPadding(dp(14), 0, dp(12), 0);
         topContainer.addView(toolbar, new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(58), Gravity.BOTTOM));
-
-        backButton = iconButton(R.drawable.ic_native_back, "Kembali");
-        backButton.setVisibility(View.GONE);
-        backButton.setOnClickListener(v -> {
-            haptic(v);
-            if (webView != null && webView.canGoBack()) webView.goBack();
-        });
-        toolbar.addView(backButton);
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(54), Gravity.BOTTOM));
 
         ImageView logo = new ImageView(this);
         logo.setImageResource(R.drawable.deapp_logo);
-        logo.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        LinearLayout.LayoutParams logoLp = new LinearLayout.LayoutParams(dp(34), dp(34));
-        logoLp.leftMargin = dp(3);
-        logoLp.rightMargin = dp(10);
+        logo.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        LinearLayout.LayoutParams logoLp = new LinearLayout.LayoutParams(dp(36), dp(36));
         toolbar.addView(logo, logoLp);
-        logo.setOnClickListener(v -> loadRelative("index.php"));
-
-        LinearLayout titleWrap = new LinearLayout(this);
-        titleWrap.setOrientation(LinearLayout.VERTICAL);
-        titleWrap.setGravity(Gravity.CENTER_VERTICAL);
-        LinearLayout.LayoutParams twLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f);
-        toolbar.addView(titleWrap, twLp);
-
-        LinearLayout titleRow = new LinearLayout(this);
-        titleRow.setOrientation(LinearLayout.HORIZONTAL);
-        titleRow.setGravity(Gravity.CENTER_VERTICAL);
-        titleWrap.addView(titleRow, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-
-        toolbarTitle = text("Deapp", 16, cText);
-        toolbarTitle.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        toolbarTitle.setMaxLines(1);
-        titleRow.addView(toolbarTitle);
-
-        connectionDot = new View(this);
-        connectionDot.setBackground(rounded(cMuted, 99));
-        LinearLayout.LayoutParams dotLp = new LinearLayout.LayoutParams(dp(7), dp(7));
-        dotLp.leftMargin = dp(7);
-        titleRow.addView(connectionDot, dotLp);
-
-        TextView subtitle = text("Native Lite", 10.5f, cMuted);
-        LinearLayout.LayoutParams stLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        stLp.topMargin = dp(3);
-        titleWrap.addView(subtitle, stLp);
-
-        ImageButton search = iconButton(R.drawable.ic_native_search, "Jelajah");
-        search.setOnClickListener(v -> {
+        logo.setContentDescription("Beranda Deapp");
+        logo.setOnClickListener(v -> {
             haptic(v);
-            loadRelative("explore.php");
+            loadRelative("index.php");
         });
-        toolbar.addView(search);
 
-        ImageButton message = iconButton(R.drawable.ic_native_message, "Pesan");
-        message.setOnClickListener(v -> {
-            haptic(v);
-            loadRelative("messages.php");
-        });
-        toolbar.addView(message);
+        View spacer = new View(this);
+        toolbar.addView(spacer, new LinearLayout.LayoutParams(0, dp(1), 1f));
 
-        ImageButton more = iconButton(R.drawable.ic_native_more, "Menu lainnya");
-        more.setOnClickListener(v -> {
-            haptic(v);
-            showNativeMenu(more);
+        profileAvatar = new ImageView(this);
+        profileAvatar.setImageResource(R.drawable.ic_native_user);
+        profileAvatar.setColorFilter(cMuted);
+        profileAvatar.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        profileAvatar.setPadding(dp(7), dp(7), dp(7), dp(7));
+        profileAvatar.setBackground(rounded(cSurface2, 99));
+        profileAvatar.setContentDescription("Profil dan menu akun");
+        profileAvatar.setClipToOutline(true);
+        profileAvatar.setOutlineProvider(new ViewOutlineProvider() {
+            @Override public void getOutline(View view, Outline outline) {
+                outline.setOval(0, 0, view.getWidth(), view.getHeight());
+            }
         });
-        toolbar.addView(more);
+        LinearLayout.LayoutParams avatarLp = new LinearLayout.LayoutParams(dp(38), dp(38));
+        toolbar.addView(profileAvatar, avatarLp);
+        profileAvatar.setOnClickListener(v -> {
+            haptic(v);
+            showAccountSheet();
+        });
 
         View divider = new View(this);
         divider.setBackgroundColor(cBorder);
@@ -501,6 +469,10 @@ public class MainActivity extends Activity {
         webView = new WebView(this);
         webView.setBackgroundColor(cBg);
         webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        webView.setVerticalScrollBarEnabled(false);
+        webView.setHorizontalScrollBarEnabled(false);
+        webView.setScrollbarFadingEnabled(true);
+        webView.addJavascriptInterface(new NativeBridge(), "DeappNative");
         swipeRefresh.addView(webView, new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         swipeRefresh.setOnRefreshListener(() -> {
@@ -531,28 +503,11 @@ public class MainActivity extends Activity {
     private FrameLayout buildLoadingOverlay() {
         FrameLayout layer = new FrameLayout(this);
         layer.setBackgroundColor(cBg);
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setGravity(Gravity.CENTER);
-        layer.addView(box, new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-
         ImageView logo = new ImageView(this);
         logo.setImageResource(R.drawable.deapp_logo);
         logo.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        box.addView(logo, new LinearLayout.LayoutParams(dp(74), dp(74)));
-
-        ProgressBar spinner = new ProgressBar(this);
-        spinner.setIndeterminateTintList(android.content.res.ColorStateList.valueOf(cAccent));
-        LinearLayout.LayoutParams spLp = new LinearLayout.LayoutParams(dp(32), dp(32));
-        spLp.topMargin = dp(18);
-        box.addView(spinner, spLp);
-
-        TextView load = text("Membuka Deapp…", 12, cMuted);
-        LinearLayout.LayoutParams loadLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        loadLp.topMargin = dp(12);
-        box.addView(load, loadLp);
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(dp(86), dp(86), Gravity.CENTER);
+        layer.addView(logo, lp);
         return layer;
     }
 
@@ -620,14 +575,14 @@ public class MainActivity extends Activity {
         bottomContainer = new FrameLayout(this);
         bottomContainer.setBackgroundColor(cSurface);
         shell.addView(bottomContainer, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(66)));
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(58)));
 
         LinearLayout nav = new LinearLayout(this);
         nav.setOrientation(LinearLayout.HORIZONTAL);
         nav.setGravity(Gravity.CENTER);
-        nav.setPadding(dp(4), dp(3), dp(4), dp(3));
+        nav.setPadding(dp(8), dp(5), dp(8), dp(5));
         bottomContainer.addView(nav, new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(66), Gravity.TOP));
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(58), Gravity.TOP));
 
         View divider = new View(this);
         divider.setBackgroundColor(cBorder);
@@ -635,33 +590,34 @@ public class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(1), Gravity.TOP));
 
         navHome = addNav(nav, R.drawable.ic_native_home, "Beranda", () -> loadRelative("index.php"));
-        navVideo = addNav(nav, R.drawable.ic_native_video, "Video", () -> loadRelative("reels.php"));
+        addNav(nav, R.drawable.ic_native_search, "Jelajah", () -> loadRelative("explore.php"));
         addComposeNav(nav);
-        navNotif = addNav(nav, R.drawable.ic_native_bell, "Notif", () -> loadRelative("notifications.php"));
-        navProfile = addNav(nav, R.drawable.ic_native_user, "Profil", this::openOwnProfile);
+        navVideo = addNav(nav, R.drawable.ic_native_video, "Video Pendek", () -> loadRelative("reels.php"));
+        navNotif = addNav(nav, R.drawable.ic_native_bell, "Notifikasi", () -> loadRelative("notifications.php"));
+        navProfile = null;
         updateNativeNav(baseUrl);
     }
 
-    private NavItem addNav(LinearLayout parent, int iconRes, String label, Runnable action) {
-        NavItem item = new NavItem(iconRes, label, action);
+    private NavItem addNav(LinearLayout parent, int iconRes, String description, Runnable action) {
+        NavItem item = new NavItem(iconRes, description, action);
         parent.addView(item.root, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
         return item;
     }
 
     private void addComposeNav(LinearLayout parent) {
-        LinearLayout wrap = new LinearLayout(this);
-        wrap.setGravity(Gravity.CENTER);
-        wrap.setOrientation(LinearLayout.VERTICAL);
+        FrameLayout wrap = new FrameLayout(this);
         wrap.setClickable(true);
         wrap.setFocusable(true);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f);
-        parent.addView(wrap, lp);
+        wrap.setContentDescription("Buat kiriman");
+        parent.addView(wrap, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
 
         ImageView plus = new ImageView(this);
         plus.setImageResource(R.drawable.ic_native_add);
-        plus.setPadding(dp(12), dp(12), dp(12), dp(12));
-        plus.setBackground(rounded(cAccent, 17));
-        wrap.addView(plus, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        plus.setColorFilter(Color.WHITE);
+        plus.setPadding(dp(11), dp(11), dp(11), dp(11));
+        plus.setBackground(rounded(cAccent, 16));
+        FrameLayout.LayoutParams plusLp = new FrameLayout.LayoutParams(dp(44), dp(44), Gravity.CENTER);
+        wrap.addView(plus, plusLp);
         wrap.setOnClickListener(v -> {
             haptic(v);
             openComposer();
@@ -669,30 +625,22 @@ public class MainActivity extends Activity {
     }
 
     private class NavItem {
-        final LinearLayout root;
+        final FrameLayout root;
         final ImageView icon;
-        final TextView label;
 
-        NavItem(int iconRes, String labelText, Runnable action) {
-            root = new LinearLayout(MainActivity.this);
-            root.setOrientation(LinearLayout.VERTICAL);
-            root.setGravity(Gravity.CENTER);
-            root.setPadding(dp(2), dp(4), dp(2), dp(3));
+        NavItem(int iconRes, String description, Runnable action) {
+            root = new FrameLayout(MainActivity.this);
             root.setClickable(true);
             root.setFocusable(true);
+            root.setContentDescription(description);
 
             icon = new ImageView(MainActivity.this);
             icon.setImageResource(iconRes);
             icon.setColorFilter(cMuted);
-            LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(dp(24), dp(24));
+            icon.setPadding(dp(10), dp(10), dp(10), dp(10));
+            icon.setBackground(rounded(Color.TRANSPARENT, 16));
+            FrameLayout.LayoutParams iconLp = new FrameLayout.LayoutParams(dp(44), dp(44), Gravity.CENTER);
             root.addView(icon, iconLp);
-
-            label = text(labelText, 10, cMuted);
-            label.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-            LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            labelLp.topMargin = dp(3);
-            root.addView(label, labelLp);
 
             root.setOnClickListener(v -> {
                 haptic(v);
@@ -702,8 +650,7 @@ public class MainActivity extends Activity {
 
         void setActive(boolean active) {
             icon.setColorFilter(active ? cAccent : cMuted);
-            label.setTextColor(active ? cAccent : cMuted);
-            root.setBackground(active ? rounded(cAccentSoft, 18) : rounded(Color.TRANSPARENT, 18));
+            icon.setBackground(active ? rounded(cAccentSoft, 16) : rounded(Color.TRANSPARENT, 16));
         }
     }
 
@@ -713,13 +660,13 @@ public class MainActivity extends Activity {
             if (topContainer != null) {
                 topContainer.setPadding(0, bars.top, 0, 0);
                 ViewGroup.LayoutParams lp = topContainer.getLayoutParams();
-                lp.height = dp(58) + bars.top;
+                lp.height = dp(54) + bars.top;
                 topContainer.setLayoutParams(lp);
             }
             if (bottomContainer != null) {
                 bottomContainer.setPadding(0, 0, 0, bars.bottom);
                 ViewGroup.LayoutParams lp = bottomContainer.getLayoutParams();
-                lp.height = dp(66) + bars.bottom;
+                lp.height = dp(58) + bars.bottom;
                 bottomContainer.setLayoutParams(lp);
             }
             return insets;
@@ -739,7 +686,7 @@ public class MainActivity extends Activity {
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.1 NativeShell/1");
+        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.2 NativeShell/2");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) s.setSafeBrowsingEnabled(true);
 
         CookieManager cm = CookieManager.getInstance();
@@ -760,11 +707,9 @@ public class MainActivity extends Activity {
             @Override
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
-                connectionDot.setBackground(rounded(cMuted, 99));
                 progress.setVisibility(View.VISIBLE);
                 showOffline(false);
                 updateNativeNav(url);
-                updateBackButton();
                 updateKeepScreenOn(url);
             }
 
@@ -778,12 +723,10 @@ public class MainActivity extends Activity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 injectNativeShell();
-                connectionDot.setBackground(rounded(cSuccess, 99));
                 progress.setVisibility(View.GONE);
                 swipeRefresh.setRefreshing(false);
                 loadingOverlay.setVisibility(View.GONE);
                 updateNativeNav(url);
-                updateBackButton();
             }
 
             @Override
@@ -791,7 +734,6 @@ public class MainActivity extends Activity {
                 if (request.isForMainFrame()) {
                     swipeRefresh.setRefreshing(false);
                     loadingOverlay.setVisibility(View.GONE);
-                    connectionDot.setBackground(rounded(cDanger, 99));
                     showOffline(true);
                 }
             }
@@ -803,14 +745,6 @@ public class MainActivity extends Activity {
                 progress.setProgress(newProgress);
                 progress.setVisibility(newProgress >= 100 ? View.GONE : View.VISIBLE);
                 if (newProgress >= 100) swipeRefresh.setRefreshing(false);
-            }
-
-            @Override
-            public void onReceivedTitle(WebView view, String title) {
-                if (title == null || title.trim().isEmpty()) return;
-                String clean = title.replace("· Deapp", "").replace("| Deapp", "").trim();
-                if (clean.length() > 28) clean = clean.substring(0, 28) + "…";
-                toolbarTitle.setText(clean.isEmpty() ? "Deapp" : clean);
             }
 
             @Override
@@ -894,46 +828,274 @@ public class MainActivity extends Activity {
                 "if(!s){s=document.createElement('style');s.id=id;" +
                 "s.textContent=':root{--topbar-h:0px!important;--bnav-h:0px!important}' +" +
                 "'.topbar,.bottom-nav{display:none!important}' +" +
+                "'html,body{scrollbar-width:none!important;overscroll-behavior-y:none!important}' +" +
+                "'html::-webkit-scrollbar,body::-webkit-scrollbar,*::-webkit-scrollbar{display:none!important;width:0!important;height:0!important;background:transparent!important}' +" +
                 "'body{padding-top:0!important;padding-bottom:0!important;-webkit-tap-highlight-color:transparent}' +" +
-                "'.layout,.layout-guest{padding-top:12px!important;padding-bottom:22px!important}' +" +
+                "'.layout,.layout-guest{padding-top:10px!important;padding-bottom:18px!important}' +" +
                 "'.tabs,.nx-studio-nav{top:0!important}' +" +
-                "'html{overscroll-behavior-y:none}';document.head.appendChild(s);}" +
+                "'.modal-overlay{align-items:flex-end!important;justify-content:center!important;padding:0!important;overflow:hidden!important}' +" +
+                "'.modal-overlay .modal-box{width:100%!important;max-width:100%!important;margin:0!important;border-left:0!important;border-right:0!important;border-bottom:0!important;border-radius:26px 26px 0 0!important;max-height:92dvh!important;overflow:auto!important;padding-bottom:max(20px,env(safe-area-inset-bottom))!important;animation:deappNativeSheetIn .22s cubic-bezier(.2,.8,.2,1)!important}' +" +
+                "'.modal-overlay.photo-studio-modal .modal-box,.modal-overlay.reel-create-modal .modal-box{max-height:96dvh!important}' +" +
+                "'.deapp-cookie-modal{align-items:flex-end!important;padding:0!important}' +" +
+                "'.deapp-cookie-modal .cookie-modal-card{width:100%!important;max-width:100%!important;margin:0!important;border-radius:26px 26px 0 0!important;max-height:92dvh!important}' +" +
+                "'dialog.c-modal[open]{position:fixed!important;inset:auto 0 0 0!important;width:100%!important;max-width:none!important;margin:0!important;border-radius:26px 26px 0 0!important;max-height:92dvh!important}' +" +
+                "'dialog.c-modal .c-modal-box{border-radius:26px 26px 0 0!important}' +" +
+                "'@keyframes deappNativeSheetIn{from{transform:translateY(100%);opacity:.65}to{transform:translateY(0);opacity:1}}';" +
+                "document.head.appendChild(s);}" +
                 "document.documentElement.classList.add('deapp-native-shell');" +
+                "try{var av=document.querySelector('#user-menu-btn img.avatar-mini,.bottom-nav .bnav-avatar');" +
+                "var pr=document.querySelector('#user-dropdown .dropdown-user,.bottom-nav a.bnav:last-child');" +
+                "if(window.DeappNative){window.DeappNative.syncProfile(av?av.src:'',pr?pr.href:'');}}catch(e){}" +
                 "return true;})()";
         webView.evaluateJavascript(js, null);
     }
 
-    private void showNativeMenu(View anchor) {
-        PopupMenu p = new PopupMenu(this, anchor);
-        Menu m = p.getMenu();
-        m.add(Menu.NONE, MENU_FULL, 0, "Menu Deapp");
-        m.add(Menu.NONE, MENU_HOME, 1, "Beranda");
-        m.add(Menu.NONE, MENU_EXPLORE, 2, "Jelajah");
-        m.add(Menu.NONE, MENU_LIVE, 3, "Live");
-        m.add(Menu.NONE, MENU_TAP, 4, "Deapp Tap");
-        m.add(Menu.NONE, MENU_SETTINGS, 5, "Pengaturan");
-        m.add(Menu.NONE, MENU_REFRESH, 6, "Muat ulang");
-        m.add(Menu.NONE, MENU_SHARE, 7, "Bagikan halaman");
-        m.add(Menu.NONE, MENU_BROWSER, 8, "Buka di browser");
-        m.add(Menu.NONE, MENU_SERVER, 9, "Ganti server");
-        p.setOnMenuItemClickListener(item -> {
-            switch (item.getItemId()) {
-                case MENU_FULL: openWebDrawer(); return true;
-                case MENU_HOME: loadRelative("index.php"); return true;
-                case MENU_EXPLORE: loadRelative("explore.php"); return true;
-                case MENU_LIVE: loadRelative("live.php"); return true;
-                case MENU_TAP: loadRelative("tap.php"); return true;
-                case MENU_SETTINGS: loadRelative("settings.php"); return true;
-                case MENU_REFRESH: if (webView != null) webView.reload(); return true;
-                case MENU_SHARE: shareCurrentPage(); return true;
-                case MENU_BROWSER:
-                    if (webView != null) openExternal(webView.getUrl());
-                    return true;
-                case MENU_SERVER: showServerSetup(true); return true;
+    private GradientDrawable sheetBackground(int color) {
+        GradientDrawable d = new GradientDrawable();
+        d.setColor(color);
+        float r = dp(28);
+        d.setCornerRadii(new float[]{r, r, r, r, 0, 0, 0, 0});
+        return d;
+    }
+
+    private void showBottomSheet(String title, View content) {
+        dismissBottomSheet(false);
+        if (root == null) return;
+
+        FrameLayout overlay = new FrameLayout(this);
+        overlay.setBackgroundColor(Color.parseColor("#70000000"));
+        overlay.setClickable(true);
+        overlay.setFocusable(true);
+        overlay.setOnClickListener(v -> dismissBottomSheet(true));
+
+        LinearLayout sheet = new LinearLayout(this);
+        sheet.setOrientation(LinearLayout.VERTICAL);
+        sheet.setPadding(dp(18), dp(10), dp(18), dp(18));
+        sheet.setBackground(sheetBackground(cSurface));
+        sheet.setClickable(true);
+        sheet.setOnClickListener(v -> {});
+
+        View handle = new View(this);
+        handle.setBackground(rounded(cBorder, 99));
+        LinearLayout.LayoutParams handleLp = new LinearLayout.LayoutParams(dp(38), dp(4));
+        handleLp.gravity = Gravity.CENTER_HORIZONTAL;
+        handleLp.bottomMargin = dp(14);
+        sheet.addView(handle, handleLp);
+
+        if (title != null && !title.isEmpty()) {
+            TextView tv = text(title, 19, cText);
+            tv.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+            LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            tlp.bottomMargin = dp(14);
+            sheet.addView(tv, tlp);
+        }
+        sheet.addView(content, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        FrameLayout.LayoutParams sheetLp = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
+        overlay.addView(sheet, sheetLp);
+        root.addView(overlay, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        activeSheetOverlay = overlay;
+        activeSheetPanel = sheet;
+
+        ViewCompat.setOnApplyWindowInsetsListener(sheet, (v, insets) -> {
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(dp(18), dp(10), dp(18), dp(18) + bars.bottom);
+            return insets;
+        });
+        sheet.post(() -> {
+            sheet.setTranslationY(Math.max(sheet.getHeight(), dp(360)));
+            sheet.animate().translationY(0).setDuration(220).start();
+        });
+    }
+
+    private void dismissBottomSheet(boolean animate) {
+        if (activeSheetOverlay == null || root == null) return;
+        View overlay = activeSheetOverlay;
+        View panel = activeSheetPanel;
+        activeSheetOverlay = null;
+        activeSheetPanel = null;
+        if (animate && panel != null) {
+            panel.animate().translationY(Math.max(panel.getHeight(), dp(420))).setDuration(180)
+                    .withEndAction(() -> root.removeView(overlay)).start();
+            overlay.animate().alpha(0f).setDuration(180).start();
+        } else {
+            root.removeView(overlay);
+        }
+    }
+
+    private View sheetAction(String label, String subtitle, Runnable action) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(16), dp(12), dp(14), dp(12));
+        row.setBackground(rounded(cSurface2, 16));
+        row.setClickable(true);
+        row.setFocusable(true);
+
+        LinearLayout copy = new LinearLayout(this);
+        copy.setOrientation(LinearLayout.VERTICAL);
+        row.addView(copy, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        TextView t = text(label, 14.5f, cText);
+        t.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        copy.addView(t);
+        if (subtitle != null && !subtitle.isEmpty()) {
+            TextView st = text(subtitle, 11.5f, cMuted);
+            LinearLayout.LayoutParams stLp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            stLp.topMargin = dp(3);
+            copy.addView(st, stLp);
+        }
+
+        TextView arrow = text("›", 24, cMuted);
+        row.addView(arrow);
+        row.setOnClickListener(v -> {
+            haptic(v);
+            dismissBottomSheet(true);
+            v.postDelayed(action, 120);
+        });
+        return row;
+    }
+
+    private void addSheetAction(LinearLayout list, String label, String subtitle, Runnable action) {
+        View row = sheetAction(label, subtitle, action);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.bottomMargin = dp(8);
+        list.addView(row, lp);
+    }
+
+    private void showAccountSheet() {
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+
+        addSheetAction(list, "Profil saya", "Buka halaman profil Deapp", this::openOwnProfile);
+        addSheetAction(list, "Pesan", "Percakapan dan pesan masuk", () -> loadRelative("messages.php"));
+        addSheetAction(list, "Live", "Lihat atau mulai siaran langsung", () -> loadRelative("live.php"));
+        addSheetAction(list, "Deapp Tap", "Tambah teman secara langsung", () -> loadRelative("tap.php"));
+        addSheetAction(list, "Pengaturan", "Privasi, akun, notifikasi dan aplikasi", () -> loadRelative("settings.php"));
+        addSheetAction(list, "Bagikan halaman", "Kirim tautan halaman yang sedang dibuka", this::shareCurrentPage);
+        addSheetAction(list, "Muat ulang", "Segarkan halaman Deapp", () -> { if (webView != null) webView.reload(); });
+        addSheetAction(list, "Ganti server", "Ubah alamat hosting atau XAMPP", this::showServerBottomSheet);
+
+        showBottomSheet("Deapp", list);
+    }
+
+    private void showServerBottomSheet() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+
+        TextView desc = text("Masukkan alamat server Deapp. Gunakan HTTPS untuk hosting publik atau IP LAN untuk XAMPP.", 12.5f, cMuted);
+        desc.setLineSpacing(0, 1.12f);
+        box.addView(desc);
+
+        EditText input = new EditText(this);
+        input.setSingleLine(true);
+        input.setText(baseUrl);
+        input.setHint("https://domain.com atau 192.168.1.10/deapp");
+        input.setTextColor(cText);
+        input.setHintTextColor(cMuted);
+        input.setTextSize(14);
+        input.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI);
+        input.setImeOptions(EditorInfo.IME_ACTION_GO);
+        input.setPadding(dp(16), 0, dp(16), 0);
+        input.setBackground(bordered(cSurface2, cBorder, 16));
+        LinearLayout.LayoutParams inputLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(56));
+        inputLp.topMargin = dp(14);
+        box.addView(input, inputLp);
+
+        Button save = new Button(this);
+        save.setText("Simpan & buka");
+        save.setAllCaps(false);
+        save.setTextColor(Color.WHITE);
+        save.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        save.setBackground(rounded(cAccent, 16));
+        LinearLayout.LayoutParams saveLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(52));
+        saveLp.topMargin = dp(12);
+        box.addView(save, saveLp);
+
+        View.OnClickListener submit = v -> {
+            String u = normalizeUrl(input.getText().toString());
+            if (u.isEmpty()) {
+                input.setError("Masukkan alamat server Deapp");
+                return;
+            }
+            baseUrl = u;
+            prefs.edit().putString(KEY_URL, u).apply();
+            dismissBottomSheet(true);
+            if (webView != null) webView.postDelayed(() -> webView.loadUrl(u), 160);
+        };
+        save.setOnClickListener(submit);
+        input.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_GO) {
+                submit.onClick(input);
+                return true;
             }
             return false;
         });
-        p.show();
+        showBottomSheet("Ganti server", box);
+        input.postDelayed(input::requestFocus, 260);
+    }
+
+    private void showExitSheet() {
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        addSheetAction(list, "Tetap di Deapp", "Tutup lembar ini dan lanjut menggunakan aplikasi", () -> {});
+        addSheetAction(list, "Ganti server", "Gunakan hosting atau server Deapp lain", this::showServerBottomSheet);
+        addSheetAction(list, "Tutup aplikasi", "Keluar dari Deapp Lite", this::finish);
+        showBottomSheet("Keluar dari Deapp?", list);
+    }
+
+    public class NativeBridge {
+        @JavascriptInterface
+        public void syncProfile(String avatarUrl, String href) {
+            runOnUiThread(() -> syncNativeProfile(avatarUrl, href));
+        }
+    }
+
+    private void syncNativeProfile(String avatarUrl, String href) {
+        profileUrl = href == null ? "" : href.trim();
+        if (profileAvatar == null) return;
+        if (avatarUrl == null || avatarUrl.trim().isEmpty() || !(avatarUrl.startsWith("http://") || avatarUrl.startsWith("https://"))) {
+            profileAvatar.setImageResource(R.drawable.ic_native_user);
+            profileAvatar.setColorFilter(cMuted);
+            profileAvatar.setPadding(dp(7), dp(7), dp(7), dp(7));
+            return;
+        }
+        loadProfileAvatar(avatarUrl);
+    }
+
+    private void loadProfileAvatar(String avatarUrl) {
+        new Thread(() -> {
+            HttpURLConnection conn = null;
+            try {
+                conn = (HttpURLConnection) new URL(avatarUrl).openConnection();
+                conn.setConnectTimeout(7000);
+                conn.setReadTimeout(7000);
+                conn.setInstanceFollowRedirects(true);
+                String cookie = CookieManager.getInstance().getCookie(avatarUrl);
+                if (cookie != null && !cookie.isEmpty()) conn.setRequestProperty("Cookie", cookie);
+                conn.setRequestProperty("User-Agent", "DeappLite/1.2");
+                try (InputStream in = conn.getInputStream()) {
+                    Bitmap bitmap = BitmapFactory.decodeStream(in);
+                    if (bitmap != null) runOnUiThread(() -> {
+                        if (profileAvatar == null) return;
+                        profileAvatar.clearColorFilter();
+                        profileAvatar.setPadding(0, 0, 0, 0);
+                        profileAvatar.setImageBitmap(bitmap);
+                    });
+                }
+            } catch (Exception ignored) {
+            } finally {
+                if (conn != null) conn.disconnect();
+            }
+        }).start();
     }
 
     private void openWebDrawer() {
@@ -955,7 +1117,11 @@ public class MainActivity extends Activity {
 
     private void openOwnProfile() {
         if (webView == null) return;
-        webView.evaluateJavascript("(function(){var a=document.querySelector('.bottom-nav a.bnav:last-child');return a?a.href:'';})()", value -> {
+        if (profileUrl != null && !profileUrl.isEmpty()) {
+            webView.loadUrl(profileUrl);
+            return;
+        }
+        webView.evaluateJavascript("(function(){var a=document.querySelector('#user-dropdown .dropdown-user,.bottom-nav a.bnav:last-child');return a?a.href:'';})()", value -> {
             String profile = jsonString(value);
             if (profile.isEmpty()) loadRelative("login.php"); else webView.loadUrl(profile);
         });
@@ -984,15 +1150,8 @@ public class MainActivity extends Activity {
         String low = url.toLowerCase(Locale.US);
         boolean home = low.endsWith("/") || low.contains("/index.php");
         navHome.setActive(home);
-        navVideo.setActive(low.contains("/reels.php"));
-        navNotif.setActive(low.contains("/notifications.php"));
-        navProfile.setActive(low.contains("/profile.php"));
-    }
-
-    private void updateBackButton() {
-        if (backButton != null && webView != null) {
-            backButton.setVisibility(webView.canGoBack() ? View.VISIBLE : View.GONE);
-        }
+        if (navVideo != null) navVideo.setActive(low.contains("/reels.php"));
+        if (navNotif != null) navNotif.setActive(low.contains("/notifications.php"));
     }
 
     private void updateKeepScreenOn(String url) {
@@ -1100,6 +1259,10 @@ public class MainActivity extends Activity {
     }
 
     private void handleBack() {
+        if (activeSheetOverlay != null) {
+            dismissBottomSheet(true);
+            return;
+        }
         if (customView != null) {
             hideCustomView();
             return;
@@ -1108,13 +1271,7 @@ public class MainActivity extends Activity {
             webView.goBack();
             return;
         }
-        new AlertDialog.Builder(this)
-                .setTitle("Deapp")
-                .setMessage("Tutup Deapp Lite atau ganti alamat server?")
-                .setPositiveButton("Tutup", (d, w) -> finish())
-                .setNeutralButton("Ganti server", (d, w) -> showServerSetup(true))
-                .setNegativeButton("Batal", null)
-                .show();
+        showExitSheet();
     }
 
     @Override

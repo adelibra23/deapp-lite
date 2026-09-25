@@ -7,7 +7,7 @@
         <item name="android:colorAccent">@color/deapp_blue</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowLightNavigationBar">true</item>
-        <item name="android:windowBackground">@color/deapp_bg</item>
+        <item name="android:windowBackground">@drawable/deapp_splash</item>
         <item name="android:windowDisablePreview">false</item>
     </style>
 </resources>

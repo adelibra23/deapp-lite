@@ -1,22 +1,19 @@
-# Deapp Lite Android 1.1 — Native Shell
+# Deapp Lite Android 1.2 — Clean Native Shell
 
-Deapp Lite adalah wrapper Android ringan untuk server Deapp PHP/MySQL. Versi 1.1 mengganti chrome WebView dengan shell Android native sehingga pengalaman pemakaian terasa seperti aplikasi sungguhan tanpa membawa seluruh backend ke dalam APK.
+Deapp Lite adalah wrapper Android ringan untuk server Deapp PHP/MySQL. Versi 1.2 memoles shell Android agar terasa lebih seperti aplikasi sosial native tanpa membawa backend PHP/MySQL ke dalam APK.
 
-## Native UI 1.1
+## Native UI 1.2
 
-- Native splash screen Android 12+ dan loading screen Deapp untuk versi lama.
-- Edge-to-edge system bars dengan dukungan light/dark mode.
-- Native top app bar dengan judul halaman, status koneksi, Jelajah, Pesan, tombol Back, dan overflow menu.
-- Native bottom navigation: Beranda, Video, Buat, Notif, Profil.
-- Header dan bottom navigation web otomatis disembunyikan hanya ketika dibuka dari APK.
-- Native pull-to-refresh.
-- Native offline/server error screen dengan Coba lagi dan Ganti server.
-- Native share sheet, external browser intent, download manager, popup menu, dan haptic feedback.
-- Fullscreen HTML5 video support.
-- Keep-screen-on otomatis untuk Live/fullscreen video.
-- File picker Android, kamera/mikrofon WebRTC, geolocation, cookies/session.
-- Predictive/back callback Android 13+.
-- Server URL tetap bisa diganti dari dalam aplikasi.
+- Splash screen fokus pada logo Deapp, termasuk Android 12+ serta fallback perangkat lama.
+- Header sangat ringkas: hanya logo Deapp di kiri dan avatar akun aktif di kanan.
+- Avatar header mengikuti foto profil akun Deapp yang sedang login.
+- Bottom navigation icon-only: Beranda, Jelajah, Buat, Video Pendek, Notifikasi.
+- Menu akun dipindahkan ke bottom sheet saat avatar header diketuk.
+- Ganti server dan konfirmasi keluar juga memakai bottom sheet, bukan dialog popup klasik.
+- Modal web Deapp (`.modal-overlay`) ditampilkan sebagai bottom sheet ketika dibuka melalui APK.
+- Scrollbar WebView dan scrollbar HTML disembunyikan, tetapi halaman tetap dapat digulir normal.
+- Pull-to-refresh, offline screen, upload file, download, kamera/mikrofon WebRTC, geolocation, fullscreen video, haptic dan dark mode tetap didukung.
+- Header dan bottom navigation milik website tetap disembunyikan hanya di APK; tampilan browser biasa tidak berubah.
 
 ## Server
 
@@ -48,5 +45,5 @@ Konfigurasi build:
 
 ## Versi
 
-- versionCode: 2
-- versionName: 1.1.0-lite
+- versionCode: 3
+- versionName: 1.2.0-lite

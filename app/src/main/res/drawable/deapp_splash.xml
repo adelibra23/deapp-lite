@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/deapp_bg" />
+    <item android:gravity="center" android:width="92dp" android:height="92dp">
+        <bitmap
+            android:src="@drawable/deapp_logo"
+            android:gravity="center"
+            android:filter="true" />
+    </item>
+</layer-list>
