@@ -98,6 +98,7 @@ public class MainActivity extends Activity {
     private boolean profilePage = false;
     private boolean ownProfilePage = false;
     private boolean postDetailPage = false;
+    private boolean reelsPage = false;
     private boolean composerOpen = false;
     private boolean webSheetOpen = false;
     private View activeSheetOverlay;
@@ -416,6 +417,7 @@ public class MainActivity extends Activity {
         profilePage = false;
         ownProfilePage = false;
         postDetailPage = false;
+        reelsPage = false;
         composerOpen = false;
         webSheetOpen = false;
 
@@ -852,6 +854,16 @@ public class MainActivity extends Activity {
         }
     }
 
+    private boolean isReelsUrl(String url) {
+        if (url == null) return false;
+        try {
+            String path = URI.create(url).getPath();
+            return path != null && path.toLowerCase(Locale.US).endsWith("/reels.php");
+        } catch (Exception e) {
+            return url.toLowerCase(Locale.US).contains("/reels.php");
+        }
+    }
+
     private boolean isAuthUrl(String url) {
         if (url == null) return false;
         String low = url.toLowerCase(Locale.US);
@@ -861,16 +873,28 @@ public class MainActivity extends Activity {
     private void updateChromeVisibility() {
         boolean fullscreen = customView != null;
         boolean authPage = isAuthUrl(currentUrl);
-        boolean showTop = isLoggedIn && !fullscreen && !authPage;
+        boolean shortVideoPage = reelsPage || isReelsUrl(currentUrl);
+
+        // Video Pendek memiliki header/footer khusus di dalam halaman WebView.
+        // Header/footer Android utama disembunyikan agar tidak terjadi navigasi ganda.
+        boolean showTop = isLoggedIn && !fullscreen && !authPage && !shortVideoPage;
         if (topContainer != null) topContainer.setVisibility(showTop ? View.VISIBLE : View.GONE);
         updateTopBarMode();
 
-        boolean showBottom = isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage && !postDetailPage;
+        boolean showBottom = isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage && !postDetailPage && !shortVideoPage;
         if (bottomContainer != null) bottomContainer.setVisibility(showBottom ? View.VISIBLE : View.GONE);
-        boolean showFloatingCompose = isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage && !postDetailPage;
+        boolean showFloatingCompose = isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage && !postDetailPage && !shortVideoPage;
         if (composeFab != null) {
             composeFab.setVisibility(showFloatingCompose ? View.VISIBLE : View.GONE);
             composeFab.setContentDescription(profilePage ? "Buat postingan di profil" : "Buat postingan");
+        }
+
+        if (root != null) {
+            WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(getWindow(), root);
+            controller.setAppearanceLightStatusBars(!dark && !shortVideoPage);
+            controller.setAppearanceLightNavigationBars(!dark && !shortVideoPage);
+            getWindow().setStatusBarColor(Color.TRANSPARENT);
+            getWindow().setNavigationBarColor(shortVideoPage ? Color.BLACK : Color.TRANSPARENT);
         }
         updateRefreshAvailability();
     }
@@ -938,7 +962,7 @@ public class MainActivity extends Activity {
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.4 NativeMobile/9.4");
+        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.5 NativeMobile/9.5");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) s.setSafeBrowsingEnabled(true);
 
         CookieManager cm = CookieManager.getInstance();
@@ -976,6 +1000,7 @@ public class MainActivity extends Activity {
                 currentUrl = url == null ? "" : url;
                 profilePage = isProfileUrl(currentUrl);
                 postDetailPage = isPostUrl(currentUrl);
+                reelsPage = isReelsUrl(currentUrl);
                 profileDisplayName = "";
                 composerOpen = false;
                 webSheetOpen = false;
@@ -1002,6 +1027,9 @@ public class MainActivity extends Activity {
                 swipeRefresh.setRefreshing(false);
                 hideLoading();
                 currentUrl = url == null ? "" : url;
+                profilePage = isProfileUrl(currentUrl);
+                postDetailPage = isPostUrl(currentUrl);
+                reelsPage = isReelsUrl(currentUrl);
                 updateNativeNav(url);
                 updateChromeVisibility();
             }
@@ -1518,6 +1546,7 @@ public class MainActivity extends Activity {
                 String type = pageType == null ? "" : pageType.trim().toLowerCase(Locale.US);
                 profilePage = "profile".equals(type) || isProfileUrl(currentUrl);
                 postDetailPage = "post".equals(type) || isPostUrl(currentUrl);
+                reelsPage = "reels".equals(type) || isReelsUrl(currentUrl);
                 ownProfilePage = profilePage && ownProfile;
                 profileDisplayName = title == null ? "" : title.trim();
                 updateChromeVisibility();
@@ -1582,7 +1611,7 @@ public class MainActivity extends Activity {
                 conn.setInstanceFollowRedirects(true);
                 String cookie = CookieManager.getInstance().getCookie(avatarUrl);
                 if (cookie != null && !cookie.isEmpty()) conn.setRequestProperty("Cookie", cookie);
-                conn.setRequestProperty("User-Agent", "DeappLite/1.9.4");
+                conn.setRequestProperty("User-Agent", "DeappLite/1.9.5");
                 try (InputStream in = conn.getInputStream()) {
                     Bitmap bitmap = BitmapFactory.decodeStream(in);
                     if (bitmap != null) runOnUiThread(() -> {
@@ -1796,7 +1825,7 @@ public class MainActivity extends Activity {
         name.setGravity(Gravity.CENTER);
         box.addView(name);
 
-        TextView version = text("Versi 1.9.4-lite · Build 14", 13, cMuted);
+        TextView version = text("Versi 1.9.5-lite · Build 15", 13, cMuted);
         version.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams versionLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -2037,6 +2066,7 @@ public class MainActivity extends Activity {
         profilePage = false;
         ownProfilePage = false;
         postDetailPage = false;
+        reelsPage = false;
         composerOpen = false;
         webSheetOpen = false;
         navHome = null;
