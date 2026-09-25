@@ -1,26 +1,19 @@
-# DeApp Lite Android v1.9.7 — Bottom Sheet + Startup Splash
+# DeApp Lite Android v1.9.10 — Home & Reaction Visual Refresh
 
-Patch ini melanjutkan v1.9.6 dan merapikan perilaku modal/bottom sheet serta layar pembuka aplikasi.
+Patch ini melanjutkan DeApp Lite v1.9.9 dan berfokus pada tampilan Beranda, menu fitur, serta feedback reaction.
 
 ## Perubahan utama
 
-- Navigasi menu bawah Android otomatis disembunyikan ketika bottom sheet native atau bottom sheet/modal web sedang aktif.
-- Footer section khusus seperti Notifikasi, Live, DeApp AI, Toko & Dompet, Pengaturan, dan Video Pendek ikut disembunyikan ketika sheet aktif.
-- Header tetap terlihat tetapi diberi efek gelap/dim ringan seperti latar belakang modal bottom sheet Threads.
-- Bottom sheet native menggunakan scrim yang lebih lembut supaya halaman di belakang tetap terbaca tanpa terasa terlalu gelap.
-- Deteksi bottom sheet diperluas ke Story, komentar/more Video Pendek, modal web, menu postingan, dan sheet profil.
-- Floating composer ikut disembunyikan selama bottom sheet aktif agar tidak bertabrakan dengan modal.
-- Splash pembuka baru menampilkan animasi logo DeApp selama sekitar 5 detik.
-- WebView langsung memuat server di belakang splash sehingga durasi splash tidak menunda awal koneksi halaman.
-- Splash hanya tampil sekali per pembukaan Activity/aplikasi, bukan setiap perpindahan halaman.
-- Semua perbaikan v1.9.6 tetap dipertahankan: section chrome, Story, Chat, Notifikasi, Live, DeApp AI, Toko & Dompet, Pengaturan, post 250 karakter, Reels, komentar ala Threads, composer, scroll/tap recovery, dan optimasi loading.
+- Menu fitur DeApp pada bottom sheet native sekarang memakai ikon dengan warna berbeda per fitur dan bubble warna lembut agar lebih hidup serta cepat dikenali.
+- Ringkasan harian di Beranda (`daily-strip`) disembunyikan di DeApp Lite. Bagian koin, absen/streak, misi harian, tiket di tas, dan level tidak lagi memenuhi area sebelum Story. Fitur aslinya tetap tersedia di Toko & Dompet/halaman terkait.
+- Story langsung naik ke bagian atas Beranda setelah header.
+- Tab Beranda **Untukmu, Mengikuti, Topik, Populer, Media, Tanya-jawab** dibuat sedikit lebih besar, berbentuk pill, dan mendapat aksen warna berbeda.
+- Tab aktif memiliki border/aksen yang lebih jelas tanpa mengubah URL atau handler tab asli DeApp.
+- Tombol reaction postingan dan pilihan emoji reaction memberi feedback haptic/getaran Android ketika ditap.
+- Haptic dipicu lewat bridge `DeappNative.tap()`, sehingga tidak mengganggu request reaction atau gesture scroll.
 
-Versi Android: **1.9.7-lite (Build 17)**.
+## Stabilitas yang dipertahankan
 
-## File patch
+Patch tetap membawa DeApp AI burger + FAB, universal bottom-sheet detection, UI chat Threads-style, Story/Reels chrome, posting 250 karakter, splash logo 5 detik, composer post fix, serta optimasi WebView dari versi sebelumnya.
 
-- `app/build.gradle`
-- `app/src/main/java/id/deapp/lite/MainActivity.java`
-- `app/src/main/assets/deapp_native_v19.js`
-
-Ekstrak ZIP ke root project `~/deapp-build/deapp-lite-android`, lalu commit dan push ke GitHub seperti versi sebelumnya.
+Versi Android: **1.9.10-lite (Build 20)**.

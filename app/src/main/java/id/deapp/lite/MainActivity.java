@@ -1012,7 +1012,7 @@ public class MainActivity extends Activity {
         // Web bottom sheets berada di dalam WebView sehingga tidak otomatis meredupkan
         // toolbar Android. Tambahkan lapisan gelap tipis agar konsisten seperti Threads.
         if (topContainer != null) {
-            topContainer.setForeground(webSheetOpen ? new ColorDrawable(Color.parseColor("#1F000000")) : null);
+            topContainer.setForeground(webSheetOpen ? new ColorDrawable(Color.parseColor("#24000000")) : null);
         }
 
         if (root != null) {
@@ -1372,7 +1372,7 @@ public class MainActivity extends Activity {
         if (root == null) return;
 
         FrameLayout overlay = new FrameLayout(this);
-        overlay.setBackgroundColor(Color.parseColor("#52000000"));
+        overlay.setBackgroundColor(Color.parseColor("#42000000"));
         overlay.setClickable(true);
         overlay.setFocusable(true);
         overlay.setOnClickListener(v -> dismissBottomSheet(true));
@@ -1506,21 +1506,27 @@ public class MainActivity extends Activity {
         list.addView(row, lp);
     }
 
-    private View featureTile(int iconRes, String label, Runnable action) {
+    private View featureTile(int iconRes, String label, int iconColor, int iconBg, Runnable action) {
         LinearLayout tile = new LinearLayout(this);
         tile.setOrientation(LinearLayout.VERTICAL);
         tile.setGravity(Gravity.CENTER);
-        tile.setPadding(dp(8), dp(13), dp(8), dp(11));
-        tile.setBackground(rounded(cSurface2, 18));
+        tile.setPadding(dp(7), dp(11), dp(7), dp(10));
+        tile.setBackground(bordered(cSurface2, dark ? Color.parseColor("#242424") : Color.parseColor("#ECECEC"), 18));
         tile.setClickable(true);
         tile.setFocusable(true);
         tile.setContentDescription(label);
 
+        FrameLayout iconBubble = new FrameLayout(this);
+        iconBubble.setBackground(rounded(iconBg, 14));
+        LinearLayout.LayoutParams bubbleLp = new LinearLayout.LayoutParams(dp(44), dp(44));
+        tile.addView(iconBubble, bubbleLp);
+
         ImageView icon = new ImageView(this);
         icon.setImageResource(iconRes);
-        icon.setColorFilter(cText);
-        icon.setPadding(dp(7), dp(7), dp(7), dp(7));
-        tile.addView(icon, new LinearLayout.LayoutParams(dp(38), dp(38)));
+        icon.setColorFilter(iconColor);
+        icon.setPadding(dp(10), dp(10), dp(10), dp(10));
+        FrameLayout.LayoutParams iconLp = new FrameLayout.LayoutParams(dp(44), dp(44), Gravity.CENTER);
+        iconBubble.addView(icon, iconLp);
 
         TextView name = text(label, 11.5f, cText);
         name.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
@@ -1539,13 +1545,13 @@ public class MainActivity extends Activity {
         return tile;
     }
 
-    private void addFeatureTile(GridLayout grid, int iconRes, String label, Runnable action) {
+    private void addFeatureTile(GridLayout grid, int iconRes, String label, int iconColor, int iconBg, Runnable action) {
         int width = (getResources().getDisplayMetrics().widthPixels - dp(52)) / 3;
         GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
         lp.width = width;
-        lp.height = dp(82);
+        lp.height = dp(90);
         lp.setMargins(dp(3), dp(4), dp(3), dp(4));
-        grid.addView(featureTile(iconRes, label, action), lp);
+        grid.addView(featureTile(iconRes, label, iconColor, iconBg, action), lp);
     }
 
     private void showFeatureMenuSheet() {
@@ -1565,18 +1571,19 @@ public class MainActivity extends Activity {
         content.addView(grid, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        addFeatureTile(grid, R.drawable.ic_native_user, "Profil", this::openOwnProfile);
-        addFeatureTile(grid, R.drawable.ic_native_message, "Pesan", () -> loadRelative("messages.php"));
-        addFeatureTile(grid, R.drawable.ic_native_live, "Live", () -> loadRelative("live.php"));
-        addFeatureTile(grid, R.drawable.ic_native_video, "Video", () -> loadRelative("reels.php"));
-        addFeatureTile(grid, R.drawable.ic_native_community, "Komunitas", () -> loadRelative("community.php"));
-        addFeatureTile(grid, R.drawable.ic_native_bookmark, "Tersimpan", () -> loadRelative("bookmarks.php"));
-        addFeatureTile(grid, R.drawable.ic_native_tap, "Deapp Tap", () -> loadRelative("tap.php"));
-        addFeatureTile(grid, R.drawable.ic_native_sparkles, "Deapp AI", () -> loadRelative("ai.php"));
-        addFeatureTile(grid, R.drawable.ic_native_code, "Developer", () -> loadRelative("developer.php"));
-        addFeatureTile(grid, R.drawable.ic_native_shop, "Toko", () -> loadRelative("shop.php"));
-        addFeatureTile(grid, R.drawable.ic_native_game, "Mini Game", () -> loadRelative("games.php"));
-        addFeatureTile(grid, R.drawable.ic_native_settings, "Pengaturan", () -> loadRelative("settings.php"));
+        // v1.9.10 — ikon menu diberi identitas warna agar lebih cepat dikenali secara visual.
+        addFeatureTile(grid, R.drawable.ic_native_user, "Profil", Color.parseColor("#6C63FF"), Color.parseColor(dark ? "#211F46" : "#EEEDFF"), this::openOwnProfile);
+        addFeatureTile(grid, R.drawable.ic_native_message, "Pesan", Color.parseColor("#00A86B"), Color.parseColor(dark ? "#12382A" : "#E8FAF2"), () -> loadRelative("messages.php"));
+        addFeatureTile(grid, R.drawable.ic_native_live, "Live", Color.parseColor("#F04464"), Color.parseColor(dark ? "#431923" : "#FFEAF0"), () -> loadRelative("live.php"));
+        addFeatureTile(grid, R.drawable.ic_native_video, "Video", Color.parseColor("#FF7A00"), Color.parseColor(dark ? "#432A12" : "#FFF2E5"), () -> loadRelative("reels.php"));
+        addFeatureTile(grid, R.drawable.ic_native_community, "Komunitas", Color.parseColor("#008FD5"), Color.parseColor(dark ? "#123348" : "#E7F6FD"), () -> loadRelative("community.php"));
+        addFeatureTile(grid, R.drawable.ic_native_bookmark, "Tersimpan", Color.parseColor("#B565E7"), Color.parseColor(dark ? "#352044" : "#F6EBFF"), () -> loadRelative("bookmarks.php"));
+        addFeatureTile(grid, R.drawable.ic_native_tap, "Deapp Tap", Color.parseColor("#E94D8A"), Color.parseColor(dark ? "#431B30" : "#FFEAF3"), () -> loadRelative("tap.php"));
+        addFeatureTile(grid, R.drawable.ic_native_sparkles, "Deapp AI", Color.parseColor("#4F67FF"), Color.parseColor(dark ? "#1D274E" : "#EAF0FF"), () -> loadRelative("ai.php"));
+        addFeatureTile(grid, R.drawable.ic_native_code, "Developer", Color.parseColor("#00A7A0"), Color.parseColor(dark ? "#123B39" : "#E5FAF8"), () -> loadRelative("developer.php"));
+        addFeatureTile(grid, R.drawable.ic_native_shop, "Toko", Color.parseColor("#F59E0B"), Color.parseColor(dark ? "#463413" : "#FFF6DC"), () -> loadRelative("shop.php"));
+        addFeatureTile(grid, R.drawable.ic_native_game, "Mini Game", Color.parseColor("#21A366"), Color.parseColor(dark ? "#17392B" : "#E9F9F0"), () -> loadRelative("games.php"));
+        addFeatureTile(grid, R.drawable.ic_native_settings, "Pengaturan", Color.parseColor("#708090"), Color.parseColor(dark ? "#2A2F34" : "#EEF1F4"), () -> loadRelative("settings.php"));
 
 
         showBottomSheet("Menu", content);
@@ -1959,7 +1966,7 @@ public class MainActivity extends Activity {
         name.setGravity(Gravity.CENTER);
         box.addView(name);
 
-        TextView version = text("Versi 1.9.5-lite · Build 15", 13, cMuted);
+        TextView version = text("Versi 1.9.10-lite · Build 20", 13, cMuted);
         version.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams versionLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
