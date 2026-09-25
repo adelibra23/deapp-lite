@@ -2,12 +2,13 @@
 <resources>
     <style name="AppTheme" parent="android:style/Theme.Material.Light.NoActionBar">
         <item name="android:fontFamily">sans</item>
-        <item name="android:windowActionModeOverlay">true</item>
         <item name="android:windowNoTitle">true</item>
         <item name="android:colorAccent">@color/deapp_blue</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowLightNavigationBar">true</item>
         <item name="android:windowBackground">@color/deapp_bg</item>
-        <item name="android:windowDisablePreview">false</item>
+        <item name="android:windowSplashScreenBackground">@color/deapp_bg</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/deapp_logo</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
     </style>
 </resources>

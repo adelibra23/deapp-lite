@@ -1,58 +1,52 @@
-# Deapp Lite Android
+# Deapp Lite Android 1.1 — Native Shell
 
-Wrapper Android ringan untuk Deapp v2.74+. Aplikasi Android hanya memuat UI melalui WebView; PHP/MySQL tetap berjalan di server Deapp.
+Deapp Lite adalah wrapper Android ringan untuk server Deapp PHP/MySQL. Versi 1.1 mengganti chrome WebView dengan shell Android native sehingga pengalaman pemakaian terasa seperti aplikasi sungguhan tanpa membawa seluruh backend ke dalam APK.
 
-## Kenapa model ini ringan?
+## Native UI 1.1
 
-WebView berasal dari Android System WebView/Chrome yang sudah ada di perangkat. APK tidak membawa Chromium, PHP, MySQL, atau seluruh source Deapp ke dalam APK.
+- Native splash screen Android 12+ dan loading screen Deapp untuk versi lama.
+- Edge-to-edge system bars dengan dukungan light/dark mode.
+- Native top app bar dengan judul halaman, status koneksi, Jelajah, Pesan, tombol Back, dan overflow menu.
+- Native bottom navigation: Beranda, Video, Buat, Notif, Profil.
+- Header dan bottom navigation web otomatis disembunyikan hanya ketika dibuka dari APK.
+- Native pull-to-refresh.
+- Native offline/server error screen dengan Coba lagi dan Ganti server.
+- Native share sheet, external browser intent, download manager, popup menu, dan haptic feedback.
+- Fullscreen HTML5 video support.
+- Keep-screen-on otomatis untuk Live/fullscreen video.
+- File picker Android, kamera/mikrofon WebRTC, geolocation, cookies/session.
+- Predictive/back callback Android 13+.
+- Server URL tetap bisa diganti dari dalam aplikasi.
 
-## Fitur wrapper
-
-- Server URL dapat diatur saat pertama kali membuka app.
-- Mendukung HTTPS dan HTTP LAN/XAMPP.
-- JavaScript, cookies, DOM storage, service worker/WebView modern.
-- Upload foto/video/file melalui input web.
-- Kamera + mikrofon untuk WebRTC/Live.
-- Geolocation jika halaman meminta izin.
-- Download melalui Download Manager Android.
-- Tautan eksternal dibuka di aplikasi/browser eksternal.
-- Tombol Back Android mengikuti history WebView.
-- Saat di root, Back menyediakan opsi Keluar atau Ganti server.
-- Ikon Deapp sendiri.
-
-## URL server
+## Server
 
 Hosting:
 
     https://domainanda.com/
 
-XAMPP dari ponsel satu Wi-Fi dengan laptop:
+XAMPP/LAN:
 
     http://192.168.1.10/deapp/
 
-Jangan memakai `http://localhost/deapp/` di ponsel, karena `localhost` akan menunjuk ke ponsel itu sendiri.
+Jangan gunakan `localhost` di ponsel karena localhost menunjuk ke perangkat Android itu sendiri.
 
-## Build di Android Studio
+## Build otomatis
 
-1. Buka folder ini sebagai project Android Studio.
-2. Pastikan Android SDK 35 tersedia.
-3. Build > Generate App Bundles or APKs > Generate APKs.
-4. Untuk APK rilis, buat signing key milik Anda sendiri.
+Workflow `.github/workflows/build-apk.yml` membangun debug APK yang dapat langsung dipasang untuk pengujian.
 
-## Build dari command line
+Artifact:
 
-Project memakai Android Gradle Plugin 8.7.3 dan compileSdk 35.
+    deapp-lite-apk / deapp-lite.apk
 
-    gradle assembleDebug
+Konfigurasi build:
 
-Hasil:
+- Java 17
+- Gradle 8.9
+- Android Gradle Plugin 8.7.3
+- compileSdk / targetSdk 35
+- minSdk 24
 
-    app/build/outputs/apk/debug/app-debug.apk
+## Versi
 
-## Catatan produksi
-
-Untuk server publik gunakan HTTPS agar kamera, mikrofon, geolocation dan keamanan session lebih konsisten. HTTP sengaja diizinkan untuk pengujian LAN/XAMPP.
-
-## Build otomatis dengan GitHub Actions
-
-Project sudah menyertakan `.github/workflows/build-apk.yml`. Jika repository di-push ke GitHub, workflow akan membuild `deapp-lite.apk` dan menyimpannya sebagai artifact `deapp-lite-apk`.
+- versionCode: 2
+- versionName: 1.1.0-lite
