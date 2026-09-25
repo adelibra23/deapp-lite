@@ -20,6 +20,8 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
+import android.view.MotionEvent;
+import android.view.ViewConfiguration;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
@@ -39,6 +41,7 @@ import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.GridLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -80,10 +83,13 @@ public class MainActivity extends Activity {
     private FrameLayout offlineOverlay;
     private FrameLayout loadingOverlay;
     private ImageView profileAvatar;
+    private ImageButton featureMenuButton;
+    private ImageButton composeFab;
     private String profileUrl = "";
     private View activeSheetOverlay;
     private View activeSheetPanel;
     private NavItem navHome;
+    private NavItem navExplore;
     private NavItem navVideo;
     private NavItem navNotif;
     private NavItem navProfile;
@@ -135,14 +141,16 @@ public class MainActivity extends Activity {
     private void readPalette() {
         dark = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
                 == Configuration.UI_MODE_NIGHT_YES;
-        cBg = Color.parseColor(dark ? "#090B10" : "#F6F8FC");
-        cSurface = Color.parseColor(dark ? "#11141B" : "#FFFFFF");
-        cSurface2 = Color.parseColor(dark ? "#1A1E28" : "#F0F3F9");
-        cText = Color.parseColor(dark ? "#F3F5FA" : "#182033");
-        cMuted = Color.parseColor(dark ? "#98A2B6" : "#6F7890");
-        cBorder = Color.parseColor(dark ? "#252A36" : "#E3E8F1");
+        // v1.3: palet monokrom ala aplikasi sosial native modern / Threads-inspired.
+        // Biru Deapp tetap dipakai untuk aksi primer dan progress agar identitas brand tidak hilang.
+        cBg = Color.parseColor(dark ? "#000000" : "#FFFFFF");
+        cSurface = Color.parseColor(dark ? "#000000" : "#FFFFFF");
+        cSurface2 = Color.parseColor(dark ? "#171717" : "#F5F5F5");
+        cText = Color.parseColor(dark ? "#F5F5F5" : "#0A0A0A");
+        cMuted = Color.parseColor(dark ? "#8F8F8F" : "#777777");
+        cBorder = Color.parseColor(dark ? "#262626" : "#E7E7E7");
         cAccent = Color.parseColor("#3264F5");
-        cAccentSoft = Color.parseColor(dark ? "#1E2E62" : "#E8EEFF");
+        cAccentSoft = Color.parseColor(dark ? "#171C2B" : "#EEF3FF");
         cDanger = Color.parseColor("#E5484D");
         cSuccess = Color.parseColor("#22A06B");
     }
@@ -395,6 +403,7 @@ public class MainActivity extends Activity {
         buildNativeTopBar();
         buildWebContent();
         buildNativeBottomBar();
+        buildFloatingComposer();
         applyInsetsToShell();
         configureWebView();
         webView.loadUrl(baseUrl);
@@ -404,21 +413,22 @@ public class MainActivity extends Activity {
         topContainer = new FrameLayout(this);
         topContainer.setBackgroundColor(cSurface);
         shell.addView(topContainer, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(54)));
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(56)));
 
         LinearLayout toolbar = new LinearLayout(this);
         toolbar.setOrientation(LinearLayout.HORIZONTAL);
         toolbar.setGravity(Gravity.CENTER_VERTICAL);
-        toolbar.setPadding(dp(14), 0, dp(12), 0);
+        toolbar.setPadding(dp(15), 0, dp(10), 0);
         topContainer.addView(toolbar, new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(54), Gravity.BOTTOM));
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(56), Gravity.BOTTOM));
 
+        // Logo menjadi satu-satunya identitas di sisi kiri agar header ringan.
         ImageView logo = new ImageView(this);
         logo.setImageResource(R.drawable.deapp_logo);
         logo.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        LinearLayout.LayoutParams logoLp = new LinearLayout.LayoutParams(dp(36), dp(36));
-        toolbar.addView(logo, logoLp);
         logo.setContentDescription("Beranda Deapp");
+        LinearLayout.LayoutParams logoLp = new LinearLayout.LayoutParams(dp(35), dp(35));
+        toolbar.addView(logo, logoLp);
         logo.setOnClickListener(v -> {
             haptic(v);
             loadRelative("index.php");
@@ -427,24 +437,14 @@ public class MainActivity extends Activity {
         View spacer = new View(this);
         toolbar.addView(spacer, new LinearLayout.LayoutParams(0, dp(1), 1f));
 
-        profileAvatar = new ImageView(this);
-        profileAvatar.setImageResource(R.drawable.ic_native_user);
-        profileAvatar.setColorFilter(cMuted);
-        profileAvatar.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        profileAvatar.setPadding(dp(7), dp(7), dp(7), dp(7));
-        profileAvatar.setBackground(rounded(cSurface2, 99));
-        profileAvatar.setContentDescription("Profil dan menu akun");
-        profileAvatar.setClipToOutline(true);
-        profileAvatar.setOutlineProvider(new ViewOutlineProvider() {
-            @Override public void getOutline(View view, Outline outline) {
-                outline.setOval(0, 0, view.getWidth(), view.getHeight());
-            }
-        });
-        LinearLayout.LayoutParams avatarLp = new LinearLayout.LayoutParams(dp(38), dp(38));
-        toolbar.addView(profileAvatar, avatarLp);
-        profileAvatar.setOnClickListener(v -> {
+        // Tombol menu fitur: satu ikon di kanan atas, membuka feature grid bottom sheet.
+        featureMenuButton = iconButton(R.drawable.ic_native_grid, "Menu fitur Deapp");
+        featureMenuButton.setColorFilter(cText);
+        featureMenuButton.setBackground(rounded(Color.TRANSPARENT, 99));
+        toolbar.addView(featureMenuButton);
+        featureMenuButton.setOnClickListener(v -> {
             haptic(v);
-            showAccountSheet();
+            showFeatureMenuSheet();
         });
 
         View divider = new View(this);
@@ -580,7 +580,7 @@ public class MainActivity extends Activity {
         LinearLayout nav = new LinearLayout(this);
         nav.setOrientation(LinearLayout.HORIZONTAL);
         nav.setGravity(Gravity.CENTER);
-        nav.setPadding(dp(8), dp(5), dp(8), dp(5));
+        nav.setPadding(dp(10), dp(4), dp(10), dp(4));
         bottomContainer.addView(nav, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(58), Gravity.TOP));
 
@@ -589,12 +589,12 @@ public class MainActivity extends Activity {
         bottomContainer.addView(divider, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(1), Gravity.TOP));
 
+        // Navigasi inti ala Threads: fitur sekunder dipindah ke menu kanan atas.
         navHome = addNav(nav, R.drawable.ic_native_home, "Beranda", () -> loadRelative("index.php"));
-        addNav(nav, R.drawable.ic_native_search, "Jelajah", () -> loadRelative("explore.php"));
-        addComposeNav(nav);
-        navVideo = addNav(nav, R.drawable.ic_native_video, "Video Pendek", () -> loadRelative("reels.php"));
-        navNotif = addNav(nav, R.drawable.ic_native_bell, "Notifikasi", () -> loadRelative("notifications.php"));
-        navProfile = null;
+        navExplore = addNav(nav, R.drawable.ic_native_search, "Jelajah", () -> loadRelative("explore.php"));
+        navNotif = addNav(nav, R.drawable.ic_native_bell, "Aktivitas", () -> loadRelative("notifications.php"));
+        navProfile = addNav(nav, R.drawable.ic_native_user, "Profil", this::openOwnProfile);
+        navVideo = null;
         updateNativeNav(baseUrl);
     }
 
@@ -604,21 +604,22 @@ public class MainActivity extends Activity {
         return item;
     }
 
-    private void addComposeNav(LinearLayout parent) {
-        FrameLayout wrap = new FrameLayout(this);
-        wrap.setClickable(true);
-        wrap.setFocusable(true);
-        wrap.setContentDescription("Buat kiriman");
-        parent.addView(wrap, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+    private void buildFloatingComposer() {
+        composeFab = new ImageButton(this);
+        composeFab.setImageResource(R.drawable.ic_native_add);
+        composeFab.setColorFilter(dark ? Color.BLACK : Color.WHITE);
+        composeFab.setContentDescription("Buat kiriman");
+        composeFab.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        composeFab.setPadding(dp(16), dp(16), dp(16), dp(16));
+        composeFab.setBackground(rounded(dark ? Color.WHITE : Color.BLACK, 19));
+        composeFab.setElevation(dp(9));
+        composeFab.setStateListAnimator(null);
 
-        ImageView plus = new ImageView(this);
-        plus.setImageResource(R.drawable.ic_native_add);
-        plus.setColorFilter(Color.WHITE);
-        plus.setPadding(dp(11), dp(11), dp(11), dp(11));
-        plus.setBackground(rounded(cAccent, 16));
-        FrameLayout.LayoutParams plusLp = new FrameLayout.LayoutParams(dp(44), dp(44), Gravity.CENTER);
-        wrap.addView(plus, plusLp);
-        wrap.setOnClickListener(v -> {
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(dp(58), dp(58), Gravity.END | Gravity.BOTTOM);
+        lp.rightMargin = dp(18);
+        lp.bottomMargin = dp(70);
+        root.addView(composeFab, lp);
+        composeFab.setOnClickListener(v -> {
             haptic(v);
             openComposer();
         });
@@ -649,18 +650,23 @@ public class MainActivity extends Activity {
         }
 
         void setActive(boolean active) {
-            icon.setColorFilter(active ? cAccent : cMuted);
-            icon.setBackground(active ? rounded(cAccentSoft, 16) : rounded(Color.TRANSPARENT, 16));
+            // Threads-inspired: status aktif dibaca dari kontras ikon, tanpa pill berwarna.
+            icon.setColorFilter(active ? cText : cMuted);
+            icon.setAlpha(active ? 1f : .72f);
+            icon.setBackground(rounded(Color.TRANSPARENT, 16));
+            icon.setScaleX(active ? 1.05f : 1f);
+            icon.setScaleY(active ? 1.05f : 1f);
         }
     }
 
     private void applyInsetsToShell() {
         ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
             Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            boolean imeVisible = insets.isVisible(WindowInsetsCompat.Type.ime());
             if (topContainer != null) {
                 topContainer.setPadding(0, bars.top, 0, 0);
                 ViewGroup.LayoutParams lp = topContainer.getLayoutParams();
-                lp.height = dp(54) + bars.top;
+                lp.height = dp(56) + bars.top;
                 topContainer.setLayoutParams(lp);
             }
             if (bottomContainer != null) {
@@ -668,6 +674,14 @@ public class MainActivity extends Activity {
                 ViewGroup.LayoutParams lp = bottomContainer.getLayoutParams();
                 lp.height = dp(58) + bars.bottom;
                 bottomContainer.setLayoutParams(lp);
+                bottomContainer.setVisibility(imeVisible ? View.GONE : View.VISIBLE);
+            }
+            if (composeFab != null) {
+                FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) composeFab.getLayoutParams();
+                lp.rightMargin = dp(18);
+                lp.bottomMargin = dp(70) + bars.bottom;
+                composeFab.setLayoutParams(lp);
+                composeFab.setVisibility(imeVisible ? View.GONE : View.VISIBLE);
             }
             return insets;
         });
@@ -686,7 +700,7 @@ public class MainActivity extends Activity {
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.2 NativeShell/2");
+        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.3 ThreadsShell/3");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) s.setSafeBrowsingEnabled(true);
 
         CookieManager cm = CookieManager.getInstance();
@@ -790,6 +804,7 @@ public class MainActivity extends Activity {
                 customView = view;
                 customViewCallback = callback;
                 shell.setVisibility(View.GONE);
+                if (composeFab != null) composeFab.setVisibility(View.GONE);
                 root.addView(customView, new FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
                 getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -828,26 +843,102 @@ public class MainActivity extends Activity {
                 "if(!s){s=document.createElement('style');s.id=id;" +
                 "s.textContent=':root{--topbar-h:0px!important;--bnav-h:0px!important}' +" +
                 "'.topbar,.bottom-nav{display:none!important}' +" +
-                "'html,body{scrollbar-width:none!important;overscroll-behavior-y:none!important}' +" +
+                "'html,body{scrollbar-width:none!important;overscroll-behavior-y:none!important;background:var(--surface)!important}' +" +
                 "'html::-webkit-scrollbar,body::-webkit-scrollbar,*::-webkit-scrollbar{display:none!important;width:0!important;height:0!important;background:transparent!important}' +" +
                 "'body{padding-top:0!important;padding-bottom:0!important;-webkit-tap-highlight-color:transparent}' +" +
-                "'.layout,.layout-guest{padding-top:10px!important;padding-bottom:18px!important}' +" +
+                "'.layout,.layout-guest{padding-top:0!important;padding-bottom:14px!important}' +" +
                 "'.tabs,.nx-studio-nav{top:0!important}' +" +
+                "'.page-home .composer-trigger{display:none!important}' +" +
+                "'.page-home .feed-tabs{border-left:0!important;border-right:0!important;border-top:0!important;border-radius:0!important;box-shadow:none!important;background:var(--surface)!important}' +" +
+                "'.page-home .feed{border:0!important;border-radius:0!important;box-shadow:none!important;background:var(--surface)!important}' +" +
+                "'.page-home .feed>.post-card,.page-home .feed>.qa-card{border-radius:0!important;box-shadow:none!important}' +" +
+                "'.post-card{box-shadow:none!important}' +" +
+                "'.post-card .post-actions{border-top-color:transparent!important}' +" +
                 "'.modal-overlay{align-items:flex-end!important;justify-content:center!important;padding:0!important;overflow:hidden!important}' +" +
-                "'.modal-overlay .modal-box{width:100%!important;max-width:100%!important;margin:0!important;border-left:0!important;border-right:0!important;border-bottom:0!important;border-radius:26px 26px 0 0!important;max-height:92dvh!important;overflow:auto!important;padding-bottom:max(20px,env(safe-area-inset-bottom))!important;animation:deappNativeSheetIn .22s cubic-bezier(.2,.8,.2,1)!important}' +" +
-                "'.modal-overlay.photo-studio-modal .modal-box,.modal-overlay.reel-create-modal .modal-box{max-height:96dvh!important}' +" +
+                "'.modal-overlay .modal-box{width:100%!important;max-width:100%!important;margin:0!important;border-left:0!important;border-right:0!important;border-bottom:0!important;border-radius:24px 24px 0 0!important;max-height:94dvh!important;overflow:auto!important;padding-bottom:max(20px,env(safe-area-inset-bottom))!important;box-shadow:0 -12px 38px rgba(0,0,0,.16)!important;animation:deappNativeSheetIn .22s cubic-bezier(.2,.8,.2,1)!important;will-change:transform}' +" +
+                "'.modal-overlay .modal-box:before,.deapp-cookie-modal .cookie-modal-card:before,dialog.c-modal[open] .c-modal-box:before{content:\"\";display:block;width:36px;height:4px;border-radius:99px;background:color-mix(in srgb,var(--text-muted) 48%,transparent);margin:8px auto 10px;flex:none}' +" +
+                "'.modal-overlay.photo-studio-modal .modal-box,.modal-overlay.reel-create-modal .modal-box{max-height:97dvh!important}' +" +
                 "'.deapp-cookie-modal{align-items:flex-end!important;padding:0!important}' +" +
-                "'.deapp-cookie-modal .cookie-modal-card{width:100%!important;max-width:100%!important;margin:0!important;border-radius:26px 26px 0 0!important;max-height:92dvh!important}' +" +
-                "'dialog.c-modal[open]{position:fixed!important;inset:auto 0 0 0!important;width:100%!important;max-width:none!important;margin:0!important;border-radius:26px 26px 0 0!important;max-height:92dvh!important}' +" +
-                "'dialog.c-modal .c-modal-box{border-radius:26px 26px 0 0!important}' +" +
-                "'@keyframes deappNativeSheetIn{from{transform:translateY(100%);opacity:.65}to{transform:translateY(0);opacity:1}}';" +
+                "'.deapp-cookie-modal .cookie-modal-card{width:100%!important;max-width:100%!important;margin:0!important;border-radius:24px 24px 0 0!important;max-height:94dvh!important;overflow:auto!important;will-change:transform}' +" +
+                "'dialog.c-modal[open]{position:fixed!important;inset:auto 0 0 0!important;width:100%!important;max-width:none!important;margin:0!important;border-radius:24px 24px 0 0!important;max-height:94dvh!important}' +" +
+                "'dialog.c-modal .c-modal-box{border-radius:24px 24px 0 0!important;will-change:transform}' +" +
+                "'@keyframes deappNativeSheetIn{from{transform:translateY(100%);opacity:.7}to{transform:translateY(0);opacity:1}}';" +
                 "document.head.appendChild(s);}" +
-                "document.documentElement.classList.add('deapp-native-shell');" +
-                "try{var av=document.querySelector('#user-menu-btn img.avatar-mini,.bottom-nav .bnav-avatar');" +
-                "var pr=document.querySelector('#user-dropdown .dropdown-user,.bottom-nav a.bnav:last-child');" +
-                "if(window.DeappNative){window.DeappNative.syncProfile(av?av.src:'',pr?pr.href:'');}}catch(e){}" +
+                "document.documentElement.classList.add('deapp-native-shell','deapp-threads-shell');" +
+                "function closeSheet(box){var ov=box.closest('.modal-overlay');var dlg=box.closest('dialog');var btn=box.querySelector('.modal-close,[data-close-modal],[aria-label=\\\"Tutup\\\"]');if(btn){btn.click();return;}if(dlg&&dlg.close){dlg.close();return;}if(ov){ov.click();}}" +
+                "function wire(box){if(!box||box.dataset.deappSwipeSheet==='1')return;box.dataset.deappSwipeSheet='1';var sy=0,last=0,drag=false;" +
+                "box.addEventListener('touchstart',function(e){if(e.touches.length!==1)return;sy=e.touches[0].clientY;last=sy;drag=false;box.style.transition='none';},{passive:true});" +
+                "box.addEventListener('touchmove',function(e){if(!e.touches.length)return;var y=e.touches[0].clientY,dy=y-sy;last=y;if(dy>5&&box.scrollTop<=0){drag=true;box.style.transform='translateY('+Math.min(dy,window.innerHeight*.72)+'px)';if(dy>10)e.preventDefault();}},{passive:false});" +
+                "box.addEventListener('touchend',function(){if(!drag){box.style.transition='';return;}var dy=last-sy;box.style.transition='transform .20s cubic-bezier(.2,.8,.2,1)';if(dy>92){box.style.transform='translateY(110%)';setTimeout(function(){closeSheet(box);box.style.transform='';box.style.transition='';},155);}else{box.style.transform='translateY(0)';setTimeout(function(){box.style.transform='';box.style.transition='';},210);}drag=false;},{passive:true});}" +
+                "function scan(){document.querySelectorAll('.modal-overlay .modal-box,.deapp-cookie-modal .cookie-modal-card,dialog.c-modal[open] .c-modal-box').forEach(wire);}" +
+                "scan();if(!window.__deappNativeSheetObserver){window.__deappNativeSheetObserver=new MutationObserver(scan);window.__deappNativeSheetObserver.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class','open']});}" +
+                "try{var av=document.querySelector('#user-menu-btn img.avatar-mini,.bottom-nav .bnav-avatar');var pr=document.querySelector('#user-dropdown .dropdown-user,.bottom-nav a.bnav:last-child');if(window.DeappNative){window.DeappNative.syncProfile(av?av.src:'',pr?pr.href:'');}}catch(e){}" +
                 "return true;})()";
         webView.evaluateJavascript(js, null);
+    }
+
+    private class DraggableSheet extends LinearLayout {
+        private final int touchSlop = ViewConfiguration.get(MainActivity.this).getScaledTouchSlop();
+        private float downX;
+        private float downY;
+        private boolean dragging;
+
+        DraggableSheet() {
+            super(MainActivity.this);
+        }
+
+        @Override
+        public boolean onInterceptTouchEvent(MotionEvent ev) {
+            switch (ev.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    downX = ev.getX();
+                    downY = ev.getY();
+                    dragging = false;
+                    break;
+                case MotionEvent.ACTION_MOVE:
+                    float dx = Math.abs(ev.getX() - downX);
+                    float dy = ev.getY() - downY;
+                    if (dy > touchSlop * 1.4f && dy > dx * 1.15f) {
+                        dragging = true;
+                        getParent().requestDisallowInterceptTouchEvent(true);
+                        return true;
+                    }
+                    break;
+            }
+            return super.onInterceptTouchEvent(ev);
+        }
+
+        @Override
+        public boolean onTouchEvent(MotionEvent ev) {
+            switch (ev.getActionMasked()) {
+                case MotionEvent.ACTION_MOVE:
+                    if (dragging) {
+                        float dy = Math.max(0, ev.getY() - downY);
+                        setTranslationY(dy);
+                        if (activeSheetOverlay != null) {
+                            float progress = Math.min(1f, dy / Math.max(dp(260), getHeight()));
+                            activeSheetOverlay.setAlpha(1f - progress * .45f);
+                        }
+                        return true;
+                    }
+                    break;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    if (dragging) {
+                        float dy = getTranslationY();
+                        dragging = false;
+                        if (dy > Math.max(dp(84), getHeight() * .20f)) {
+                            dismissBottomSheet(true);
+                        } else {
+                            animate().translationY(0).setDuration(180).start();
+                            if (activeSheetOverlay != null) activeSheetOverlay.animate().alpha(1f).setDuration(180).start();
+                        }
+                        return true;
+                    }
+                    break;
+            }
+            return super.onTouchEvent(ev);
+        }
     }
 
     private GradientDrawable sheetBackground(int color) {
@@ -868,7 +959,7 @@ public class MainActivity extends Activity {
         overlay.setFocusable(true);
         overlay.setOnClickListener(v -> dismissBottomSheet(true));
 
-        LinearLayout sheet = new LinearLayout(this);
+        DraggableSheet sheet = new DraggableSheet();
         sheet.setOrientation(LinearLayout.VERTICAL);
         sheet.setPadding(dp(18), dp(10), dp(18), dp(18));
         sheet.setBackground(sheetBackground(cSurface));
@@ -969,20 +1060,89 @@ public class MainActivity extends Activity {
         list.addView(row, lp);
     }
 
+    private View featureTile(int iconRes, String label, Runnable action) {
+        LinearLayout tile = new LinearLayout(this);
+        tile.setOrientation(LinearLayout.VERTICAL);
+        tile.setGravity(Gravity.CENTER);
+        tile.setPadding(dp(8), dp(13), dp(8), dp(11));
+        tile.setBackground(rounded(cSurface2, 18));
+        tile.setClickable(true);
+        tile.setFocusable(true);
+        tile.setContentDescription(label);
+
+        ImageView icon = new ImageView(this);
+        icon.setImageResource(iconRes);
+        icon.setColorFilter(cText);
+        icon.setPadding(dp(7), dp(7), dp(7), dp(7));
+        tile.addView(icon, new LinearLayout.LayoutParams(dp(38), dp(38)));
+
+        TextView name = text(label, 11.5f, cText);
+        name.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        name.setGravity(Gravity.CENTER);
+        name.setMaxLines(1);
+        LinearLayout.LayoutParams nlp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        nlp.topMargin = dp(6);
+        tile.addView(name, nlp);
+
+        tile.setOnClickListener(v -> {
+            haptic(v);
+            dismissBottomSheet(true);
+            v.postDelayed(action, 120);
+        });
+        return tile;
+    }
+
+    private void addFeatureTile(GridLayout grid, int iconRes, String label, Runnable action) {
+        int width = (getResources().getDisplayMetrics().widthPixels - dp(52)) / 3;
+        GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
+        lp.width = width;
+        lp.height = dp(82);
+        lp.setMargins(dp(3), dp(4), dp(3), dp(4));
+        grid.addView(featureTile(iconRes, label, action), lp);
+    }
+
+    private void showFeatureMenuSheet() {
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+
+        TextView hint = text("Semua fitur Deapp", 12, cMuted);
+        LinearLayout.LayoutParams hintLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        hintLp.bottomMargin = dp(10);
+        content.addView(hint, hintLp);
+
+        GridLayout grid = new GridLayout(this);
+        grid.setColumnCount(3);
+        grid.setAlignmentMode(GridLayout.ALIGN_BOUNDS);
+        grid.setUseDefaultMargins(false);
+        content.addView(grid, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        addFeatureTile(grid, R.drawable.ic_native_user, "Profil", this::openOwnProfile);
+        addFeatureTile(grid, R.drawable.ic_native_message, "Pesan", () -> loadRelative("messages.php"));
+        addFeatureTile(grid, R.drawable.ic_native_live, "Live", () -> loadRelative("live.php"));
+        addFeatureTile(grid, R.drawable.ic_native_video, "Video", () -> loadRelative("reels.php"));
+        addFeatureTile(grid, R.drawable.ic_native_community, "Komunitas", () -> loadRelative("community.php"));
+        addFeatureTile(grid, R.drawable.ic_native_bookmark, "Tersimpan", () -> loadRelative("bookmarks.php"));
+        addFeatureTile(grid, R.drawable.ic_native_tap, "Deapp Tap", () -> loadRelative("tap.php"));
+        addFeatureTile(grid, R.drawable.ic_native_sparkles, "Deapp AI", () -> loadRelative("ai.php"));
+        addFeatureTile(grid, R.drawable.ic_native_code, "Developer", () -> loadRelative("developer.php"));
+        addFeatureTile(grid, R.drawable.ic_native_shop, "Toko", () -> loadRelative("shop.php"));
+        addFeatureTile(grid, R.drawable.ic_native_game, "Mini Game", () -> loadRelative("games.php"));
+        addFeatureTile(grid, R.drawable.ic_native_settings, "Pengaturan", () -> loadRelative("settings.php"));
+
+        View actions = sheetAction("Ganti server", "Hosting, XAMPP atau alamat Deapp lain", this::showServerBottomSheet);
+        LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        alp.topMargin = dp(10);
+        content.addView(actions, alp);
+
+        showBottomSheet("Menu", content);
+    }
+
     private void showAccountSheet() {
-        LinearLayout list = new LinearLayout(this);
-        list.setOrientation(LinearLayout.VERTICAL);
-
-        addSheetAction(list, "Profil saya", "Buka halaman profil Deapp", this::openOwnProfile);
-        addSheetAction(list, "Pesan", "Percakapan dan pesan masuk", () -> loadRelative("messages.php"));
-        addSheetAction(list, "Live", "Lihat atau mulai siaran langsung", () -> loadRelative("live.php"));
-        addSheetAction(list, "Deapp Tap", "Tambah teman secara langsung", () -> loadRelative("tap.php"));
-        addSheetAction(list, "Pengaturan", "Privasi, akun, notifikasi dan aplikasi", () -> loadRelative("settings.php"));
-        addSheetAction(list, "Bagikan halaman", "Kirim tautan halaman yang sedang dibuka", this::shareCurrentPage);
-        addSheetAction(list, "Muat ulang", "Segarkan halaman Deapp", () -> { if (webView != null) webView.reload(); });
-        addSheetAction(list, "Ganti server", "Ubah alamat hosting atau XAMPP", this::showServerBottomSheet);
-
-        showBottomSheet("Deapp", list);
+        showFeatureMenuSheet();
     }
 
     private void showServerBottomSheet() {
@@ -1081,7 +1241,7 @@ public class MainActivity extends Activity {
                 conn.setInstanceFollowRedirects(true);
                 String cookie = CookieManager.getInstance().getCookie(avatarUrl);
                 if (cookie != null && !cookie.isEmpty()) conn.setRequestProperty("Cookie", cookie);
-                conn.setRequestProperty("User-Agent", "DeappLite/1.2");
+                conn.setRequestProperty("User-Agent", "DeappLite/1.3");
                 try (InputStream in = conn.getInputStream()) {
                     Bitmap bitmap = BitmapFactory.decodeStream(in);
                     if (bitmap != null) runOnUiThread(() -> {
@@ -1150,8 +1310,10 @@ public class MainActivity extends Activity {
         String low = url.toLowerCase(Locale.US);
         boolean home = low.endsWith("/") || low.contains("/index.php");
         navHome.setActive(home);
+        if (navExplore != null) navExplore.setActive(low.contains("/explore.php") || low.contains("/hashtag.php"));
         if (navVideo != null) navVideo.setActive(low.contains("/reels.php"));
         if (navNotif != null) navNotif.setActive(low.contains("/notifications.php"));
+        if (navProfile != null) navProfile.setActive(low.contains("/profile.php") || low.contains("/connections.php"));
     }
 
     private void updateKeepScreenOn(String url) {
@@ -1217,6 +1379,7 @@ public class MainActivity extends Activity {
         root.removeView(customView);
         customView = null;
         shell.setVisibility(View.VISIBLE);
+        if (composeFab != null) composeFab.setVisibility(View.VISIBLE);
         if (customViewCallback != null) customViewCallback.onCustomViewHidden();
         customViewCallback = null;
         updateKeepScreenOn(webView != null ? webView.getUrl() : "");
@@ -1293,6 +1456,14 @@ public class MainActivity extends Activity {
     }
 
     private void destroyWebView() {
+        composeFab = null;
+        featureMenuButton = null;
+        profileAvatar = null;
+        navHome = null;
+        navExplore = null;
+        navVideo = null;
+        navNotif = null;
+        navProfile = null;
         if (webView != null) {
             webView.stopLoading();
             webView.setWebChromeClient(null);
