@@ -1,12 +1,3 @@
-# Deapp Lite Native UI v1.9
+# Native UI v1.9.3 Stability Patch
 
-- Bottom sheet: background scroll lock dan gesture diperketat.
-- Loading: overlay ditunda 180 ms dan ditutup saat konten pertama sudah terlihat.
-- Ganti server dan Perizinan dipindah ke Pengaturan.
-- Story tray atas disembunyikan pada aplikasi Lite.
-- Composer memakai tombol kembali/batal di kiri.
-- FAB posting tampil pada halaman login-session aktif kecuali detail post/composer.
-- Detail post memakai header native: kembali, nama penulis, sisi kanan kosong.
-- Navigasi bawah detail post diganti kolom komentar sticky ala Threads.
-- Kolom komentar menjadi multiline dan kontrol sekunder menghilang saat mengetik.
-- Guard max-width/overflow-x untuk mencegah layout mobile melebar.
+Patch v1.9.3 memprioritaskan fungsi asli DeApp: native shell hanya mengubah presentasi dan state yang diperlukan tanpa mengambil alih event klik/submit halaman secara global. Gesture tab tetap horizontal namun tidak lagi memblokir scroll vertikal. Observer DOM di-throttle, comment node tidak diganti, dan lifecycle WebView membersihkan overlay serta callback lama.

@@ -912,7 +912,7 @@ public class MainActivity extends Activity {
 
     private void updateRefreshAvailability() {
         if (swipeRefresh == null) return;
-        boolean enabled = activeSheetOverlay == null && !webSheetOpen && !composerOpen && customView == null;
+        boolean enabled = isHomeUrl(currentUrl) && activeSheetOverlay == null && !webSheetOpen && !composerOpen && customView == null;
         if (!enabled && swipeRefresh.isRefreshing()) swipeRefresh.setRefreshing(false);
         swipeRefresh.setEnabled(enabled);
     }
@@ -970,7 +970,7 @@ public class MainActivity extends Activity {
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.2 NativeMobile/9.2");
+        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.3 NativeMobile/9.3");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) s.setSafeBrowsingEnabled(true);
 
         CookieManager cm = CookieManager.getInstance();
@@ -1610,7 +1610,7 @@ public class MainActivity extends Activity {
                 conn.setInstanceFollowRedirects(true);
                 String cookie = CookieManager.getInstance().getCookie(avatarUrl);
                 if (cookie != null && !cookie.isEmpty()) conn.setRequestProperty("Cookie", cookie);
-                conn.setRequestProperty("User-Agent", "DeappLite/1.9.2");
+                conn.setRequestProperty("User-Agent", "DeappLite/1.9.3");
                 try (InputStream in = conn.getInputStream()) {
                     Bitmap bitmap = BitmapFactory.decodeStream(in);
                     if (bitmap != null) runOnUiThread(() -> {
@@ -1820,7 +1820,7 @@ public class MainActivity extends Activity {
         name.setGravity(Gravity.CENTER);
         box.addView(name);
 
-        TextView version = text("Versi 1.9.1-lite · Build 11", 13, cMuted);
+        TextView version = text("Versi 1.9.3-lite · Build 13", 13, cMuted);
         version.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams versionLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -2036,6 +2036,21 @@ public class MainActivity extends Activity {
     }
 
     private void destroyWebView() {
+        // Bersihkan semua lapisan native sebelum WebView diganti. Referensi overlay lama
+        // yang tertinggal dapat membuat refresh/interaksi pada WebView baru tetap dianggap terkunci.
+        if (activeSheetOverlay != null) removeViewFromParent(activeSheetOverlay);
+        activeSheetOverlay = null;
+        activeSheetPanel = null;
+        if (fileCallback != null) {
+            try { fileCallback.onReceiveValue(null); } catch (Exception ignored) {}
+            fileCallback = null;
+        }
+        if (pendingPermissionRequest != null) {
+            try { pendingPermissionRequest.deny(); } catch (Exception ignored) {}
+            pendingPermissionRequest = null;
+        }
+        pendingGeoCallback = null;
+        pendingGeoOrigin = null;
         composeFab = null;
         featureMenuButton = null;
         toolbarLogo = null;

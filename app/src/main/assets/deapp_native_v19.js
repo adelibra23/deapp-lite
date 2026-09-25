@@ -39,13 +39,13 @@
 
     a,button,[role="button"],.btn,.icon-btn,.tab,.dropdown-item,.bnav,.nav-link,.post-card[data-url],.post-card[onclick],.qa-card[data-url],.qa-card[onclick]{
       -webkit-tap-highlight-color:transparent!important;
-      touch-action:manipulation;
+      touch-action:auto;
     }
     a,button,[role="button"],.btn,.icon-btn,.tab,.dropdown-item,.nav-link{
       -webkit-touch-callout:none;
       user-select:none;
     }
-    /* v1.8 — scroll background dikunci saat bottom sheet terbuka dan kartu posting dibuat lebih ringan ala thread conversation. */
+    /* v1.9.3 — interaksi dibuat konservatif: patch tidak boleh memblokir gesture/klik asli halaman. */
     a:active,button:active,[role="button"]:active,.btn:active,.icon-btn:active,.tab:active,.dropdown-item:active,.nav-link:active,.post-action:active,.comment-action:active{
       opacity:1!important;transform:none!important;filter:none!important;-webkit-filter:none!important;box-shadow:none!important;
     }
@@ -58,7 +58,7 @@
       scrollbar-width:none!important;
       -webkit-overflow-scrolling:touch!important;
       overscroll-behavior-x:contain!important;
-      touch-action:pan-x!important;
+      touch-action:pan-x pan-y!important;
       scroll-snap-type:x proximity;
     }
     .tabs::-webkit-scrollbar,.story-tabs::-webkit-scrollbar,.nx-studio-nav::-webkit-scrollbar,[role="tablist"]::-webkit-scrollbar,.feed-tabs::-webkit-scrollbar,.reels-tabs::-webkit-scrollbar,.community-tabs::-webkit-scrollbar{display:none!important}
@@ -162,6 +162,7 @@
     @keyframes deappNativeSheetIn{from{transform:translateY(100%);opacity:.72}to{transform:translateY(0);opacity:1}}
 
     .deapp-post-sheet-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.46);z-index:2890;animation:deappFadeIn .16s ease}
+    .deapp-post-sheet-backdrop[hidden],.deapp-native-profile-options-backdrop[hidden],.modal-overlay[hidden]{pointer-events:none!important;display:none!important}
     @keyframes deappFadeIn{from{opacity:0}to{opacity:1}}
     .post-card .menu-wrap.open>.dropdown,
     .post-card .menu-wrap.open>.dropdown.nx-floating{
@@ -552,7 +553,7 @@
     const row = document.createElement('button');
     row.type = 'button';
     row.className = 'snav deapp-native-about-row';
-    row.innerHTML = '<span style="font-size:20px;line-height:1">ⓘ</span><span><b>Tentang aplikasi</b><small>Deapp Lite untuk Android</small></span><span class="deapp-version-pill">v1.9.1-lite</span>';
+    row.innerHTML = '<span style="font-size:20px;line-height:1">ⓘ</span><span><b>Tentang aplikasi</b><small>Deapp Lite untuk Android</small></span><span class="deapp-version-pill">v1.9.3-lite</span>';
     row.addEventListener('click', function(){
       nativeTap();
       try { if (API && API.showAboutApp) API.showAboutApp(); } catch (_) {}
@@ -748,34 +749,25 @@
   function enhancePostDetailComments() {
     if (!isPostDetailPage) return;
     document.querySelectorAll('.comment-form').forEach(function(form){
-      let input = form.querySelector('.comment-input');
-      if (!input) return;
-      if (input.tagName === 'INPUT') {
-        const ta = document.createElement('textarea');
-        for (const a of Array.from(input.attributes)) ta.setAttribute(a.name, a.value);
-        ta.className = input.className;
-        ta.value = input.value || '';
-        ta.rows = 1;
-        input.replaceWith(ta);
-        input = ta;
-      }
-      if (input.dataset.deappThreadComment === '1') return;
+      const input = form.querySelector('.comment-input');
+      if (!input || input.dataset.deappThreadComment === '1') return;
       input.dataset.deappThreadComment = '1';
+
+      // Jangan mengganti elemen input asli. Mengganti node dapat menghilangkan
+      // event listener milik Deapp dan membuat kirim komentar/mention tidak berfungsi.
+      const multiline = input.tagName === 'TEXTAREA';
       const sync = function(){
         const has = (input.value || '').trim().length > 0;
         form.classList.toggle('deapp-comment-typing', has);
-        input.style.height = 'auto';
-        input.style.height = Math.min(126, Math.max(28, input.scrollHeight)) + 'px';
-      };
-      input.addEventListener('input', sync);
-      input.addEventListener('focus', sync);
-      input.addEventListener('blur', sync);
-      input.addEventListener('keydown', function(e){
-        if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
-          e.preventDefault();
-          if ((input.value || '').trim()) form.requestSubmit();
+        if (multiline) {
+          input.style.height = 'auto';
+          input.style.height = Math.min(126, Math.max(28, input.scrollHeight)) + 'px';
         }
-      });
+      };
+      input.addEventListener('input', sync, {passive:true});
+      input.addEventListener('focus', sync, {passive:true});
+      input.addEventListener('blur', sync, {passive:true});
+      // Biarkan handler submit/Enter asli Deapp bekerja. Patch hanya menangani visual.
       sync();
     });
   }
@@ -796,19 +788,25 @@
 
   scan();
   recoverPageInteraction();
-  const observer = new MutationObserver(scan);
+
+  // DOM Deapp cukup dinamis. Scan langsung pada setiap mutasi dapat menumpuk ratusan
+  // callback dan mengganggu klik/ketikan. Batasi menjadi maksimal satu scan per frame.
+  let scanQueued = false;
+  function scheduleScan() {
+    if (scanQueued) return;
+    scanQueued = true;
+    requestAnimationFrame(function(){
+      scanQueued = false;
+      scan();
+    });
+  }
+  const observer = new MutationObserver(scheduleScan);
   observer.observe(document.body, {subtree:true, childList:true, attributes:true, attributeFilter:['class','open','hidden','aria-expanded']});
-  window.addEventListener('pageshow', recoverPageInteraction);
-  window.addEventListener('focus', recoverPageInteraction);
+  window.addEventListener('pageshow', recoverPageInteraction, {passive:true});
+  window.addEventListener('focus', recoverPageInteraction, {passive:true});
   document.addEventListener('visibilitychange', function(){
     if (!document.hidden) recoverPageInteraction();
-  });
-  document.addEventListener('pointerdown', function(){
-    recoverPageInteraction();
-  }, {passive:true,capture:true});
-  document.addEventListener('touchstart', function(){
-    recoverPageInteraction();
-  }, {passive:true,capture:true});
+  }, {passive:true});
 
   window.__DEAPP_NATIVE_V19__ = {
     refresh: scan,
