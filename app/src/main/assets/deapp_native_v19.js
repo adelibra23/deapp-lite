@@ -934,6 +934,64 @@
     }
     html.deapp-native-notifications .deapp-notification-tabs{top:calc(58px + env(safe-area-inset-top))!important;padding-top:6px!important;padding-bottom:6px!important}
 
+    /* v1.9.16 — Pengaturan menjadi daftar menu utama + subhalaman mandiri. */
+    html.deapp-native-settings-family .page-head{display:none!important}
+    html.deapp-native-settings-family.deapp-settings-index .settings-wrap{width:min(100%,760px)!important;margin:0 auto!important;padding:6px 0 28px!important}
+    html.deapp-native-settings-family.deapp-settings-index .settings-body{display:none!important}
+    html.deapp-native-settings-family.deapp-settings-index .settings-nav{display:block!important;width:100%!important;margin:0!important;padding:0 12px 22px!important;overflow:visible!important;border:0!important;border-radius:0!important;background:var(--surface)!important;box-shadow:none!important}
+    html.deapp-native-settings-family.deapp-settings-index .settings-nav .snav-group{display:block!important;padding:19px 7px 7px!important;margin:0!important;color:var(--text-muted)!important;font-size:11.5px!important;font-weight:760!important;letter-spacing:.035em!important;text-transform:uppercase!important}
+    html.deapp-native-settings-family.deapp-settings-index .settings-nav .snav{position:relative!important;display:grid!important;grid-template-columns:38px minmax(0,1fr) 22px!important;align-items:center!important;gap:11px!important;width:100%!important;min-height:62px!important;margin:0!important;padding:9px!important;border:0!important;border-radius:0!important;background:transparent!important;color:var(--text)!important;text-align:left!important;box-shadow:none!important;text-decoration:none!important}
+    html.deapp-native-settings-family.deapp-settings-index .settings-nav .snav:after{content:"›"!important;grid-column:3!important;grid-row:1!important;justify-self:end!important;font-size:25px!important;line-height:1!important;font-weight:300!important;color:var(--text-faint)!important}
+    html.deapp-native-settings-family.deapp-settings-index .settings-nav .snav:before{content:""!important;position:absolute!important;left:58px!important;right:0!important;bottom:0!important;height:1px!important;background:color-mix(in srgb,var(--border) 70%,transparent)!important}
+    html.deapp-native-settings-family.deapp-settings-index .settings-nav .snav:last-child:before{display:none!important}
+    html.deapp-native-settings-family.deapp-settings-index .settings-nav .snav>svg,html.deapp-native-settings-family.deapp-settings-index .settings-nav .snav>.deapp-settings-native-icon,html.deapp-native-settings-family.deapp-settings-index .settings-nav .snav>.deapp-settings-logout-icon{grid-column:1!important;grid-row:1!important;width:36px!important;height:36px!important;border-radius:11px!important;display:grid!important;place-items:center!important;background:var(--surface-2)!important;color:var(--text)!important;font-size:18px!important}
+    html.deapp-native-settings-family.deapp-settings-index .settings-nav .snav>svg{padding:8px!important}
+    html.deapp-native-settings-family.deapp-settings-index .settings-nav .snav>.deapp-settings-logout-icon svg{width:19px!important;height:19px!important}
+    html.deapp-native-settings-family.deapp-settings-index .settings-nav .snav>span:not(.deapp-version-pill):not(.deapp-settings-native-icon):not(.deapp-settings-logout-icon){grid-column:2!important;grid-row:1!important;display:block!important;min-width:0!important}
+    html.deapp-native-settings-family.deapp-settings-index .settings-nav .snav b{display:block!important;font-size:14.5px!important;font-weight:760!important;line-height:1.2!important;color:inherit!important}
+    html.deapp-native-settings-family.deapp-settings-index .settings-nav .snav small{display:block!important;margin-top:3px!important;font-size:11.5px!important;line-height:1.25!important;color:var(--text-muted)!important;white-space:normal!important}
+    html.deapp-native-settings-family.deapp-settings-index .settings-nav .snav.active{background:transparent!important;color:var(--text)!important;border:0!important}
+    html.deapp-native-settings-family.deapp-settings-index .settings-nav .deapp-version-pill{position:absolute!important;right:28px!important;top:50%!important;transform:translateY(-50%)!important;font-size:10px!important;color:var(--text-muted)!important;background:var(--surface-2)!important;border-radius:999px!important;padding:4px 7px!important}
+    html.deapp-native-settings-family.deapp-settings-index .deapp-native-logout-group{margin-top:14px!important}
+    html.deapp-native-settings-family.deapp-settings-index .deapp-native-logout-row{color:#d92d20!important}
+    html.deapp-native-settings-family.deapp-settings-index .deapp-native-logout-row:after{color:#d92d20!important}
+    html.deapp-native-settings-family.deapp-settings-index .deapp-native-logout-row>.deapp-settings-logout-icon{background:color-mix(in srgb,#d92d20 10%,var(--surface))!important;color:#d92d20!important}
+    html.deapp-native-settings-family.deapp-settings-subpage .settings-wrap{display:block!important;width:min(100%,760px)!important;margin:0 auto!important;padding:8px 10px 30px!important}
+    html.deapp-native-settings-family.deapp-settings-subpage .settings-nav{display:none!important}
+    html.deapp-native-settings-family.deapp-settings-subpage .settings-body{display:block!important;width:100%!important;min-width:0!important;margin:0!important}
+    html.deapp-native-settings-family.deapp-settings-subpage .settings-section,html.deapp-native-settings-family.deapp-settings-subpage .security-card,html.deapp-native-settings-family.deapp-settings-subpage .card.settings-section{border-radius:16px!important;padding:15px 14px!important;margin-bottom:10px!important}
+
+    /* v1.9.16 — Deapp AI Lite: fokus pesan + composer, tanpa rail/menu/action bar. */
+    html.deapp-native-ai .deapp-section-title small,html.deapp-native-ai .deapp-ai-hero,html.deapp-native-ai .deapp-ai-nav,html.deapp-native-ai .deapp-ai-thread-rail,html.deapp-native-ai .deapp-ai-chat-head,html.deapp-native-ai .deapp-ai-control-strip,html.deapp-native-ai .deapp-ai-fab,html.deapp-native-ai .deapp-ai-native-menu,html.deapp-native-ai .deapp-ai-native-menu-backdrop{display:none!important}
+    html.deapp-native-ai .deapp-section-header .deapp-section-action{visibility:hidden!important;pointer-events:none!important}
+    html.deapp-native-ai .deapp-ai-view:not(#deapp-ai-view-chat){display:none!important}
+    html.deapp-native-ai #deapp-ai-view-chat{display:block!important}
+    html.deapp-native-ai .deapp-ai-shell{display:block!important;width:100%!important;max-width:none!important;height:calc(100dvh - 58px - env(safe-area-inset-top))!important;min-height:0!important;border:0!important;border-radius:0!important;background:var(--surface)!important}
+    html.deapp-native-ai .deapp-ai-chat-panel{width:100%!important;height:100%!important;min-height:0!important;background:var(--surface)!important}
+    html.deapp-native-ai .deapp-ai-messages{width:min(100%,820px)!important;margin:0 auto!important;padding:18px 12px 150px!important;scroll-padding-bottom:150px!important}
+    html.deapp-native-ai .deapp-ai-followups{width:min(100%,820px)!important;margin:0 auto 126px!important;padding:0 12px!important}
+    html.deapp-native-ai .deapp-ai-message{gap:10px!important;margin:0 0 17px!important;padding:0!important}
+    html.deapp-native-ai .deapp-ai-message-avatar{width:30px!important;height:30px!important;flex:0 0 30px!important;border-radius:50%!important}
+    html.deapp-native-ai .deapp-ai-message-body{min-width:0!important;max-width:calc(100% - 40px)!important}
+    html.deapp-native-ai .deapp-ai-message-meta{margin-bottom:5px!important;font-size:11px!important}
+    html.deapp-native-ai .deapp-ai-message-text{font-size:14.5px!important;line-height:1.55!important}
+    html.deapp-native-ai .deapp-ai-message.user .deapp-ai-message-body{margin-left:auto!important;max-width:min(86%,660px)!important;padding:10px 13px!important;border-radius:18px 18px 5px 18px!important;background:var(--surface-2)!important}
+    html.deapp-native-ai .deapp-ai-message.user .deapp-ai-message-avatar,html.deapp-native-ai .deapp-ai-message.user .deapp-ai-message-meta{display:none!important}
+    html.deapp-native-ai[data-deapp-ai-view="chat"] .deapp-ai-composer-wrap,html.deapp-native-ai .deapp-ai-composer-wrap{position:fixed!important;left:0!important;right:0!important;bottom:0!important;z-index:4435!important;padding:8px 10px max(10px,env(safe-area-inset-bottom))!important;border-top:0!important;background:linear-gradient(to top,var(--surface) 74%,color-mix(in srgb,var(--surface) 90%,transparent))!important;backdrop-filter:blur(18px)!important;-webkit-backdrop-filter:blur(18px)!important;box-shadow:none!important}
+    html.deapp-native-ai .deapp-ai-composer{display:block!important;width:min(100%,800px)!important;margin:0 auto!important;padding:7px!important;border:1px solid color-mix(in srgb,var(--border) 82%,transparent)!important;border-radius:25px!important;background:var(--surface)!important;box-shadow:0 5px 24px rgba(0,0,0,.07)!important}
+    html.deapp-native-ai #ai-chat-input{width:100%!important;min-height:42px!important;max-height:160px!important;padding:10px 11px 7px!important;border:0!important;outline:0!important;background:transparent!important;color:var(--text)!important;font:inherit!important;font-size:15px!important;line-height:1.45!important;resize:none!important}
+    html.deapp-native-ai #ai-chat-input::placeholder{color:var(--text-muted)!important}
+    html.deapp-native-ai .deapp-ai-composer-bottom{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;padding:2px 2px 1px!important}
+    html.deapp-native-ai .deapp-ai-composer-left,html.deapp-native-ai .deapp-ai-composer-right{display:flex!important;align-items:center!important;gap:4px!important}
+    html.deapp-native-ai #ai-chat-count{display:none!important}
+    html.deapp-native-ai #ai-chat-regenerate{min-width:36px!important;width:36px!important;height:36px!important;padding:0!important;border-radius:50%!important;font-size:0!important}
+    html.deapp-native-ai #ai-chat-regenerate svg{width:17px!important;height:17px!important;margin:0!important}
+    html.deapp-native-ai #ai-chat-attach,html.deapp-native-ai #ai-chat-mic{width:36px!important;height:36px!important;border-radius:50%!important;background:transparent!important;border:0!important;color:var(--text-muted)!important}
+    html.deapp-native-ai #ai-chat-send{width:38px!important;height:38px!important;border-radius:50%!important;display:grid!important;place-items:center!important;background:var(--text)!important;color:var(--surface)!important;border:0!important;box-shadow:none!important}
+    html.deapp-native-ai .deapp-ai-attachment-chip{width:min(100%,800px)!important;margin:6px auto 0!important;padding:7px 10px!important;border-radius:12px!important}
+    html.deapp-native-ai .deapp-ai-disclaimer{display:none!important}
+    html.is-dark.deapp-native-ai .deapp-ai-composer{background:#111!important;border-color:#2a2a2a!important;box-shadow:0 5px 24px rgba(0,0,0,.28)!important}
+
     @media(max-width:560px){
       .deapp-section-header{grid-template-columns:44px minmax(0,1fr) 44px;padding-left:6px;padding-right:6px}
       .deapp-section-header .deapp-section-left,.deapp-section-header .deapp-section-action{width:40px;height:40px}
@@ -1312,41 +1370,53 @@
   function injectAboutSettings() {
     if (!isSettingsPage) return;
     const nav = document.querySelector('.settings-nav');
-    if (!nav || nav.querySelector('.deapp-native-about-row')) return;
-    const group = document.createElement('div');
-    group.className = 'snav-group deapp-native-about-group';
-    group.textContent = 'Aplikasi';
+    if (!nav) return;
 
-    const server = document.createElement('button');
-    server.type = 'button';
-    server.className = 'snav deapp-native-server-row';
-    server.innerHTML = '<span style="font-size:20px;line-height:1">⌁</span><span><b>Ganti server</b><small>Hosting, XAMPP atau alamat server Deapp</small></span>';
-    server.addEventListener('click', function(){
-      nativeTap();
-      try { if (API && API.showServerSettings) API.showServerSettings(); } catch (_) {}
-    });
+    if (!nav.querySelector('.deapp-native-about-row')) {
+      const group = document.createElement('div');
+      group.className = 'snav-group deapp-native-about-group';
+      group.textContent = 'Aplikasi';
 
-    const permissions = document.createElement('button');
-    permissions.type = 'button';
-    permissions.className = 'snav deapp-native-permission-row';
-    permissions.innerHTML = '<span style="font-size:20px;line-height:1">◈</span><span><b>Perizinan aplikasi</b><small>Lokasi, kamera, mikrofon, notifikasi, media dan lainnya</small></span>';
-    permissions.addEventListener('click', function(){
-      nativeTap();
-      try { if (API && API.showPermissions) API.showPermissions(); } catch (_) {}
-    });
+      const server = document.createElement('button');
+      server.type = 'button';
+      server.className = 'snav deapp-native-server-row';
+      server.innerHTML = '<span class="deapp-settings-native-icon">⌁</span><span><b>Ganti server</b><small>Hosting, XAMPP atau alamat server Deapp</small></span>';
+      server.addEventListener('click', function(){
+        nativeTap();
+        try { if (API && API.showServerSettings) API.showServerSettings(); } catch (_) {}
+      });
 
-    const row = document.createElement('button');
-    row.type = 'button';
-    row.className = 'snav deapp-native-about-row';
-    row.innerHTML = '<span style="font-size:20px;line-height:1">ⓘ</span><span><b>Tentang aplikasi</b><small>Deapp Lite untuk Android</small></span><span class="deapp-version-pill">v1.9.5-lite</span>';
-    row.addEventListener('click', function(){
-      nativeTap();
-      try { if (API && API.showAboutApp) API.showAboutApp(); } catch (_) {}
-    });
-    nav.appendChild(group);
-    nav.appendChild(server);
-    nav.appendChild(permissions);
-    nav.appendChild(row);
+      const permissions = document.createElement('button');
+      permissions.type = 'button';
+      permissions.className = 'snav deapp-native-permission-row';
+      permissions.innerHTML = '<span class="deapp-settings-native-icon">◈</span><span><b>Perizinan aplikasi</b><small>Lokasi, kamera, mikrofon, notifikasi, media dan lainnya</small></span>';
+      permissions.addEventListener('click', function(){
+        nativeTap();
+        try { if (API && API.showPermissions) API.showPermissions(); } catch (_) {}
+      });
+
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'snav deapp-native-about-row';
+      row.innerHTML = '<span class="deapp-settings-native-icon">ⓘ</span><span><b>Tentang aplikasi</b><small>Deapp Lite untuk Android</small></span><span class="deapp-version-pill">v1.9.16-lite</span>';
+      row.addEventListener('click', function(){
+        nativeTap();
+        try { if (API && API.showAboutApp) API.showAboutApp(); } catch (_) {}
+      });
+      nav.appendChild(group); nav.appendChild(server); nav.appendChild(permissions); nav.appendChild(row);
+    }
+
+    if (!nav.querySelector('.deapp-native-logout-row')) {
+      const logoutGroup = document.createElement('div');
+      logoutGroup.className = 'snav-group deapp-native-logout-group';
+      logoutGroup.textContent = 'Akun';
+      const logout = document.createElement('a');
+      logout.className = 'snav deapp-native-logout-row';
+      logout.href = 'api/logout.php';
+      logout.innerHTML = '<span class="deapp-settings-logout-icon">'+sectionIcon('logout')+'</span><span><b>Logout akun</b><small>Keluar dari akun Deapp di perangkat ini</small></span>';
+      logout.addEventListener('click', function(){ nativeTap(); });
+      nav.appendChild(logoutGroup); nav.appendChild(logout);
+    }
   }
 
   function installPostPublishedHook() {
@@ -1682,6 +1752,7 @@
       lock:'<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
       sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>',
       menu:'<path d="M4 7h16M4 12h16M4 17h16"/>',
+      logout:'<path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M13 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/>',
       more:'<circle cx="5" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1" fill="currentColor" stroke="none"/>'
     };
     return '<svg '+c+'>'+(m[name]||m.grid)+'</svg>';
@@ -1891,35 +1962,16 @@
   }
   function wireAiChrome() {
     if (!isAiPage || !document.body) return;
-    const nav=document.querySelector('.deapp-ai-nav');
     const oldFooter=document.querySelector('.deapp-section-footer[data-section="ai"]'); if(oldFooter) oldFooter.remove();
     sectionOn('ai');
-    if(!nav){
-      if(root.dataset.deappAiView!=='chat') root.dataset.deappAiView='chat';
-      sectionHeader('ai','Deapp AI','',{icon:'settings',label:'Pengaturan AI',href:'settings.php?tab=ai'});
-      document.querySelectorAll('.deapp-ai-native-menu,.deapp-ai-native-menu-backdrop,.deapp-ai-fab').forEach(function(n){n.remove();});
-      return;
-    }
-    const v=activeAiView();
-    if(root.dataset.deappAiView!==v) root.dataset.deappAiView=v;
-    const menuBefore=document.querySelector('.deapp-ai-native-menu');
-    const wasOpen=!!(menuBefore&&menuBefore.classList.contains('open'));
-    let header=document.querySelector('.deapp-section-header[data-section="ai"]');
-    if(!header){
-      header=sectionHeader('ai','Deapp AI',aiViewNames[v]||'AI Workspace',{icon:'menu',label:'Menu Deapp AI',run:toggleAiNativeMenu});
-      const firstAction=header&&header.querySelector('.deapp-section-action'); if(firstAction) firstAction.dataset.deappAiBurger='1';
-    }else{
-      const title=header.querySelector('.deapp-section-title b'), sub=header.querySelector('.deapp-section-title small'), action=header.querySelector('.deapp-section-action');
-      if(title && title.textContent!=='Deapp AI') title.textContent='Deapp AI';
-      if(sub && sub.textContent!==(aiViewNames[v]||'AI Workspace')) sub.textContent=aiViewNames[v]||'AI Workspace';
-      if(action && action.dataset.deappAiBurger!=='1'){
-        action.dataset.deappAiBurger='1'; action.style.visibility='visible'; action.innerHTML=sectionIcon('menu'); action.setAttribute('aria-label','Menu Deapp AI');
-        action.addEventListener('click',function(e){e.preventDefault();toggleAiNativeMenu();});
-      }
-    }
-    const action=header&&header.querySelector('.deapp-section-action'); if(action && action.getAttribute('aria-expanded')!==(wasOpen?'true':'false')) action.setAttribute('aria-expanded',wasOpen?'true':'false');
-    ensureAiNativeMenu(v);
-    ensureAiFab();
+    root.dataset.deappAiView='chat';
+    closeAiNativeMenu();
+    document.querySelectorAll('.deapp-ai-native-menu,.deapp-ai-native-menu-backdrop,.deapp-ai-fab').forEach(function(n){n.remove();});
+    const header=sectionHeader('ai','Deapp AI','',null);
+    const sub=header&&header.querySelector('.deapp-section-title small');
+    if(sub){ sub.textContent=''; sub.style.display='none'; }
+    const chatTab=document.querySelector('.deapp-ai-nav button[data-ai-view="chat"]');
+    if(chatTab && !chatTab.classList.contains('active')) chatTab.click();
   }
 
   const shopTitles={wallet:'Dompet',kirim:'Kirim koin',promo:'Kode promo',etalase:'Etalase',wishlist:'Keinginan',pet:'Pet',virtual:'Item Virtual',vip:'VIP',gifts:'Hadiah',theme:'Tema',frame:'Bingkai',bubble:'Gelembung',sticker:'Stiker',effect:'Efek nama',ticket:'Tiket',bag:'Tas barang',koleksi:'Koleksiku',level:'Level'};
@@ -1934,20 +1986,24 @@
   const settingNames={profile:'Profil',appearance:'Tampilan',experience:'Pengalaman aplikasi',language:'Bahasa',ai:'Deapp AI',characters:'Karakter AI',access:'Aksesibilitas',premium:'Premium & mood',topup:'Top Up Koin',focus:'Ruang Fokus',notifications:'Notifikasi',privacy:'Privasi',words:'Kata dibisukan',blocked:'Diblokir & dibisukan',notes:'Catatan pribadi',away:'Arsip & mode rehat',security:'Keamanan',sessions:'Perangkat & sesi',verify:'Verifikasi',data:'Data saya',account:'Akun'};
   function settingsBack() {
     const file=(path.split('/').pop()||'').toLowerCase();
+    const params=new URL(location.href).searchParams;
     const childSecurity=['security-password.php','security-email.php','security-wallet-pin.php','security-2fa.php','security-sessions.php'];
     if (childSecurity.includes(file)) return goSection('security.php');
-    if (file==='security.php') return goSection('settings.php?tab=security');
+    if (file==='security.php') return goSection('settings.php');
     if (file==='profile-edit.php') return goSection('settings.php?tab=profile');
     if (file==='privacy.php' || file==='policy.php' || file==='cookies.php') return goSection('settings.php?tab=privacy');
     if (file==='help.php') return goSection('settings.php');
-    // Pada tab utama Pengaturan, perilaku tetap mengikuti navigasi Android/browser seperti Threads.
+    if (file==='settings.php' && params.has('tab')) return goSection('settings.php');
     if (history.length > 1) history.back(); else goSection('index.php');
   }
 
   function settingsContext() {
     const file=(path.split('/').pop()||'').toLowerCase();
-    const tab=new URL(location.href).searchParams.get('tab')||'profile';
-    if(file==='settings.php') return {title:settingNames[tab]||'Pengaturan',group:tab==='privacy'||tab==='words'||tab==='blocked'?'privacy':(tab==='security'||tab==='sessions'?'security':'settings')};
+    const params=new URL(location.href).searchParams;
+    const hasTab=params.has('tab');
+    const tab=params.get('tab')||'profile';
+    if(file==='settings.php' && !hasTab) return {title:'Pengaturan',group:'settings',index:true};
+    if(file==='settings.php') return {title:settingNames[tab]||'Pengaturan',group:tab==='privacy'||tab==='words'||tab==='blocked'?'privacy':(tab==='security'||tab==='sessions'?'security':'settings'),index:false};
     const map={
       'security.php':['Keamanan akun','security'],'security-password.php':['Kata sandi','security'],'security-email.php':['Alamat email','security'],
       'security-wallet-pin.php':['PIN dompet','security'],'security-2fa.php':['Verifikasi 2 langkah','security'],'security-sessions.php':['Perangkat & sesi','security'],
@@ -1959,10 +2015,19 @@
   function wireSettingsChrome() {
     if (!(isSettingsPageFamily||isSettingsPage) || !document.body) return;
     const c=settingsContext();
+    const isIndex=!!(isSettingsPage && c.index);
+    root.classList.toggle('deapp-settings-index',isIndex);
+    root.classList.toggle('deapp-settings-subpage',!isIndex);
     sectionOn('settings');
     const oldFooter=document.querySelector('.deapp-section-footer[data-section="settings"]'); if(oldFooter) oldFooter.remove();
-    // Threads-style: header Pengaturan hanya tombol kembali dan judul yang benar-benar di tengah.
-    sectionHeader('settings',c.title,'',null);
+    if (isSettingsPage) {
+      const nav=document.querySelector('.settings-nav');
+      if (nav) {
+        nav.classList.toggle('deapp-settings-menu-index',isIndex);
+        if (isIndex) nav.querySelectorAll('.snav.active').forEach(function(n){ n.classList.remove('active'); });
+      }
+    }
+    sectionHeader('settings',isIndex?'Pengaturan':c.title,'',null);
   }
 
   function wireSectionChrome() {

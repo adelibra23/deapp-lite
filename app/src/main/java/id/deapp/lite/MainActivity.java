@@ -1135,7 +1135,7 @@ public class MainActivity extends Activity {
         boolean sheetActive = activeSheetOverlay != null || webSheetOpen;
         boolean showBottom = isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage && !postDetailPage && !shortVideoPage && !specialWebOwnsBottom && !sheetActive;
         if (bottomContainer != null) bottomContainer.setVisibility(showBottom ? View.VISIBLE : View.GONE);
-        // v1.9.15: bottom navigation umum selalu mempertahankan lima slot:
+        // v1.9.16: bottom navigation umum selalu mempertahankan lima slot:
         // Beranda · Chat · + Postingan · Notifikasi · Profil.
         // Pembatasan hanya berlaku untuk FAB mengambang, bukan tombol + di nav tengah.
         if (navCompose != null) navCompose.root.setVisibility(showBottom ? View.VISIBLE : View.GONE);
@@ -1279,7 +1279,7 @@ public class MainActivity extends Activity {
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.15 NativeMobile/9.15");
+        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.16 NativeMobile/9.16");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) s.setSafeBrowsingEnabled(true);
 
         CookieManager cm = CookieManager.getInstance();
@@ -1954,7 +1954,7 @@ public class MainActivity extends Activity {
                 conn.setInstanceFollowRedirects(true);
                 String cookie = CookieManager.getInstance().getCookie(avatarUrl);
                 if (cookie != null && !cookie.isEmpty()) conn.setRequestProperty("Cookie", cookie);
-                conn.setRequestProperty("User-Agent", "DeappLite/1.9.15");
+                conn.setRequestProperty("User-Agent", "DeappLite/1.9.16");
                 try (InputStream in = conn.getInputStream()) {
                     Bitmap bitmap = BitmapFactory.decodeStream(in);
                     if (bitmap != null) runOnUiThread(() -> {
@@ -2168,7 +2168,7 @@ public class MainActivity extends Activity {
         name.setGravity(Gravity.CENTER);
         box.addView(name);
 
-        TextView version = text("Versi 1.9.15-lite · Build 25", 13, cMuted);
+        TextView version = text("Versi 1.9.16-lite · Build 26", 13, cMuted);
         version.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams versionLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);

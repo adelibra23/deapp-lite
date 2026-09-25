@@ -86,3 +86,11 @@ Versi: **1.9.14-lite · Build 24 · NativeMobile/9.14**.
 - Perilaku keyboard, modal/bottom sheet, dan halaman immersive tetap dapat menyembunyikan bottom bar sementara sesuai konteks.
 
 Versi: **1.9.15-lite · Build 25 · NativeMobile/9.15**.
+
+## v1.9.16 — Settings List + Focused DeApp AI
+
+- Pengaturan utama menjadi daftar menu vertikal dengan Logout akun di posisi paling bawah.
+- Tab pengaturan dibuka sebagai subhalaman fokus dengan header kembali + judul.
+- DeApp AI dibersihkan menjadi pengalaman chat: tanpa FAB, burger, subtitle, pin/trash, thread rail, dan control strip.
+- Composer DeApp AI diperbarui menjadi composer fixed bawah yang lebih profesional.
+- Versi: **1.9.16-lite · Build 26 · NativeMobile/9.16**.

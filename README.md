@@ -1,20 +1,23 @@
-# DeApp Lite Android v1.9.15 — Persistent 5-Item Bottom Navigation
+# DeApp Lite Android v1.9.16 — Settings List + Focused DeApp AI
 
-Patch ini melanjutkan v1.9.13 dan berfokus pada konsistensi navigasi serta penyederhanaan tampilan sosial.
+Patch ini melanjutkan v1.9.15.
 
 ## Perubahan utama
 
-- Bottom navigation umum Android tetap digunakan pada halaman **Notifikasi, Chat/Pesan, dan Profil**.
-- Ikon bottom navigation diperbesar sedikit tanpa menambah tinggi bar secara berlebihan.
-- Bottom navigation umum selalu mempertahankan 5 menu: Beranda, Chat, `+` Postingan, Notifikasi, dan Profil.
-- Yang hanya tampil di Beranda adalah tombol `+` mengambang/FAB di pojok kanan bawah.
-- Angka reaction, komentar, dan bagikan tampil **hanya sebagai angka kecil** yang didekatkan ke ikon masing-masing, seperti ritme action bar Threads.
-- Daftar Notifikasi dibuat **flat list**, tanpa wrapper card besar.
-- Baris Notifikasi menggunakan separator halus, unread state ringan, dan sidebar desktop disembunyikan pada DeApp Lite.
-- Tab filter Notifikasi tetap horizontal, sticky, dan dapat digeser.
-- Header Profil sekarang memakai ikon **titik tiga vertikal**.
-- Splash awal tetap sekitar 5 detik, menampilkan logo DeApp dengan entrance scale/overshoot ala splash sosial modern.
-- Label **Welcome** muncul di bawah logo dengan fade + slide ringan, lalu logo masuk ke breathing animation yang halus.
-- Semua perbaikan Story, Chat WhatsApp-style, dark mode, refresh, DeApp AI, modal/bottom sheet, dan post layout dari versi sebelumnya tetap dipertahankan.
+### Pengaturan
+- Halaman utama Pengaturan menjadi list menu vertikal yang rapi.
+- Menu asli seperti Profil, Tampilan, Pengalaman aplikasi, Bahasa, DeApp AI, Aksesibilitas, Premium, Notifikasi, Privasi, Keamanan, Data, Bantuan, dan lainnya tetap tersedia.
+- Ganti server, Perizinan aplikasi, dan Tentang aplikasi tetap berada di Pengaturan.
+- Logout akun berada paling bawah.
+- Saat menu dipilih, sub-pengaturan tampil sebagai halaman fokus/mandiri dan list utama tidak ikut tampil.
 
-Versi Android: **1.9.15-lite (Build 25)**.
+### DeApp AI
+- FAB DeApp AI di kanan bawah dihapus.
+- Burger dan subtitle header dihapus.
+- Pin, rename, trash, thread rail, serta strip Mode/Konteks/Memory disembunyikan dari tampilan Lite.
+- DeApp AI difokuskan ke percakapan.
+- Composer bawah dibuat lebih profesional: multiline, rounded, attachment tetap aktif, tombol kirim bulat, dan dark mode tetap didukung.
+
+## Versi
+
+**1.9.16-lite (Build 26)**
