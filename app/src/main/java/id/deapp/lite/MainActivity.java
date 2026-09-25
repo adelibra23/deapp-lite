@@ -48,7 +48,6 @@ import android.widget.GridLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -87,6 +86,9 @@ public class MainActivity extends Activity {
     private SwipeRefreshLayout swipeRefresh;
     private FrameLayout offlineOverlay;
     private FrameLayout loadingOverlay;
+    private ImageView loadingLogo;
+    private boolean loadingLogoPulseUp = true;
+    private int loadingGeneration = 0;
     private ImageButton featureMenuButton;
     private ImageButton composeFab;
     private ImageView toolbarLogo;
@@ -98,7 +100,6 @@ public class MainActivity extends Activity {
     private boolean postDetailPage = false;
     private boolean composerOpen = false;
     private boolean webSheetOpen = false;
-    private boolean welcomeShown = false;
     private View activeSheetOverlay;
     private View activeSheetPanel;
     private NavItem navHome;
@@ -435,7 +436,8 @@ public class MainActivity extends Activity {
         buildFloatingComposer();
         applyInsetsToShell();
         configureWebView();
-        showWelcomeSplash();
+        // Loading memakai logo Deapp non-blocking; halaman langsung mulai dimuat.
+        showLoading();
         webView.loadUrl(baseUrl);
     }
 
@@ -520,6 +522,7 @@ public class MainActivity extends Activity {
 
         webView = new WebView(this);
         webView.setBackgroundColor(cBg);
+        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
         webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         webView.setVerticalScrollBarEnabled(false);
         webView.setHorizontalScrollBarEnabled(false);
@@ -552,89 +555,51 @@ public class MainActivity extends Activity {
         layer.setFocusable(false);
 
         FrameLayout holder = new FrameLayout(this);
-        holder.setBackground(rounded(cSurface, 22));
-        holder.setElevation(dp(5));
-        FrameLayout.LayoutParams holderLp = new FrameLayout.LayoutParams(dp(68), dp(68), Gravity.CENTER);
+        holder.setBackground(bordered(cSurface, cBorder, 24));
+        holder.setElevation(dp(4));
+        FrameLayout.LayoutParams holderLp = new FrameLayout.LayoutParams(dp(76), dp(76), Gravity.CENTER);
         layer.addView(holder, holderLp);
 
-        ProgressBar spinner = new ProgressBar(this, null, android.R.attr.progressBarStyleLarge);
-        spinner.setIndeterminate(true);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            spinner.setIndeterminateTintList(android.content.res.ColorStateList.valueOf(cAccent));
-        }
-        FrameLayout.LayoutParams spinnerLp = new FrameLayout.LayoutParams(dp(34), dp(34), Gravity.CENTER);
-        holder.addView(spinner, spinnerLp);
+        loadingLogo = new ImageView(this);
+        loadingLogo.setImageResource(R.drawable.deapp_logo);
+        loadingLogo.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        loadingLogo.setContentDescription("Memuat Deapp");
+        loadingLogo.setScaleX(.88f);
+        loadingLogo.setScaleY(.88f);
+        loadingLogo.setAlpha(.72f);
+        FrameLayout.LayoutParams logoLp = new FrameLayout.LayoutParams(dp(48), dp(48), Gravity.CENTER);
+        holder.addView(loadingLogo, logoLp);
         return layer;
     }
 
-    private void showWelcomeSplash() {
-        if (welcomeShown || root == null) return;
-        welcomeShown = true;
+    private void startLoadingLogoAnimation() {
+        if (loadingLogo == null || loadingOverlay == null || loadingOverlay.getVisibility() != View.VISIBLE) return;
+        final float target = loadingLogoPulseUp ? 1.06f : .88f;
+        final float alpha = loadingLogoPulseUp ? 1f : .72f;
+        loadingLogoPulseUp = !loadingLogoPulseUp;
+        loadingLogo.animate().cancel();
+        loadingLogo.animate().scaleX(target).scaleY(target).alpha(alpha).setDuration(420)
+                .withEndAction(this::startLoadingLogoAnimation).start();
+    }
 
-        FrameLayout splash = new FrameLayout(this);
-        splash.setBackgroundColor(cBg);
-        splash.setClickable(true);
-        splash.setFocusable(true);
-        splash.setAlpha(1f);
-        root.addView(splash, new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    private void showLoading() {
+        if (loadingOverlay == null) return;
+        loadingOverlay.setVisibility(View.VISIBLE);
+        if (loadingLogo != null) {
+            loadingLogo.animate().cancel();
+            loadingLogoPulseUp = true;
+            startLoadingLogoAnimation();
+        }
+    }
 
-        LinearLayout center = new LinearLayout(this);
-        center.setOrientation(LinearLayout.VERTICAL);
-        center.setGravity(Gravity.CENTER);
-        FrameLayout.LayoutParams centerLp = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER);
-        splash.addView(center, centerLp);
-
-        ImageView logo = new ImageView(this);
-        logo.setImageResource(R.drawable.deapp_logo);
-        logo.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        logo.setAlpha(0f);
-        logo.setScaleX(.76f);
-        logo.setScaleY(.76f);
-        LinearLayout.LayoutParams logoLp = new LinearLayout.LayoutParams(dp(96), dp(96));
-        logoLp.gravity = Gravity.CENTER_HORIZONTAL;
-        center.addView(logo, logoLp);
-
-        TextView welcome = text("Welcome", 34, cText);
-        welcome.setTypeface(Typeface.create("sans-serif-black", Typeface.BOLD));
-        welcome.setLetterSpacing(.015f);
-        welcome.setGravity(Gravity.CENTER);
-        welcome.setAlpha(0f);
-        welcome.setTranslationY(dp(16));
-        LinearLayout.LayoutParams welcomeLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        welcomeLp.gravity = Gravity.CENTER_HORIZONTAL;
-        welcomeLp.topMargin = dp(18);
-        center.addView(welcome, welcomeLp);
-
-        TextView sub = text("to Deapp", 13, cMuted);
-        sub.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
-        sub.setLetterSpacing(.12f);
-        sub.setGravity(Gravity.CENTER);
-        sub.setAlpha(0f);
-        LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        subLp.gravity = Gravity.CENTER_HORIZONTAL;
-        subLp.topMargin = dp(7);
-        center.addView(sub, subLp);
-
-        logo.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(460).setStartDelay(80).start();
-        welcome.animate().alpha(1f).translationY(0).setDuration(440).setStartDelay(310).start();
-        sub.animate().alpha(1f).setDuration(380).setStartDelay(570).start();
-        splash.postDelayed(() -> {
-            // Stop intercepting taps before the fade begins. If an animation callback is
-            // interrupted by lifecycle changes, the splash can no longer block the WebView.
-            splash.setClickable(false);
-            splash.setFocusable(false);
-            splash.animate().alpha(0f).setDuration(300)
-                    .withEndAction(() -> {
-                        if (root != null && splash.getParent() == root) root.removeView(splash);
-                    }).start();
-            splash.postDelayed(() -> {
-                if (root != null && splash.getParent() == root) root.removeView(splash);
-            }, 420);
-        }, 1550);
+    private void hideLoading() {
+        if (loadingOverlay != null) loadingOverlay.setVisibility(View.GONE);
+        if (loadingLogo != null) {
+            loadingLogo.animate().cancel();
+            loadingLogo.setScaleX(1f);
+            loadingLogo.setScaleY(1f);
+            loadingLogo.setAlpha(1f);
+        }
     }
 
     private FrameLayout buildOfflineOverlay() {
@@ -962,6 +927,9 @@ public class MainActivity extends Activity {
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
         s.setDatabaseEnabled(true);
+        s.setCacheMode(WebSettings.LOAD_DEFAULT);
+        s.setDefaultTextEncodingName("UTF-8");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) s.setOffscreenPreRaster(true);
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setAllowFileAccess(false);
         s.setAllowContentAccess(true);
@@ -970,7 +938,7 @@ public class MainActivity extends Activity {
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.3 NativeMobile/9.3");
+        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.4 NativeMobile/9.4");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) s.setSafeBrowsingEnabled(true);
 
         CookieManager cm = CookieManager.getInstance();
@@ -991,17 +959,18 @@ public class MainActivity extends Activity {
             @Override
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
+                final int generation = ++loadingGeneration;
                 showOffline(false);
                 if (loadingOverlay != null) {
-                    loadingOverlay.setVisibility(View.GONE);
                     boolean pullRefreshing = swipeRefresh != null && swipeRefresh.isRefreshing();
-                    if (!pullRefreshing) {
+                    boolean alreadyShowing = loadingOverlay.getVisibility() == View.VISIBLE;
+                    if (!pullRefreshing && !alreadyShowing) {
                         loadingOverlay.postDelayed(() -> {
-                            if (loadingOverlay != null && webView != null && webView.getProgress() < 85 &&
+                            if (generation == loadingGeneration && loadingOverlay != null && webView != null && webView.getProgress() < 80 &&
                                     (swipeRefresh == null || !swipeRefresh.isRefreshing())) {
-                                loadingOverlay.setVisibility(View.VISIBLE);
+                                showLoading();
                             }
-                        }, 180);
+                        }, 120);
                     }
                 }
                 currentUrl = url == null ? "" : url;
@@ -1018,18 +987,20 @@ public class MainActivity extends Activity {
             @Override
             public void onPageCommitVisible(WebView view, String url) {
                 super.onPageCommitVisible(view, url);
+                loadingGeneration++;
                 injectNativeShell();
                 view.postDelayed(MainActivity.this::recoverWebScroll, 80);
-                if (loadingOverlay != null) loadingOverlay.setVisibility(View.GONE);
+                if (loadingOverlay != null) hideLoading();
             }
 
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
+                loadingGeneration++;
                 injectNativeShell();
                 view.postDelayed(MainActivity.this::recoverWebScroll, 120);
                 swipeRefresh.setRefreshing(false);
-                loadingOverlay.setVisibility(View.GONE);
+                hideLoading();
                 currentUrl = url == null ? "" : url;
                 updateNativeNav(url);
                 updateChromeVisibility();
@@ -1038,8 +1009,9 @@ public class MainActivity extends Activity {
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (request.isForMainFrame()) {
+                    loadingGeneration++;
                     swipeRefresh.setRefreshing(false);
-                    loadingOverlay.setVisibility(View.GONE);
+                    hideLoading();
                     showOffline(true);
                 }
             }
@@ -1610,7 +1582,7 @@ public class MainActivity extends Activity {
                 conn.setInstanceFollowRedirects(true);
                 String cookie = CookieManager.getInstance().getCookie(avatarUrl);
                 if (cookie != null && !cookie.isEmpty()) conn.setRequestProperty("Cookie", cookie);
-                conn.setRequestProperty("User-Agent", "DeappLite/1.9.3");
+                conn.setRequestProperty("User-Agent", "DeappLite/1.9.4");
                 try (InputStream in = conn.getInputStream()) {
                     Bitmap bitmap = BitmapFactory.decodeStream(in);
                     if (bitmap != null) runOnUiThread(() -> {
@@ -1635,10 +1607,14 @@ public class MainActivity extends Activity {
 
     private void openComposer() {
         if (webView == null) return;
-        webView.evaluateJavascript("(function(){if(window.__DEAPP_NATIVE_V19__&&window.__DEAPP_NATIVE_V19__.openComposer){return window.__DEAPP_NATIVE_V19__.openComposer();}var b=document.querySelector('[data-open-modal=\\\"composer-modal\\\"]');if(b){b.click();return true;}return false;})()", value -> {
+        webView.evaluateJavascript("(function(){if(window.__DEAPP_NATIVE_V19__&&window.__DEAPP_NATIVE_V19__.openComposer){return window.__DEAPP_NATIVE_V19__.openComposer();}var b=document.querySelector('[data-open-modal=\"composer-modal\"]');if(b){b.click();return true;}return false;})()", value -> {
             if (!"true".equals(value)) {
                 Toast.makeText(this, "Login dulu untuk membuat postingan", Toast.LENGTH_SHORT).show();
                 loadRelative("login.php");
+            } else {
+                // Sinkronkan toolbar segera: ikon pesawat langsung aktif tanpa menunggu scan DOM berikutnya.
+                composerOpen = true;
+                updateChromeVisibility();
             }
         });
     }
@@ -1650,7 +1626,7 @@ public class MainActivity extends Activity {
 
     private void publishComposer() {
         if (webView == null) return;
-        webView.evaluateJavascript("(function(){if(window.__DEAPP_NATIVE_V19__&&window.__DEAPP_NATIVE_V19__.submitComposer){return window.__DEAPP_NATIVE_V19__.submitComposer();}var b=document.getElementById('composer-submit');if(b){b.click();return true;}return false;})()", value -> {
+        webView.evaluateJavascript("(function(){try{if(window.__DEAPP_NATIVE_V19__&&window.__DEAPP_NATIVE_V19__.submitComposer){return !!window.__DEAPP_NATIVE_V19__.submitComposer();}var m=document.getElementById('composer-modal');var f=document.getElementById('composer-form')||(m?m.querySelector('form'):null);if(!f)return false;var b=document.getElementById('composer-submit')||f.querySelector('.composer-submit,[data-action=publish],[data-action=submit-post],button[type=submit],input[type=submit]');if(b&&b.disabled)return false;if(typeof f.requestSubmit==='function'){b&&b.form===f?f.requestSubmit(b):f.requestSubmit();return true;}if(b){b.click();return true;}return false;}catch(e){return false;}})()", value -> {
             if (!"true".equals(value)) Toast.makeText(this, "Postingan belum siap diterbitkan", Toast.LENGTH_SHORT).show();
         });
     }
@@ -1820,7 +1796,7 @@ public class MainActivity extends Activity {
         name.setGravity(Gravity.CENTER);
         box.addView(name);
 
-        TextView version = text("Versi 1.9.3-lite · Build 13", 13, cMuted);
+        TextView version = text("Versi 1.9.4-lite · Build 14", 13, cMuted);
         version.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams versionLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -2052,6 +2028,8 @@ public class MainActivity extends Activity {
         pendingGeoCallback = null;
         pendingGeoOrigin = null;
         composeFab = null;
+        if (loadingLogo != null) loadingLogo.animate().cancel();
+        loadingLogo = null;
         featureMenuButton = null;
         toolbarLogo = null;
         toolbarTitle = null;
@@ -2069,6 +2047,7 @@ public class MainActivity extends Activity {
         isLoggedIn = false;
         imeVisible = false;
         currentUrl = "";
+        loadingGeneration++;
         if (webView != null) {
             webView.stopLoading();
             webView.setWebChromeClient(null);

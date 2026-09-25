@@ -1,3 +1,19 @@
+# DeApp Lite Android v1.9.4 — Story, Composer & Performance Fix
+
+Patch ini melanjutkan v1.9.3 dengan fokus pada fungsi yang diminta untuk aplikasi Lite:
+
+- Story di Beranda ditampilkan kembali dan dapat digeser horizontal.
+- Fitur terjemahan pada postingan disembunyikan/dihapus dari UI Lite; isi postingan asli tetap ditampilkan.
+- Loading memakai animasi pulse logo ikonik DeApp, menggantikan spinner generik.
+- Splash lama tidak lagi menahan startup; WebView langsung mulai memuat server.
+- Rendering dipercepat dengan cache WebView, hardware layer, offscreen preraster, scan DOM yang didebounce, dan sinkronisasi bridge yang hanya dikirim bila state berubah.
+- Tombol kirim/ikon pesawat pada composer memakai `requestSubmit()` dengan fallback ke submit asli sehingga validasi dan handler AJAX tetap berjalan.
+- Pengaman overlay, scroll lock, dan lifecycle dari v1.9.3 tetap dipertahankan.
+
+Versi Android: **1.9.4-lite (Build 14)**.
+
+---
+
 # DeApp Lite Android — v1.9.3 Full Stability Fix
 
 Patch ini berfokus pada stabilitas interaksi aplikasi Android DeApp Lite setelah audit v1.9.2.

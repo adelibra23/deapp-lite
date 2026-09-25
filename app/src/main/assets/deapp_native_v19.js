@@ -11,6 +11,10 @@
   let backgroundScrollLocked = false;
   let lockedScrollY = 0;
   let savedBodyTop = '';
+  let composerSubmitting = false;
+  let lastSessionKey = '';
+  let lastChromeKey = '';
+  let lastComposerState = null;
   const root = document.documentElement;
   const path = (location.pathname || '').toLowerCase();
   const isProfilePage = /\/profile\.php$/.test(path);
@@ -102,8 +106,7 @@
     .post-card:not(.post-embedded) .source-passport,
     .post-card:not(.post-embedded) .memory-note-banner,
     .post-card:not(.post-embedded) .crowd-shield-banner,
-    .post-card:not(.post-embedded) .solved-conversation,
-    .post-card:not(.post-embedded) .post-translation{margin-left:64px!important;margin-right:14px!important}
+    .post-card:not(.post-embedded) .solved-conversation{margin-left:64px!important;margin-right:14px!important}
     .post-card:not(.post-embedded) .shared-wrap{margin-top:4px!important;margin-bottom:10px!important}
     .post-card:not(.post-embedded) .post-embedded{border:1px solid var(--border)!important;border-radius:13px!important;overflow:hidden!important;background:var(--surface-2)!important}
     .post-card:not(.post-embedded) .post-stats{
@@ -228,7 +231,15 @@
     *,*:before,*:after{box-sizing:border-box!important}
     .layout,.layout-guest,.main-col,.feed,.card,.post-card,.modal-box,.composer,.settings-wrap,.wide-layout,.wide-main{max-width:100%!important;min-width:0!important}
     img,video,canvas,iframe{max-width:100%!important}
-    .page-home .story-tray{display:none!important}
+    /* v1.9.4 — Story kembali tampil pada Beranda dan tetap nyaman digeser horizontal. */
+    .page-home .story-tray{display:flex!important;max-width:100%!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:none!important;-webkit-overflow-scrolling:touch!important;overscroll-behavior-x:contain!important;touch-action:pan-x pan-y!important}
+    .page-home .story-tray::-webkit-scrollbar{display:none!important}
+    .page-home .story-tray>*{flex:0 0 auto!important}
+
+    /* Lite tidak menampilkan fitur terjemahan pada postingan. Konten asli tetap utuh. */
+    .post-card .post-translation,.post-card .post-translate,.post-card .translation-box,.post-card .translation-result,
+    .post-card .translate-post,.post-card .post-translate-btn,.post-card [data-action="translate"],.post-card [data-action="translation"],
+    .post-card [data-translate-post],.post-card [data-post-translate]{display:none!important}
     .deapp-native-post-detail .post-detail-nav,.deapp-native-post-detail .post-meta-card,.deapp-native-post-detail .wide-side,.deapp-native-post-detail .post-detail-more{display:none!important}
     .deapp-native-post-detail .wide-layout,.deapp-native-post-detail .wide-main{display:block!important;width:100%!important;max-width:100%!important;margin:0!important;padding:0!important}
     .deapp-native-post-detail .feed{width:100%!important;max-width:100%!important;border:0!important;border-radius:0!important}
@@ -439,15 +450,62 @@
   }
 
   function submitComposer() {
-    const form = document.getElementById('composer-form');
-    const submit = document.getElementById('composer-submit');
-    if (!form || !submit) return false;
-    submit.click();
-    return true;
+    const modal = document.getElementById('composer-modal');
+    const form = document.getElementById('composer-form') || (modal ? modal.querySelector('form') : null);
+    if (!form || composerSubmitting) return !!form;
+
+    const submit = document.getElementById('composer-submit') || form.querySelector('.composer-submit,[data-action="publish"],[data-action="submit-post"],button[type="submit"],input[type="submit"]');
+    if (submit && submit.disabled) return false;
+    try {
+      if (typeof form.checkValidity === 'function' && !form.checkValidity()) {
+        if (typeof form.reportValidity === 'function') form.reportValidity();
+        return false;
+      }
+    } catch (_) {}
+
+    composerSubmitting = true;
+    let released = false;
+    const release = function(){
+      if (released) return;
+      released = true;
+      composerSubmitting = false;
+    };
+    setTimeout(release, 2200);
+    form.addEventListener('submit', function(){ setTimeout(release, 900); }, {once:true,capture:true});
+
+    try {
+      if (typeof form.requestSubmit === 'function') {
+        if (submit && submit.form === form) form.requestSubmit(submit);
+        else form.requestSubmit();
+        return true;
+      }
+    } catch (_) {}
+
+    try {
+      if (submit) {
+        submit.click();
+        return true;
+      }
+    } catch (_) {}
+
+    try {
+      const ev = new Event('submit', {bubbles:true,cancelable:true});
+      const allowed = form.dispatchEvent(ev);
+      if (allowed && typeof form.submit === 'function') form.submit();
+      return true;
+    } catch (_) {
+      release();
+      return false;
+    }
   }
 
   function syncComposer() {
-    try { if (API && API.syncComposerState) API.syncComposerState(composerIsOpen()); } catch (_) {}
+    try {
+      const open = composerIsOpen();
+      if (open === lastComposerState) return;
+      lastComposerState = open;
+      if (API && API.syncComposerState) API.syncComposerState(open);
+    } catch (_) {}
   }
 
   function profileTitle() {
@@ -466,6 +524,9 @@
       const ownProfile = !!document.querySelector('.profile-actions a[href^="settings.php"],.profile-actions a[href*="settings.php"]');
       const type = isProfilePage ? 'profile' : (isPostDetailPage ? 'post' : (isSettingsPage ? 'settings' : (isAuthPage ? 'auth' : 'default')));
       const title = isProfilePage ? profileTitle() : (isPostDetailPage ? postAuthorTitle() : '');
+      const key = [type, title, ownProfile ? '1' : '0'].join('|');
+      if (key === lastChromeKey) return;
+      lastChromeKey = key;
       API.syncPageChrome(type, title, ownProfile);
     } catch (_) {}
   }
@@ -553,7 +614,7 @@
     const row = document.createElement('button');
     row.type = 'button';
     row.className = 'snav deapp-native-about-row';
-    row.innerHTML = '<span style="font-size:20px;line-height:1">ⓘ</span><span><b>Tentang aplikasi</b><small>Deapp Lite untuk Android</small></span><span class="deapp-version-pill">v1.9.3-lite</span>';
+    row.innerHTML = '<span style="font-size:20px;line-height:1">ⓘ</span><span><b>Tentang aplikasi</b><small>Deapp Lite untuk Android</small></span><span class="deapp-version-pill">v1.9.4-lite</span>';
     row.addEventListener('click', function(){
       nativeTap();
       try { if (API && API.showAboutApp) API.showAboutApp(); } catch (_) {}
@@ -741,10 +802,59 @@
       const profileLink = document.querySelector('.bottom-nav a.bnav:last-child,#user-dropdown .dropdown-user');
       if (profileLink && profileLink.href) profile = profileLink.href;
       if (!profile && me && me.username && d.BASE_URL) profile = String(d.BASE_URL).replace(/\/$/,'') + '/profile.php?u=' + encodeURIComponent(me.username);
+      const key = [logged ? '1' : '0', avatar, profile, location.href].join('|');
+      if (key === lastSessionKey) return;
+      lastSessionKey = key;
       if (API && API.syncSessionState) API.syncSessionState(logged, avatar, profile, location.href);
     } catch (_) {}
   }
 
+
+  function optimizeMediaLoading() {
+    try {
+      const eagerLimit = Math.max(innerHeight * 1.35, 900);
+      document.querySelectorAll('img').forEach(function(img){
+        try {
+          if (img.dataset.deappMediaOptimized === '1') return;
+          img.dataset.deappMediaOptimized = '1';
+          img.decoding = 'async';
+          const r = img.getBoundingClientRect();
+          // Story/header/viewport awal tetap eager; media feed di bawah layar dibuat lazy.
+          if (!img.closest('.story-tray,.topbar,.profile-cover,.profile-avatar-wrap') && r.top > eagerLimit && !img.hasAttribute('loading')) {
+            img.loading = 'lazy';
+          }
+        } catch (_) {}
+      });
+      document.querySelectorAll('video').forEach(function(video){
+        try {
+          if (video.dataset.deappMediaOptimized === '1') return;
+          video.dataset.deappMediaOptimized = '1';
+          if (!video.autoplay && (!video.preload || video.preload === 'auto')) video.preload = 'metadata';
+        } catch (_) {}
+      });
+    } catch (_) {}
+  }
+
+  function removePostTranslationUI() {
+    try {
+      const direct = [
+        '.post-card .post-translation', '.post-card .post-translate', '.post-card .translation-box',
+        '.post-card .translation-result', '.post-card .translate-post', '.post-card .post-translate-btn',
+        '.post-card [data-action="translate"]', '.post-card [data-action="translation"]',
+        '.post-card [data-translate-post]', '.post-card [data-post-translate]'
+      ];
+      document.querySelectorAll(direct.join(',')).forEach(function(el){ el.remove(); });
+
+      document.querySelectorAll('.post-card button,.post-card a,.post-card .dropdown-item').forEach(function(el){
+        const marker = [el.id || '', typeof el.className === 'string' ? el.className : '', el.getAttribute('data-action') || '', el.getAttribute('data-task') || ''].join(' ').toLowerCase();
+        const label = (el.textContent || '').trim().replace(/\s+/g,' ').toLowerCase();
+        if (marker.indexOf('translat') !== -1 || marker.indexOf('terjemah') !== -1 ||
+            /^(terjemahkan|translate|lihat postingan asli|lihat kiriman asli|see original)(\b|$)/i.test(label)) {
+          el.remove();
+        }
+      });
+    } catch (_) {}
+  }
 
   function enhancePostDetailComments() {
     if (!isPostDetailPage) return;
@@ -778,6 +888,8 @@
     ensurePostBackdrop();
     injectAboutSettings();
     enhancePostDetailComments();
+    optimizeMediaLoading();
+    removePostTranslationUI();
     installPostPublishedHook();
     syncSession();
     syncPageChrome();
@@ -790,15 +902,17 @@
   recoverPageInteraction();
 
   // DOM Deapp cukup dinamis. Scan langsung pada setiap mutasi dapat menumpuk ratusan
-  // callback dan mengganggu klik/ketikan. Batasi menjadi maksimal satu scan per frame.
+  // callback dan mengganggu klik/ketikan. Debounce singkat menjaga UI responsif tanpa scan per-frame.
   let scanQueued = false;
+  let scanTimer = 0;
   function scheduleScan() {
     if (scanQueued) return;
     scanQueued = true;
-    requestAnimationFrame(function(){
+    clearTimeout(scanTimer);
+    scanTimer = setTimeout(function(){
       scanQueued = false;
-      scan();
-    });
+      if (!document.hidden) scan();
+    }, 64);
   }
   const observer = new MutationObserver(scheduleScan);
   observer.observe(document.body, {subtree:true, childList:true, attributes:true, attributeFilter:['class','open','hidden','aria-expanded']});
