@@ -85,10 +85,6 @@ public class MainActivity extends Activity {
     private FrameLayout bottomContainer;
     private WebView webView;
     private SwipeRefreshLayout swipeRefresh;
-    private ImageView refreshLogo;
-    private boolean refreshLogoAnimating = false;
-    private float refreshPullStartY = 0f;
-    private ProgressBar progress;
     private FrameLayout offlineOverlay;
     private FrameLayout loadingOverlay;
     private ImageButton featureMenuButton;
@@ -100,6 +96,7 @@ public class MainActivity extends Activity {
     private boolean profilePage = false;
     private boolean ownProfilePage = false;
     private boolean composerOpen = false;
+    private boolean webSheetOpen = false;
     private boolean welcomeShown = false;
     private View activeSheetOverlay;
     private View activeSheetPanel;
@@ -417,6 +414,7 @@ public class MainActivity extends Activity {
         profilePage = false;
         ownProfilePage = false;
         composerOpen = false;
+        webSheetOpen = false;
 
         root = new FrameLayout(this);
         root.setBackgroundColor(cBg);
@@ -500,13 +498,13 @@ public class MainActivity extends Activity {
         shell.addView(content, contentLp);
 
         swipeRefresh = new SwipeRefreshLayout(this);
-        // v1.6: indikator bawaan disembunyikan dan diganti animasi logo Deapp.
-        swipeRefresh.setSize(SwipeRefreshLayout.LARGE);
-        swipeRefresh.setColorSchemeColors(Color.TRANSPARENT);
-        swipeRefresh.setProgressBackgroundColorSchemeColor(Color.TRANSPARENT);
-        swipeRefresh.setDistanceToTriggerSync(dp(86));
-        swipeRefresh.setSlingshotDistance(dp(112));
-        swipeRefresh.setProgressViewOffset(false, dp(8), dp(72));
+        // v1.7: pull-to-refresh kembali memakai satu spinner native saja.
+        swipeRefresh.setSize(SwipeRefreshLayout.DEFAULT);
+        swipeRefresh.setColorSchemeColors(cAccent);
+        swipeRefresh.setProgressBackgroundColorSchemeColor(cSurface);
+        swipeRefresh.setDistanceToTriggerSync(dp(72));
+        swipeRefresh.setSlingshotDistance(dp(92));
+        swipeRefresh.setProgressViewOffset(false, dp(6), dp(58));
         content.addView(swipeRefresh, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
@@ -521,45 +519,11 @@ public class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         swipeRefresh.setOnRefreshListener(() -> {
             haptic(swipeRefresh);
-            startDeappRefreshAnimation();
             if (webView != null) webView.reload();
         });
         swipeRefresh.setOnChildScrollUpCallback((parent, child) ->
-                webView != null && webView.canScrollVertically(-1));
-
-        refreshLogo = new ImageView(this);
-        refreshLogo.setImageResource(R.drawable.deapp_logo);
-        refreshLogo.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        refreshLogo.setAlpha(0f);
-        refreshLogo.setScaleX(.72f);
-        refreshLogo.setScaleY(.72f);
-        refreshLogo.setVisibility(View.INVISIBLE);
-        FrameLayout.LayoutParams refreshLogoLp = new FrameLayout.LayoutParams(dp(48), dp(48), Gravity.TOP | Gravity.CENTER_HORIZONTAL);
-        refreshLogoLp.topMargin = dp(10);
-        content.addView(refreshLogo, refreshLogoLp);
-
-        swipeRefresh.setOnTouchListener((v, event) -> {
-            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
-                refreshPullStartY = event.getY();
-            } else if (event.getActionMasked() == MotionEvent.ACTION_MOVE) {
-                if (webView != null && !webView.canScrollVertically(-1) && !swipeRefresh.isRefreshing()) {
-                    float dy = Math.max(0f, event.getY() - refreshPullStartY);
-                    updateDeappPullIndicator(dy);
-                }
-            } else if ((event.getActionMasked() == MotionEvent.ACTION_UP || event.getActionMasked() == MotionEvent.ACTION_CANCEL)
-                    && !swipeRefresh.isRefreshing()) {
-                hideDeappPullIndicator();
-            }
-            return false;
-        });
-
-        progress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
-        progress.setMax(100);
-        progress.setProgressTintList(android.content.res.ColorStateList.valueOf(cAccent));
-        progress.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.TRANSPARENT));
-        FrameLayout.LayoutParams progressLp = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(2), Gravity.TOP);
-        content.addView(progress, progressLp);
+                activeSheetOverlay != null || webSheetOpen || composerOpen ||
+                        (webView != null && webView.canScrollVertically(-1)));
 
         loadingOverlay = buildLoadingOverlay();
         content.addView(loadingOverlay, new FrameLayout.LayoutParams(
@@ -573,12 +537,23 @@ public class MainActivity extends Activity {
 
     private FrameLayout buildLoadingOverlay() {
         FrameLayout layer = new FrameLayout(this);
-        layer.setBackgroundColor(cBg);
-        ImageView logo = new ImageView(this);
-        logo.setImageResource(R.drawable.deapp_logo);
-        logo.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(dp(86), dp(86), Gravity.CENTER);
-        layer.addView(logo, lp);
+        layer.setBackgroundColor(Color.TRANSPARENT);
+        layer.setClickable(false);
+        layer.setFocusable(false);
+
+        FrameLayout holder = new FrameLayout(this);
+        holder.setBackground(rounded(cSurface, 22));
+        holder.setElevation(dp(5));
+        FrameLayout.LayoutParams holderLp = new FrameLayout.LayoutParams(dp(68), dp(68), Gravity.CENTER);
+        layer.addView(holder, holderLp);
+
+        ProgressBar spinner = new ProgressBar(this, null, android.R.attr.progressBarStyleLarge);
+        spinner.setIndeterminate(true);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            spinner.setIndeterminateTintList(android.content.res.ColorStateList.valueOf(cAccent));
+        }
+        FrameLayout.LayoutParams spinnerLp = new FrameLayout.LayoutParams(dp(34), dp(34), Gravity.CENTER);
+        holder.addView(spinner, spinnerLp);
         return layer;
     }
 
@@ -901,6 +876,14 @@ public class MainActivity extends Activity {
             composeFab.setVisibility(showFloatingCompose ? View.VISIBLE : View.GONE);
             composeFab.setContentDescription(profilePage ? "Buat postingan di profil" : "Buat postingan");
         }
+        updateRefreshAvailability();
+    }
+
+    private void updateRefreshAvailability() {
+        if (swipeRefresh == null) return;
+        boolean enabled = activeSheetOverlay == null && !webSheetOpen && !composerOpen && customView == null;
+        if (!enabled && swipeRefresh.isRefreshing()) swipeRefresh.setRefreshing(false);
+        swipeRefresh.setEnabled(enabled);
     }
 
     private void updateTopBarMode() {
@@ -939,7 +922,7 @@ public class MainActivity extends Activity {
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.6 NativeMobile/6");
+        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.7 NativeMobile/7");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) s.setSafeBrowsingEnabled(true);
 
         CookieManager cm = CookieManager.getInstance();
@@ -960,12 +943,16 @@ public class MainActivity extends Activity {
             @Override
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
-                progress.setVisibility(View.VISIBLE);
                 showOffline(false);
+                if (loadingOverlay != null) {
+                    boolean pullRefreshing = swipeRefresh != null && swipeRefresh.isRefreshing();
+                    loadingOverlay.setVisibility(pullRefreshing ? View.GONE : View.VISIBLE);
+                }
                 currentUrl = url == null ? "" : url;
                 profilePage = isProfileUrl(currentUrl);
                 profileDisplayName = "";
                 composerOpen = false;
+                webSheetOpen = false;
                 updateNativeNav(url);
                 updateChromeVisibility();
                 updateKeepScreenOn(url);
@@ -981,9 +968,7 @@ public class MainActivity extends Activity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 injectNativeShell();
-                progress.setVisibility(View.GONE);
                 swipeRefresh.setRefreshing(false);
-                stopDeappRefreshAnimation();
                 loadingOverlay.setVisibility(View.GONE);
                 currentUrl = url == null ? "" : url;
                 updateNativeNav(url);
@@ -994,7 +979,6 @@ public class MainActivity extends Activity {
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (request.isForMainFrame()) {
                     swipeRefresh.setRefreshing(false);
-                    stopDeappRefreshAnimation();
                     loadingOverlay.setVisibility(View.GONE);
                     showOffline(true);
                 }
@@ -1002,16 +986,6 @@ public class MainActivity extends Activity {
         });
 
         webView.setWebChromeClient(new WebChromeClient() {
-            @Override
-            public void onProgressChanged(WebView view, int newProgress) {
-                progress.setProgress(newProgress);
-                progress.setVisibility(newProgress >= 100 ? View.GONE : View.VISIBLE);
-                if (newProgress >= 100) {
-                    swipeRefresh.setRefreshing(false);
-                    stopDeappRefreshAnimation();
-                }
-            }
-
             @Override
             public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
                 if (fileCallback != null) fileCallback.onReceiveValue(null);
@@ -1102,7 +1076,7 @@ public class MainActivity extends Activity {
     private void injectNativeShell() {
         if (webView == null) return;
         if (nativeScript == null || nativeScript.isEmpty()) {
-            nativeScript = readAssetText("deapp_native_v16.js");
+            nativeScript = readAssetText("deapp_native_v17.js");
         }
         if (!nativeScript.isEmpty()) webView.evaluateJavascript(nativeScript, null);
     }
@@ -1221,6 +1195,7 @@ public class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         activeSheetOverlay = overlay;
         activeSheetPanel = sheet;
+        updateRefreshAvailability();
 
         ViewCompat.setOnApplyWindowInsetsListener(sheet, (v, insets) -> {
             Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -1239,6 +1214,7 @@ public class MainActivity extends Activity {
         View panel = activeSheetPanel;
         activeSheetOverlay = null;
         activeSheetPanel = null;
+        updateRefreshAvailability();
         if (animate && panel != null) {
             panel.animate().translationY(Math.max(panel.getHeight(), dp(420))).setDuration(180)
                     .withEndAction(() -> root.removeView(overlay)).start();
@@ -1482,6 +1458,14 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void syncWebSheetState(boolean open) {
+            runOnUiThread(() -> {
+                webSheetOpen = open;
+                updateRefreshAvailability();
+            });
+        }
+
+        @JavascriptInterface
         public void postPublished() {
             runOnUiThread(MainActivity.this::playPostPublishedSound);
         }
@@ -1518,7 +1502,7 @@ public class MainActivity extends Activity {
                 conn.setInstanceFollowRedirects(true);
                 String cookie = CookieManager.getInstance().getCookie(avatarUrl);
                 if (cookie != null && !cookie.isEmpty()) conn.setRequestProperty("Cookie", cookie);
-                conn.setRequestProperty("User-Agent", "DeappLite/1.6");
+                conn.setRequestProperty("User-Agent", "DeappLite/1.7");
                 try (InputStream in = conn.getInputStream()) {
                     Bitmap bitmap = BitmapFactory.decodeStream(in);
                     if (bitmap != null) runOnUiThread(() -> {
@@ -1543,7 +1527,7 @@ public class MainActivity extends Activity {
 
     private void openComposer() {
         if (webView == null) return;
-        webView.evaluateJavascript("(function(){if(window.__DEAPP_NATIVE_V16__&&window.__DEAPP_NATIVE_V16__.openComposer){return window.__DEAPP_NATIVE_V16__.openComposer();}var b=document.querySelector('[data-open-modal=\\\"composer-modal\\\"]');if(b){b.click();return true;}return false;})()", value -> {
+        webView.evaluateJavascript("(function(){if(window.__DEAPP_NATIVE_V17__&&window.__DEAPP_NATIVE_V17__.openComposer){return window.__DEAPP_NATIVE_V17__.openComposer();}var b=document.querySelector('[data-open-modal=\\\"composer-modal\\\"]');if(b){b.click();return true;}return false;})()", value -> {
             if (!"true".equals(value)) {
                 Toast.makeText(this, "Login dulu untuk membuat postingan", Toast.LENGTH_SHORT).show();
                 loadRelative("login.php");
@@ -1553,80 +1537,21 @@ public class MainActivity extends Activity {
 
     private void closeComposer() {
         if (webView == null) return;
-        webView.evaluateJavascript("(function(){if(window.__DEAPP_NATIVE_V16__&&window.__DEAPP_NATIVE_V16__.closeComposer){window.__DEAPP_NATIVE_V16__.closeComposer();return true;}return false;})()", null);
+        webView.evaluateJavascript("(function(){if(window.__DEAPP_NATIVE_V17__&&window.__DEAPP_NATIVE_V17__.closeComposer){window.__DEAPP_NATIVE_V17__.closeComposer();return true;}return false;})()", null);
     }
 
     private void publishComposer() {
         if (webView == null) return;
-        webView.evaluateJavascript("(function(){if(window.__DEAPP_NATIVE_V16__&&window.__DEAPP_NATIVE_V16__.submitComposer){return window.__DEAPP_NATIVE_V16__.submitComposer();}var b=document.getElementById('composer-submit');if(b){b.click();return true;}return false;})()", value -> {
+        webView.evaluateJavascript("(function(){if(window.__DEAPP_NATIVE_V17__&&window.__DEAPP_NATIVE_V17__.submitComposer){return window.__DEAPP_NATIVE_V17__.submitComposer();}var b=document.getElementById('composer-submit');if(b){b.click();return true;}return false;})()", value -> {
             if (!"true".equals(value)) Toast.makeText(this, "Postingan belum siap diterbitkan", Toast.LENGTH_SHORT).show();
         });
     }
 
     private void openProfileOptions() {
         if (webView == null) return;
-        webView.evaluateJavascript("(function(){if(window.__DEAPP_NATIVE_V16__&&window.__DEAPP_NATIVE_V16__.openProfileOptions){return window.__DEAPP_NATIVE_V16__.openProfileOptions();}return false;})()", value -> {
+        webView.evaluateJavascript("(function(){if(window.__DEAPP_NATIVE_V17__&&window.__DEAPP_NATIVE_V17__.openProfileOptions){return window.__DEAPP_NATIVE_V17__.openProfileOptions();}return false;})()", value -> {
             if (!"true".equals(value)) Toast.makeText(this, "Opsi profil tidak tersedia", Toast.LENGTH_SHORT).show();
         });
-    }
-
-    private void updateDeappPullIndicator(float dy) {
-        if (refreshLogo == null || refreshLogoAnimating) return;
-        float p = Math.min(1f, dy / dp(92));
-        if (p <= .03f) {
-            hideDeappPullIndicator();
-            return;
-        }
-        refreshLogo.setVisibility(View.VISIBLE);
-        refreshLogo.setAlpha(Math.min(1f, p * 1.35f));
-        float scale = .70f + (.30f * p);
-        refreshLogo.setScaleX(scale);
-        refreshLogo.setScaleY(scale);
-        refreshLogo.setRotation(-16f + (32f * p));
-        refreshLogo.setTranslationY(Math.min(dp(22), dy * .18f));
-    }
-
-    private void hideDeappPullIndicator() {
-        if (refreshLogo == null || refreshLogoAnimating) return;
-        refreshLogo.animate().cancel();
-        refreshLogo.animate().alpha(0f).scaleX(.72f).scaleY(.72f).translationY(0f).rotation(0f)
-                .setDuration(150).withEndAction(() -> {
-                    if (refreshLogo != null && !refreshLogoAnimating) refreshLogo.setVisibility(View.INVISIBLE);
-                }).start();
-    }
-
-    private void startDeappRefreshAnimation() {
-        if (refreshLogo == null) return;
-        refreshLogoAnimating = true;
-        refreshLogo.animate().cancel();
-        refreshLogo.setVisibility(View.VISIBLE);
-        refreshLogo.setAlpha(1f);
-        refreshLogo.setScaleX(1f);
-        refreshLogo.setScaleY(1f);
-        refreshLogo.setTranslationY(dp(10));
-        runRefreshLogoLoop();
-    }
-
-    private void runRefreshLogoLoop() {
-        if (!refreshLogoAnimating || refreshLogo == null) return;
-        refreshLogo.setRotation(0f);
-        refreshLogo.animate().rotation(360f).scaleX(1.08f).scaleY(1.08f)
-                .setDuration(720).withEndAction(() -> {
-                    if (refreshLogo == null || !refreshLogoAnimating) return;
-                    refreshLogo.setScaleX(1f);
-                    refreshLogo.setScaleY(1f);
-                    runRefreshLogoLoop();
-                }).start();
-    }
-
-    private void stopDeappRefreshAnimation() {
-        refreshLogoAnimating = false;
-        if (refreshLogo == null) return;
-        refreshLogo.animate().cancel();
-        refreshLogo.animate().alpha(0f).scaleX(.72f).scaleY(.72f).translationY(0f).rotation(0f)
-                .setDuration(180).withEndAction(() -> {
-                    if (refreshLogo != null) refreshLogo.setVisibility(View.INVISIBLE);
-                }).start();
     }
 
     private void playPostPublishedSound() {
@@ -1787,7 +1712,7 @@ public class MainActivity extends Activity {
         name.setGravity(Gravity.CENTER);
         box.addView(name);
 
-        TextView version = text("Versi 1.6.0-lite · Build 7", 13, cMuted);
+        TextView version = text("Versi 1.7.0-lite · Build 8", 13, cMuted);
         version.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams versionLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -2001,8 +1926,6 @@ public class MainActivity extends Activity {
 
     private void destroyWebView() {
         composeFab = null;
-        refreshLogo = null;
-        refreshLogoAnimating = false;
         featureMenuButton = null;
         toolbarLogo = null;
         toolbarTitle = null;
@@ -2010,6 +1933,7 @@ public class MainActivity extends Activity {
         profilePage = false;
         ownProfilePage = false;
         composerOpen = false;
+        webSheetOpen = false;
         navHome = null;
         navMessage = null;
         navCompose = null;
