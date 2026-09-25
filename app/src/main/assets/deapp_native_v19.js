@@ -27,11 +27,12 @@
   style.textContent = `
     :root{--topbar-h:0px!important;--bnav-h:0px!important}
     .topbar,.bottom-nav{display:none!important}
-    html,body{scrollbar-width:none!important;background:var(--surface)!important;overscroll-behavior-y:none!important}
+    html,body{scrollbar-width:none!important;background:var(--surface)!important;overscroll-behavior-y:auto!important;touch-action:auto!important}
     html::-webkit-scrollbar,body::-webkit-scrollbar,*::-webkit-scrollbar{display:none!important;width:0!important;height:0!important;background:transparent!important}
     body{padding-top:0!important;padding-bottom:0!important;-webkit-tap-highlight-color:transparent!important}
+    html:not(.deapp-native-sheet-lock),body:not(.deapp-native-sheet-lock-body){overflow-y:auto!important}
     html.deapp-native-sheet-lock{overflow:hidden!important;overscroll-behavior:none!important}
-    body.deapp-native-sheet-lock-body{position:fixed!important;left:0!important;right:0!important;width:100%!important;overflow:hidden!important;overscroll-behavior:none!important}
+    body.deapp-native-sheet-lock-body{overflow:hidden!important;overscroll-behavior:none!important}
     .modal-overlay:not(#composer-modal) .modal-box,.deapp-cookie-modal .cookie-modal-card,dialog.c-modal[open] .c-modal-box,.post-card .menu-wrap.open>.dropdown,.deapp-native-profile-options-sheet{touch-action:pan-y!important;overscroll-behavior:contain!important}
     .layout,.layout-guest{padding-top:0!important;padding-bottom:14px!important}
     .page-home .composer-trigger{display:none!important}
@@ -522,7 +523,7 @@
     const row = document.createElement('button');
     row.type = 'button';
     row.className = 'snav deapp-native-about-row';
-    row.innerHTML = '<span style="font-size:20px;line-height:1">ⓘ</span><span><b>Tentang aplikasi</b><small>Deapp Lite untuk Android</small></span><span class="deapp-version-pill">v1.9.0-lite</span>';
+    row.innerHTML = '<span style="font-size:20px;line-height:1">ⓘ</span><span><b>Tentang aplikasi</b><small>Deapp Lite untuk Android</small></span><span class="deapp-version-pill">v1.9.1-lite</span>';
     row.addEventListener('click', function(){
       nativeTap();
       try { if (API && API.showAboutApp) API.showAboutApp(); } catch (_) {}
@@ -557,10 +558,14 @@
 
   function isVisible(el) {
     if (!el || !el.isConnected) return false;
-    const cs = getComputedStyle(el);
-    if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity || 1) === 0) return false;
+    let node = el;
+    while (node && node.nodeType === 1) {
+      const cs = getComputedStyle(node);
+      if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity || 1) === 0) return false;
+      node = node.parentElement;
+    }
     const r = el.getBoundingClientRect();
-    return r.width > 0 && r.height > 0;
+    return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < innerHeight;
   }
 
   function sheetTarget(node) {
@@ -569,55 +574,105 @@
     return !!el.closest('.modal-overlay:not(#composer-modal) .modal-box,.deapp-cookie-modal .cookie-modal-card,dialog.c-modal[open] .c-modal-box,.post-card .menu-wrap.open>.dropdown,.deapp-native-profile-options-sheet');
   }
 
+  function hasVisibleWebSheet() {
+    const selectors = [
+      '.modal-overlay:not(#composer-modal) .modal-box',
+      '.deapp-cookie-modal .cookie-modal-card',
+      'dialog.c-modal[open] .c-modal-box',
+      '.post-card .menu-wrap.open>.dropdown',
+      '.deapp-native-profile-options-sheet'
+    ];
+    for (const selector of selectors) {
+      const nodes = document.querySelectorAll(selector);
+      for (const node of nodes) {
+        if (isVisible(node)) return true;
+      }
+    }
+    return false;
+  }
+
+  function unlockBackgroundScroll(restorePosition) {
+    if (!document.body) return;
+    backgroundScrollLocked = false;
+    root.classList.remove('deapp-native-sheet-lock');
+    document.body.classList.remove('deapp-native-sheet-lock-body');
+    document.body.style.top = savedBodyTop;
+    if (restorePosition) {
+      const y = lockedScrollY;
+      requestAnimationFrame(function(){
+        if (!hasVisibleWebSheet()) window.scrollTo(0, y);
+      });
+    }
+  }
+
   function updateBackgroundScrollLock() {
-    const shouldLock = !!(currentWebSheetOpen || externalNativeSheetOpen);
-    if (shouldLock === backgroundScrollLocked || !document.body) return;
-    backgroundScrollLocked = shouldLock;
+    if (!document.body) return;
+    // Native Android sheet already sits above the WebView and intercepts touches itself.
+    // Only web-based sheets need a DOM scroll lock. This prevents a stale native-sheet
+    // flag from freezing the whole page after the sheet is dismissed.
+    const shouldLock = !!currentWebSheetOpen;
+    if (shouldLock === backgroundScrollLocked) {
+      if (!shouldLock) {
+        root.classList.remove('deapp-native-sheet-lock');
+        document.body.classList.remove('deapp-native-sheet-lock-body');
+      }
+      return;
+    }
     if (shouldLock) {
       lockedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
       savedBodyTop = document.body.style.top || '';
+      backgroundScrollLocked = true;
       root.classList.add('deapp-native-sheet-lock');
       document.body.classList.add('deapp-native-sheet-lock-body');
-      document.body.style.top = '-' + lockedScrollY + 'px';
     } else {
-      root.classList.remove('deapp-native-sheet-lock');
-      document.body.classList.remove('deapp-native-sheet-lock-body');
-      document.body.style.top = savedBodyTop;
-      const y = lockedScrollY;
-      requestAnimationFrame(function(){ window.scrollTo(0, y); });
+      unlockBackgroundScroll(true);
     }
   }
 
   function setExternalSheetOpen(open) {
     externalNativeSheetOpen = !!open;
-    updateBackgroundScrollLock();
+    // Deliberately do not lock the DOM for a native sheet. The Android overlay is enough.
+    // When it closes, also self-heal any stale web lock state.
+    if (!externalNativeSheetOpen && !hasVisibleWebSheet()) {
+      currentWebSheetOpen = false;
+      unlockBackgroundScroll(false);
+    }
     return true;
   }
 
   function guardBackgroundGesture(e) {
     if (!backgroundScrollLocked) return;
-    if (externalNativeSheetOpen || !sheetTarget(e.target)) e.preventDefault();
+    if (!hasVisibleWebSheet()) {
+      currentWebSheetOpen = false;
+      unlockBackgroundScroll(false);
+      return;
+    }
+    if (!sheetTarget(e.target)) e.preventDefault();
   }
   document.addEventListener('touchmove', guardBackgroundGesture, {passive:false,capture:true});
   document.addEventListener('wheel', guardBackgroundGesture, {passive:false,capture:true});
+  document.addEventListener('touchstart', function(){
+    if (backgroundScrollLocked && !hasVisibleWebSheet()) {
+      currentWebSheetOpen = false;
+      unlockBackgroundScroll(false);
+    }
+  }, {passive:true,capture:true});
+
+  function recoverPageScroll() {
+    try {
+      const open = hasVisibleWebSheet();
+      currentWebSheetOpen = open;
+      if (!open) unlockBackgroundScroll(false);
+      else updateBackgroundScrollLock();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 
   function syncWebSheetState() {
     try {
-      const selectors = [
-        '.modal-overlay:not(#composer-modal) .modal-box',
-        '.deapp-cookie-modal .cookie-modal-card',
-        'dialog.c-modal[open] .c-modal-box',
-        '.post-card .menu-wrap.open>.dropdown',
-        '.deapp-native-profile-options-sheet'
-      ];
-      let open = false;
-      for (const selector of selectors) {
-        const nodes = document.querySelectorAll(selector);
-        for (const node of nodes) {
-          if (isVisible(node)) { open = true; break; }
-        }
-        if (open) break;
-      }
+      const open = hasVisibleWebSheet();
       currentWebSheetOpen = open;
       updateBackgroundScrollLock();
       if (open !== lastWebSheetOpen) {
@@ -691,11 +746,18 @@
   }
 
   scan();
+  recoverPageScroll();
   const observer = new MutationObserver(scan);
   observer.observe(document.body, {subtree:true, childList:true, attributes:true, attributeFilter:['class','open','hidden','aria-expanded']});
+  window.addEventListener('pageshow', recoverPageScroll);
+  window.addEventListener('focus', recoverPageScroll);
+  document.addEventListener('visibilitychange', function(){
+    if (!document.hidden) recoverPageScroll();
+  });
 
   window.__DEAPP_NATIVE_V19__ = {
     refresh: scan,
+    recoverScroll: recoverPageScroll,
     openComposer: openComposer,
     closeComposer: closeComposer,
     submitComposer: submitComposer,

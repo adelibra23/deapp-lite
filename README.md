@@ -1,5 +1,16 @@
 # Deapp Lite Android
 
+## v1.9.1-lite — Scroll Fix
+
+Patch ini memperbaiki bug halaman Android DeApp Lite yang tidak bisa di-scroll setelah modal/bottom sheet dibuka atau ditutup. Scroll lock sekarang hanya berlaku untuk sheet berbasis web yang benar-benar terlihat, tidak lagi mengunci DOM saat bottom sheet native Android aktif, dan memiliki pemulihan otomatis saat sheet ditutup, halaman tampil kembali, aplikasi kembali dari background, atau status modal tidak sinkron.
+
+Perbaikan tambahan:
+- `overflow-y` halaman dipulihkan ke mode scroll normal ketika tidak ada sheet aktif.
+- `touch-action` root dikembalikan ke `auto` agar gesture vertikal WebView tidak terblokir.
+- deteksi modal kini memeriksa visibility ancestor dan posisi viewport untuk mencegah dropdown tersembunyi dianggap masih terbuka.
+- gesture guard akan membatalkan scroll lock yang stale secara otomatis.
+- build dinaikkan ke **1.9.1-lite (Build 11)**.
+
 ## v1.9.0-lite
 
 Versi ini memindahkan Ganti server dan Perizinan ke Pengaturan, menyederhanakan header composer/post detail, menambahkan kolom komentar sticky ala Threads, menyembunyikan story tray atas, memperketat lebar mobile, memperbaiki bottom sheet, dan mempercepat loading.

@@ -959,7 +959,7 @@ public class MainActivity extends Activity {
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9 NativeMobile/9");
+        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.1 NativeMobile/9.1");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) s.setSafeBrowsingEnabled(true);
 
         CookieManager cm = CookieManager.getInstance();
@@ -1128,8 +1128,19 @@ public class MainActivity extends Activity {
         if (!nativeScript.isEmpty()) {
             webView.evaluateJavascript(nativeScript, value -> {
                 if (activeSheetOverlay != null) syncExternalSheetLock(true);
+                else recoverWebScroll();
             });
         }
+    }
+
+    private void recoverWebScroll() {
+        if (webView == null) return;
+        String js = "(function(){try{var a=window.__DEAPP_NATIVE_V19__;" +
+                "if(a&&a.recoverScroll){return a.recoverScroll();}" +
+                "document.documentElement.classList.remove('deapp-native-sheet-lock');" +
+                "if(document.body){document.body.classList.remove('deapp-native-sheet-lock-body');}" +
+                "return true;}catch(e){return false;}})();";
+        webView.evaluateJavascript(js, null);
     }
 
     private void syncExternalSheetLock(boolean open) {
@@ -1274,6 +1285,7 @@ public class MainActivity extends Activity {
         activeSheetOverlay = null;
         activeSheetPanel = null;
         syncExternalSheetLock(false);
+        if (webView != null) webView.postDelayed(this::recoverWebScroll, 60);
         updateRefreshAvailability();
         if (animate && panel != null) {
             panel.animate().translationY(Math.max(panel.getHeight(), dp(420))).setDuration(180)
@@ -1562,7 +1574,7 @@ public class MainActivity extends Activity {
                 conn.setInstanceFollowRedirects(true);
                 String cookie = CookieManager.getInstance().getCookie(avatarUrl);
                 if (cookie != null && !cookie.isEmpty()) conn.setRequestProperty("Cookie", cookie);
-                conn.setRequestProperty("User-Agent", "DeappLite/1.9");
+                conn.setRequestProperty("User-Agent", "DeappLite/1.9.1");
                 try (InputStream in = conn.getInputStream()) {
                     Bitmap bitmap = BitmapFactory.decodeStream(in);
                     if (bitmap != null) runOnUiThread(() -> {
@@ -1772,7 +1784,7 @@ public class MainActivity extends Activity {
         name.setGravity(Gravity.CENTER);
         box.addView(name);
 
-        TextView version = text("Versi 1.9.0-lite · Build 10", 13, cMuted);
+        TextView version = text("Versi 1.9.1-lite · Build 11", 13, cMuted);
         version.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams versionLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -1981,7 +1993,10 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (webView != null) webView.onResume();
+        if (webView != null) {
+            webView.onResume();
+            if (activeSheetOverlay == null) webView.postDelayed(this::recoverWebScroll, 80);
+        }
     }
 
     private void destroyWebView() {
