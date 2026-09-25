@@ -498,7 +498,7 @@ public class MainActivity extends Activity {
         shell.addView(content, contentLp);
 
         swipeRefresh = new SwipeRefreshLayout(this);
-        // v1.7: pull-to-refresh kembali memakai satu spinner native saja.
+        // v1.8: pull-to-refresh memakai satu spinner native dan dinonaktifkan saat sheet/modal aktif.
         swipeRefresh.setSize(SwipeRefreshLayout.DEFAULT);
         swipeRefresh.setColorSchemeColors(cAccent);
         swipeRefresh.setProgressBackgroundColorSchemeColor(cSurface);
@@ -922,7 +922,7 @@ public class MainActivity extends Activity {
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.7 NativeMobile/7");
+        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.8 NativeMobile/8");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) s.setSafeBrowsingEnabled(true);
 
         CookieManager cm = CookieManager.getInstance();
@@ -1076,9 +1076,20 @@ public class MainActivity extends Activity {
     private void injectNativeShell() {
         if (webView == null) return;
         if (nativeScript == null || nativeScript.isEmpty()) {
-            nativeScript = readAssetText("deapp_native_v17.js");
+            nativeScript = readAssetText("deapp_native_v18.js");
         }
-        if (!nativeScript.isEmpty()) webView.evaluateJavascript(nativeScript, null);
+        if (!nativeScript.isEmpty()) {
+            webView.evaluateJavascript(nativeScript, value -> {
+                if (activeSheetOverlay != null) syncExternalSheetLock(true);
+            });
+        }
+    }
+
+    private void syncExternalSheetLock(boolean open) {
+        if (webView == null) return;
+        String js = "(function(){try{var a=window.__DEAPP_NATIVE_V18__;if(a&&a.setExternalSheetOpen){a.setExternalSheetOpen(" +
+                (open ? "true" : "false") + " );}}catch(e){}})();";
+        webView.evaluateJavascript(js, null);
     }
 
     private class DraggableSheet extends LinearLayout {
@@ -1195,6 +1206,7 @@ public class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         activeSheetOverlay = overlay;
         activeSheetPanel = sheet;
+        syncExternalSheetLock(true);
         updateRefreshAvailability();
 
         ViewCompat.setOnApplyWindowInsetsListener(sheet, (v, insets) -> {
@@ -1214,6 +1226,7 @@ public class MainActivity extends Activity {
         View panel = activeSheetPanel;
         activeSheetOverlay = null;
         activeSheetPanel = null;
+        syncExternalSheetLock(false);
         updateRefreshAvailability();
         if (animate && panel != null) {
             panel.animate().translationY(Math.max(panel.getHeight(), dp(420))).setDuration(180)
@@ -1502,7 +1515,7 @@ public class MainActivity extends Activity {
                 conn.setInstanceFollowRedirects(true);
                 String cookie = CookieManager.getInstance().getCookie(avatarUrl);
                 if (cookie != null && !cookie.isEmpty()) conn.setRequestProperty("Cookie", cookie);
-                conn.setRequestProperty("User-Agent", "DeappLite/1.7");
+                conn.setRequestProperty("User-Agent", "DeappLite/1.8");
                 try (InputStream in = conn.getInputStream()) {
                     Bitmap bitmap = BitmapFactory.decodeStream(in);
                     if (bitmap != null) runOnUiThread(() -> {
@@ -1712,7 +1725,7 @@ public class MainActivity extends Activity {
         name.setGravity(Gravity.CENTER);
         box.addView(name);
 
-        TextView version = text("Versi 1.7.0-lite · Build 8", 13, cMuted);
+        TextView version = text("Versi 1.8.0-lite · Build 9", 13, cMuted);
         version.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams versionLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
