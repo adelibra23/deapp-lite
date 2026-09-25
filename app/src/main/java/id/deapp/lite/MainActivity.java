@@ -99,6 +99,7 @@ public class MainActivity extends Activity {
     private boolean ownProfilePage = false;
     private boolean postDetailPage = false;
     private boolean reelsPage = false;
+    private String pageChromeType = "";
     private boolean composerOpen = false;
     private boolean webSheetOpen = false;
     private View activeSheetOverlay;
@@ -418,6 +419,7 @@ public class MainActivity extends Activity {
         ownProfilePage = false;
         postDetailPage = false;
         reelsPage = false;
+        pageChromeType = "";
         composerOpen = false;
         webSheetOpen = false;
 
@@ -864,6 +866,36 @@ public class MainActivity extends Activity {
         }
     }
 
+    private boolean isSpecialSectionUrl(String url) {
+        if (url == null) return false;
+        try {
+            String path = URI.create(url).getPath();
+            if (path == null) return false;
+            String p = path.toLowerCase(Locale.US);
+            return p.endsWith("/messages.php") || p.endsWith("/notifications.php") || p.endsWith("/live.php") ||
+                    p.endsWith("/ai.php") || p.endsWith("/shop.php") || p.endsWith("/settings.php") ||
+                    p.endsWith("/security.php") || p.endsWith("/security-password.php") || p.endsWith("/security-email.php") ||
+                    p.endsWith("/security-wallet-pin.php") || p.endsWith("/security-2fa.php") || p.endsWith("/security-sessions.php") ||
+                    p.endsWith("/help.php") || p.endsWith("/privacy.php") || p.endsWith("/policy.php") ||
+                    p.endsWith("/cookies.php") || p.endsWith("/profile-edit.php");
+        } catch (Exception e) {
+            String low = url.toLowerCase(Locale.US);
+            return low.contains("/messages.php") || low.contains("/notifications.php") || low.contains("/live.php") ||
+                    low.contains("/ai.php") || low.contains("/shop.php") || low.contains("/settings.php") ||
+                    low.contains("/security.php") || low.contains("/security-password.php") || low.contains("/security-email.php") ||
+                    low.contains("/security-wallet-pin.php") || low.contains("/security-2fa.php") || low.contains("/security-sessions.php") ||
+                    low.contains("/help.php") || low.contains("/privacy.php") || low.contains("/policy.php") ||
+                    low.contains("/cookies.php") || low.contains("/profile-edit.php");
+        }
+    }
+
+    private boolean isSpecialWebChromeType(String type) {
+        if (type == null) return false;
+        String t = type.trim().toLowerCase(Locale.US);
+        return "story".equals(t) || "messages".equals(t) || "notifications".equals(t) || "live".equals(t) ||
+                "ai".equals(t) || "shop".equals(t) || "settings".equals(t);
+    }
+
     private boolean isAuthUrl(String url) {
         if (url == null) return false;
         String low = url.toLowerCase(Locale.US);
@@ -874,16 +906,17 @@ public class MainActivity extends Activity {
         boolean fullscreen = customView != null;
         boolean authPage = isAuthUrl(currentUrl);
         boolean shortVideoPage = reelsPage || isReelsUrl(currentUrl);
+        boolean specialWebChrome = isSpecialWebChromeType(pageChromeType) || isSpecialSectionUrl(currentUrl);
 
-        // Video Pendek memiliki header/footer khusus di dalam halaman WebView.
-        // Header/footer Android utama disembunyikan agar tidak terjadi navigasi ganda.
-        boolean showTop = isLoggedIn && !fullscreen && !authPage && !shortVideoPage;
+        // Reels serta section khusus v1.9.6 menggambar header/footer kontekstual di dalam WebView.
+        // Chrome Android generik disembunyikan supaya tidak ada dua toolbar/nav yang bertumpuk.
+        boolean showTop = isLoggedIn && !fullscreen && !authPage && !shortVideoPage && !specialWebChrome;
         if (topContainer != null) topContainer.setVisibility(showTop ? View.VISIBLE : View.GONE);
         updateTopBarMode();
 
-        boolean showBottom = isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage && !postDetailPage && !shortVideoPage;
+        boolean showBottom = isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage && !postDetailPage && !shortVideoPage && !specialWebChrome;
         if (bottomContainer != null) bottomContainer.setVisibility(showBottom ? View.VISIBLE : View.GONE);
-        boolean showFloatingCompose = isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage && !postDetailPage && !shortVideoPage;
+        boolean showFloatingCompose = isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage && !postDetailPage && !shortVideoPage && !specialWebChrome;
         if (composeFab != null) {
             composeFab.setVisibility(showFloatingCompose ? View.VISIBLE : View.GONE);
             composeFab.setContentDescription(profilePage ? "Buat postingan di profil" : "Buat postingan");
@@ -891,10 +924,12 @@ public class MainActivity extends Activity {
 
         if (root != null) {
             WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(getWindow(), root);
-            controller.setAppearanceLightStatusBars(!dark && !shortVideoPage);
-            controller.setAppearanceLightNavigationBars(!dark && !shortVideoPage);
+            boolean storyPage = "story".equalsIgnoreCase(pageChromeType);
+            boolean immersiveDark = shortVideoPage || storyPage;
+            controller.setAppearanceLightStatusBars(!dark && !immersiveDark);
+            controller.setAppearanceLightNavigationBars(!dark && !immersiveDark);
             getWindow().setStatusBarColor(Color.TRANSPARENT);
-            getWindow().setNavigationBarColor(shortVideoPage ? Color.BLACK : Color.TRANSPARENT);
+            getWindow().setNavigationBarColor(immersiveDark ? Color.BLACK : Color.TRANSPARENT);
         }
         updateRefreshAvailability();
     }
@@ -962,7 +997,7 @@ public class MainActivity extends Activity {
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.5 NativeMobile/9.5");
+        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.6 NativeMobile/9.6");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) s.setSafeBrowsingEnabled(true);
 
         CookieManager cm = CookieManager.getInstance();
@@ -1001,6 +1036,7 @@ public class MainActivity extends Activity {
                 profilePage = isProfileUrl(currentUrl);
                 postDetailPage = isPostUrl(currentUrl);
                 reelsPage = isReelsUrl(currentUrl);
+                pageChromeType = isSpecialSectionUrl(currentUrl) ? "section" : "";
                 profileDisplayName = "";
                 composerOpen = false;
                 webSheetOpen = false;
@@ -1030,6 +1066,7 @@ public class MainActivity extends Activity {
                 profilePage = isProfileUrl(currentUrl);
                 postDetailPage = isPostUrl(currentUrl);
                 reelsPage = isReelsUrl(currentUrl);
+                if (!isSpecialWebChromeType(pageChromeType)) pageChromeType = isSpecialSectionUrl(currentUrl) ? "section" : "";
                 updateNativeNav(url);
                 updateChromeVisibility();
             }
@@ -1547,6 +1584,7 @@ public class MainActivity extends Activity {
                 profilePage = "profile".equals(type) || isProfileUrl(currentUrl);
                 postDetailPage = "post".equals(type) || isPostUrl(currentUrl);
                 reelsPage = "reels".equals(type) || isReelsUrl(currentUrl);
+                pageChromeType = type;
                 ownProfilePage = profilePage && ownProfile;
                 profileDisplayName = title == null ? "" : title.trim();
                 updateChromeVisibility();
@@ -2067,6 +2105,7 @@ public class MainActivity extends Activity {
         ownProfilePage = false;
         postDetailPage = false;
         reelsPage = false;
+        pageChromeType = "";
         composerOpen = false;
         webSheetOpen = false;
         navHome = null;

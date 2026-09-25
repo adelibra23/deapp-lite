@@ -1,12 +1,13 @@
-# DeApp Lite Native UI — v1.9.5
+# DeApp Lite Native UI — v1.9.6
 
-- Postingan feed panjang dipotong menjadi 250 karakter dengan **Lihat selengkapnya**.
-- Video Pendek memakai header/footer khusus dan tidak lagi berbagi chrome utama Android.
-- Footer Video Pendek: Untukmu, Mengikuti, Buat, Tersimpan, Saya.
-- Posisi kontrol video disesuaikan dengan safe-area serta chrome khusus.
-- Tampilan komentar detail postingan dirapikan ala Threads.
-- Kolom komentar dapat tumbuh beberapa baris tanpa menghapus input asli DeApp.
-- Komentar Video Pendek ikut mendapat bottom sheet dan composer yang lebih rapi.
-- Story, composer publish, loading logo, performa WebView, dan stability guard v1.9.4 tetap dipertahankan.
+- Story/Cerita memiliki header/footer fullscreen khusus dari kontrol Story asli.
+- Chat list memiliki chrome khusus; chat aktif memakai chat head dan composer asli sebagai header/footer.
+- Notifikasi memiliki header kontekstual + footer filter cepat.
+- Live memiliki header/footer khusus untuk discover, following, studio, room, dan Live Saya.
+- DeApp AI memiliki header Chat Baru + footer Chat AI, AI Tools, Kreator, Pustaka.
+- Toko & Dompet memiliki header yang mengikuti tab aktif + footer kategori utama.
+- Pengaturan dan subhalaman keamanan/privasi/bantuan memiliki header/footer khusus.
+- Native header/footer generik Android otomatis disembunyikan pada section khusus.
+- Preview posting 250 karakter, Reels, komentar ala Threads, loader logo, Story, composer, performa, dan stability guard sebelumnya tetap aktif.
 
-Versi: **1.9.5-lite · Build 15 · NativeMobile/9.5**.
+Versi: **1.9.6-lite · Build 16 · NativeMobile/9.6**.

@@ -21,12 +21,24 @@
   const isSettingsPage = /\/settings\.php$/.test(path);
   const isPostDetailPage = /\/post\.php$/.test(path);
   const isReelsPage = /\/reels\.php$/.test(path);
+  const isMessagesPage = /\/messages\.php$/.test(path);
+  const isNotificationsPage = /\/notifications\.php$/.test(path);
+  const isLivePage = /\/live\.php$/.test(path);
+  const isAiPage = /\/ai\.php$/.test(path);
+  const isShopPage = /\/shop\.php$/.test(path);
+  const isSettingsPageFamily = /\/(settings|security|security-password|security-email|security-wallet-pin|security-2fa|security-sessions|help|privacy|policy|cookies|profile-edit)\.php$/.test(path);
   const isAuthPage = /\/(login|register)\.php$/.test(path);
 
   root.classList.add('deapp-native-shell', 'deapp-native-v19');
   if (isProfilePage) root.classList.add('deapp-native-profile');
   if (isPostDetailPage) root.classList.add('deapp-native-post-detail');
   if (isReelsPage) root.classList.add('deapp-native-reels');
+  if (isMessagesPage) root.classList.add('deapp-native-messages');
+  if (isNotificationsPage) root.classList.add('deapp-native-notifications');
+  if (isLivePage) root.classList.add('deapp-native-live');
+  if (isAiPage) root.classList.add('deapp-native-ai');
+  if (isShopPage) root.classList.add('deapp-native-shop');
+  if (isSettingsPageFamily) root.classList.add('deapp-native-settings-family');
 
   const style = document.createElement('style');
   style.id = 'deapp-native-v19-style';
@@ -365,6 +377,92 @@
     }
     .deapp-native-reels #reel-comment-input{height:42px!important;border:1px solid var(--border)!important;border-radius:21px!important;background:var(--surface-2)!important;padding:0 14px!important;box-shadow:none!important}
     .deapp-native-reels .reel-comment-form button[type="submit"]{width:42px!important;height:42px!important;border-radius:50%!important;padding:0!important;display:grid!important;place-items:center!important}
+
+    /* v1.9.6 — chrome khusus per bagian: chat, notifikasi, live, Deapp AI, toko/dompet, pengaturan, dan Story. */
+    html.deapp-has-section-chrome body{padding-top:calc(62px + env(safe-area-inset-top))!important;padding-bottom:calc(68px + env(safe-area-inset-bottom))!important}
+    .deapp-section-header{
+      position:fixed;left:0;right:0;top:0;z-index:4450;min-height:calc(58px + env(safe-area-inset-top));
+      display:grid;grid-template-columns:48px minmax(0,1fr) 48px;align-items:end;gap:4px;padding:env(safe-area-inset-top) 8px 7px;
+      background:color-mix(in srgb,var(--surface) 94%,transparent);border-bottom:1px solid color-mix(in srgb,var(--border) 86%,transparent);
+      backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 5px 20px rgba(15,23,42,.035);color:var(--text)
+    }
+    .deapp-section-header .deapp-section-left,.deapp-section-header .deapp-section-action{
+      width:42px;height:42px;border:0;border-radius:50%;display:grid;place-items:center;background:transparent;color:inherit;padding:0
+    }
+    .deapp-section-header .deapp-section-left:active,.deapp-section-header .deapp-section-action:active{background:var(--surface-2)!important}
+    .deapp-section-title{min-width:0;text-align:center;align-self:center;line-height:1.12}
+    .deapp-section-title b{display:block;font-size:16px;font-weight:850;letter-spacing:-.018em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .deapp-section-title small{display:block;margin-top:3px;font-size:10px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .deapp-section-footer{
+      position:fixed;left:0;right:0;bottom:0;z-index:4440;min-height:calc(64px + env(safe-area-inset-bottom));
+      display:grid;grid-template-columns:repeat(var(--deapp-section-cols,5),minmax(0,1fr));align-items:start;padding:4px 3px env(safe-area-inset-bottom);
+      background:color-mix(in srgb,var(--surface) 96%,transparent);border-top:1px solid color-mix(in srgb,var(--border) 86%,transparent);
+      backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 -6px 22px rgba(15,23,42,.04);color:var(--text)
+    }
+    .deapp-section-nav{
+      height:58px;min-width:0;border:0;background:transparent;color:var(--text-muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+      padding:2px;font:inherit;font-size:9.4px;font-weight:760;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+    }
+    .deapp-section-nav svg{width:21px;height:21px;display:block;flex:none}
+    .deapp-section-nav.is-active{color:var(--acc,var(--text))}
+    .deapp-section-nav.is-active:after{content:"";width:4px;height:4px;border-radius:50%;background:currentColor;margin-top:-1px}
+    .deapp-section-nav.deapp-section-primary span{width:42px;height:34px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(135deg,var(--acc-from),var(--acc-to));color:#fff;box-shadow:0 7px 18px color-mix(in srgb,var(--acc) 22%,transparent)}
+    .deapp-section-nav.deapp-section-primary svg{width:20px;height:20px}
+    html.deapp-native-notifications .page-head,html.deapp-native-notifications .tabs.sticky-tabs{display:none!important}
+    html.deapp-native-notifications .nx-filter{margin-top:0!important}
+    html.deapp-native-live .live-discover-head,html.deapp-native-live .live-tabs{display:none!important}
+    html.deapp-native-live .live-page-shell{padding-top:8px!important;padding-bottom:92px!important}
+    html.deapp-native-ai .deapp-ai-hero{margin-top:0!important}
+    html.deapp-native-ai .deapp-ai-nav{display:none!important}
+    html.deapp-native-ai body{overflow-x:hidden!important}
+    html.deapp-native-ai .deapp-ai-shell{height:calc(100dvh - 154px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;min-height:520px!important}
+    html.deapp-native-shop .page-head{display:none!important}
+    html.deapp-native-settings-family .page-head{display:none!important}
+    html.deapp-native-settings-family .security-page-head{margin-top:0!important}
+    html.deapp-native-settings-family .settings-wrap{margin-top:0!important}
+
+    /* Chat: daftar percakapan memakai chrome khusus; percakapan aktif memakai head + composer asli sebagai header/footer. */
+    html.deapp-native-messages.deapp-chat-list body{padding-top:calc(62px + env(safe-area-inset-top))!important;padding-bottom:calc(68px + env(safe-area-inset-bottom))!important}
+    html.deapp-native-messages.deapp-chat-list .msg-list-head{display:none!important}
+    html.deapp-native-messages.deapp-chat-open body{padding:0!important;overflow:hidden!important}
+    html.deapp-native-messages.deapp-chat-open .layout,html.deapp-native-messages.deapp-chat-open .wide-layout,html.deapp-native-messages.deapp-chat-open .main-col{padding:0!important;margin:0!important;max-width:none!important;width:100%!important}
+    html.deapp-native-messages.deapp-chat-open .messenger{height:100dvh!important;min-height:100dvh!important;margin:0!important;gap:0!important}
+    html.deapp-native-messages.deapp-chat-open .msg-chat{height:100dvh!important;min-height:0!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+    html.deapp-native-messages.deapp-chat-open .chat-head{
+      min-height:calc(60px + env(safe-area-inset-top))!important;padding:env(safe-area-inset-top) 10px 7px!important;
+      background:color-mix(in srgb,var(--surface) 95%,transparent)!important;border-bottom:1px solid var(--border)!important;backdrop-filter:blur(18px)!important;-webkit-backdrop-filter:blur(18px)!important;z-index:12!important
+    }
+    html.deapp-native-messages.deapp-chat-open .chat-scroll{padding-bottom:8px!important}
+    html.deapp-native-messages.deapp-chat-open .chat-compose{
+      padding:7px 9px calc(7px + env(safe-area-inset-bottom))!important;background:color-mix(in srgb,var(--surface) 96%,transparent)!important;
+      backdrop-filter:blur(18px)!important;-webkit-backdrop-filter:blur(18px)!important;border-top:1px solid var(--border)!important;z-index:12!important
+    }
+    html.deapp-native-messages.deapp-chat-open .chat-form{align-items:flex-end!important}
+    html.deapp-native-messages.deapp-chat-open #chat-input{max-height:132px!important;line-height:1.38!important}
+
+    /* Story: viewer tetap menggunakan kontrol asli Deapp, tetapi menjadi chrome penuh yang lebih rapi. */
+    html.deapp-native-story-open body{overflow:hidden!important;padding:0!important}
+    html.deapp-native-story-open #story-viewer{z-index:6000!important;background:#050505!important}
+    html.deapp-native-story-open .story-progress{padding:calc(8px + env(safe-area-inset-top)) 10px 0!important;gap:3px!important}
+    html.deapp-native-story-open .story-progress i{height:2.5px!important;background:rgba(255,255,255,.26)!important}
+    html.deapp-native-story-open .story-topbar{padding:9px 10px 8px!important;background:linear-gradient(to bottom,rgba(0,0,0,.55),transparent)!important;position:relative;z-index:4!important}
+    html.deapp-native-story-open .story-user img{width:36px!important;height:36px!important;border-color:rgba(255,255,255,.72)!important}
+    html.deapp-native-story-open .story-close{width:40px!important;height:40px!important;border-radius:50%!important;background:rgba(20,20,20,.40)!important;backdrop-filter:blur(12px)!important}
+    html.deapp-native-story-open .story-bottom{padding:0 10px calc(8px + env(safe-area-inset-bottom))!important;background:linear-gradient(to top,rgba(0,0,0,.70),rgba(0,0,0,.08),transparent)!important}
+    html.deapp-native-story-open .story-bar{gap:7px!important}
+    html.deapp-native-story-open .story-reply input{height:44px!important;border-radius:22px!important;background:rgba(20,20,20,.38)!important;border:1px solid rgba(255,255,255,.38)!important;padding:0 44px 0 15px!important;backdrop-filter:blur(12px)!important}
+    html.deapp-native-story-open .story-send{right:5px!important;width:34px!important;height:34px!important;border-radius:50%!important;background:#fff!important;color:#111!important}
+    html.deapp-native-story-open .story-act{width:42px!important;height:42px!important;border-radius:50%!important;background:rgba(20,20,20,.34)!important;justify-content:center!important;backdrop-filter:blur(10px)!important}
+    html.deapp-native-story-open .story-sheet{left:8px!important;right:8px!important;bottom:calc(64px + env(safe-area-inset-bottom))!important;border-radius:24px!important;background:rgba(22,22,22,.94)!important;backdrop-filter:blur(22px)!important;-webkit-backdrop-filter:blur(22px)!important}
+
+    @media(max-width:560px){
+      .deapp-section-header{grid-template-columns:44px minmax(0,1fr) 44px;padding-left:6px;padding-right:6px}
+      .deapp-section-header .deapp-section-left,.deapp-section-header .deapp-section-action{width:40px;height:40px}
+      html.deapp-native-settings-family .settings-nav{border-radius:0!important;border-left:0!important;border-right:0!important}
+      html.deapp-native-ai .deapp-ai-hero{display:none!important}
+      html.deapp-native-ai .deapp-ai-shell{height:calc(100dvh - 136px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;border:0!important;border-radius:0!important}
+      html.deapp-native-shop .shop-menu-grid{margin-top:4px!important}
+    }
   `;
   document.head.appendChild(style);
 
@@ -630,12 +728,40 @@
     return n ? (n.textContent || '').trim().replace(/\s+/g,' ') : 'Postingan';
   }
 
+  function storyViewerOpen() {
+    const v = document.getElementById('story-viewer');
+    if (!v || v.hidden) return false;
+    try { return getComputedStyle(v).display !== 'none' && getComputedStyle(v).visibility !== 'hidden'; }
+    catch (_) { return true; }
+  }
+
+  function currentPageType() {
+    if (storyViewerOpen()) return 'story';
+    if (isProfilePage) return 'profile';
+    if (isPostDetailPage) return 'post';
+    if (isReelsPage) return 'reels';
+    if (isMessagesPage) return 'messages';
+    if (isNotificationsPage) return 'notifications';
+    if (isLivePage) return 'live';
+    if (isAiPage) return 'ai';
+    if (isShopPage) return 'shop';
+    if (isSettingsPageFamily || isSettingsPage) return 'settings';
+    if (isAuthPage) return 'auth';
+    return 'default';
+  }
+
   function syncPageChrome() {
     try {
       if (!API || !API.syncPageChrome) return;
       const ownProfile = !!document.querySelector('.profile-actions a[href^="settings.php"],.profile-actions a[href*="settings.php"]');
-      const type = isProfilePage ? 'profile' : (isPostDetailPage ? 'post' : (isReelsPage ? 'reels' : (isSettingsPage ? 'settings' : (isAuthPage ? 'auth' : 'default'))));
-      const title = isProfilePage ? profileTitle() : (isPostDetailPage ? postAuthorTitle() : '');
+      const type = currentPageType();
+      let title = '';
+      if (isProfilePage) title = profileTitle();
+      else if (isPostDetailPage) title = postAuthorTitle();
+      else if (type === 'story') {
+        const n = document.querySelector('#story-user b');
+        title = n ? (n.textContent || '').trim().replace(/\s+/g,' ') : 'Cerita';
+      }
       const key = [type, title, ownProfile ? '1' : '0'].join('|');
       if (key === lastChromeKey) return;
       lastChromeKey = key;
@@ -998,6 +1124,227 @@
     });
   }
 
+
+  function sectionIcon(name) {
+    const c = 'viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+    const m = {
+      back:'<path d="m15 18-6-6 6-6"/>', home:'<path d="M3 11.5 12 4l9 7.5V21h-6v-6H9v6H3z"/>',
+      chat:'<path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/>',
+      users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/>',
+      bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
+      at:'<circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/>',
+      heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.9-8.6a5.5 5.5 0 0 0-.1-7.8z"/>',
+      shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>', plus:'<path d="M12 5v14M5 12h14"/>',
+      live:'<rect x="3" y="5" width="14" height="14" rx="3"/><path d="m17 10 4-2v8l-4-2z"/>',
+      spark:'<path d="m12 3 1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
+      wand:'<path d="m15 4 5 5L8 21H3v-5z"/><path d="m6 6 1-3 1 3 3 1-3 1-1 3-1-3-3-1z"/>',
+      bookmark:'<path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-4-6 4z"/>',
+      wallet:'<path d="M4 6h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a3 3 0 0 1 3-3h12v3"/><path d="M16 12h4"/>',
+      shop:'<path d="M3 9h18l-1.5-5h-15z"/><path d="M5 9v11h14V9M9 20v-6h6v6"/>',
+      crown:'<path d="m3 7 4 4 5-7 5 7 4-4-2 11H5z"/>', gift:'<path d="M20 12v9H4v-9M2 7h20v5H2zM12 21V7"/><path d="M12 7H7.5A2.5 2.5 0 1 1 10 4.5zM12 7h4.5A2.5 2.5 0 1 0 14 4.5z"/>',
+      grid:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+      user:'<circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/>', settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.1A1.7 1.7 0 0 0 8 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 3.6 15a1.7 1.7 0 0 0-1.5-1H2v-4h.1A1.7 1.7 0 0 0 3.6 8a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 8 3.6a1.7 1.7 0 0 0 1-1.5V2h4v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 8a1.7 1.7 0 0 0 1.5 1H21v4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+      help:'<circle cx="12" cy="12" r="10"/><path d="M9.5 9a2.5 2.5 0 1 1 4.2 1.8c-.9.7-1.7 1.2-1.7 2.7M12 17h.01"/>',
+      lock:'<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
+      sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>',
+      more:'<circle cx="5" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1" fill="currentColor" stroke="none"/>'
+    };
+    return '<svg '+c+'>'+(m[name]||m.grid)+'</svg>';
+  }
+
+  function goSection(href) {
+    if (!href) return;
+    try { location.href = new URL(href, location.href).href; } catch (_) { location.href = href; }
+  }
+
+  function sectionBack() {
+    if (history.length > 1) history.back(); else goSection('index.php');
+  }
+
+  function removeSectionChrome() {
+    document.querySelectorAll('.deapp-section-header,.deapp-section-footer').forEach(function(n){ n.remove(); });
+    root.classList.remove('deapp-has-section-chrome');
+    if (document.body) document.body.classList.remove('deapp-section-page');
+  }
+
+  function sectionHeader(kind, title, subtitle, action) {
+    let h = document.querySelector('.deapp-section-header');
+    if (!h) {
+      h = document.createElement('header');
+      h.className = 'deapp-section-header';
+      document.body.appendChild(h);
+    }
+    h.dataset.section = kind;
+    h.innerHTML = '<button type="button" class="deapp-section-left" aria-label="Kembali">'+sectionIcon('back')+'</button>'+
+      '<div class="deapp-section-title"><b></b><small></small></div>'+
+      '<button type="button" class="deapp-section-action" aria-label="Aksi"></button>';
+    h.querySelector('.deapp-section-left').addEventListener('click', sectionBack);
+    h.querySelector('.deapp-section-title b').textContent = title || 'Deapp';
+    const sub = h.querySelector('.deapp-section-title small');
+    sub.textContent = subtitle || 'Deapp';
+    const a = h.querySelector('.deapp-section-action');
+    if (!action) { a.style.visibility='hidden'; return h; }
+    a.style.visibility='visible';
+    a.innerHTML = sectionIcon(action.icon || 'more');
+    a.setAttribute('aria-label', action.label || 'Aksi');
+    a.addEventListener('click', function(e){ e.preventDefault(); if (action.run) action.run(); else if (action.href) goSection(action.href); });
+    return h;
+  }
+
+  function sectionFooter(kind, items) {
+    let f = document.querySelector('.deapp-section-footer');
+    if (!f) {
+      f = document.createElement('nav');
+      f.className = 'deapp-section-footer';
+      document.body.appendChild(f);
+    }
+    f.dataset.section = kind;
+    f.style.setProperty('--deapp-section-cols', String(Math.max(1, items.length)));
+    f.innerHTML = '';
+    items.forEach(function(item){
+      const b=document.createElement('button');
+      b.type='button'; b.className='deapp-section-nav'+(item.active?' is-active':'')+(item.primary?' deapp-section-primary':'');
+      b.innerHTML=(item.primary?'<span>'+sectionIcon(item.icon)+'</span>':sectionIcon(item.icon))+'<em style="font-style:normal">'+item.label+'</em>';
+      if (item.active) b.setAttribute('aria-current','page');
+      b.addEventListener('click', function(){ if (item.run) item.run(); else goSection(item.href); });
+      f.appendChild(b);
+    });
+    return f;
+  }
+
+  function sectionOn(kind) {
+    root.classList.add('deapp-has-section-chrome');
+    if (document.body) document.body.classList.add('deapp-section-page');
+    root.dataset.deappSection = kind;
+  }
+
+  function wireStoryChrome() {
+    const open = storyViewerOpen();
+    root.classList.toggle('deapp-native-story-open', open);
+    if (document.body) document.body.classList.toggle('deapp-story-open', open);
+  }
+
+  function wireMessagesChrome() {
+    if (!isMessagesPage || !document.body) return;
+    const active = !!document.querySelector('.messenger.has-chat,.page-messages.chat-open,.chat-head');
+    root.classList.toggle('deapp-chat-open', active);
+    root.classList.toggle('deapp-chat-list', !active);
+    if (active) {
+      removeSectionChrome();
+      return;
+    }
+    sectionOn('messages');
+    sectionHeader('messages','Chat','Percakapan Deapp',{icon:'plus',label:'Mulai chat',href:'explore.php?tab=people'});
+    sectionFooter('messages',[
+      {label:'Chat',icon:'chat',href:'messages.php',active:true},
+      {label:'Orang',icon:'users',href:'explore.php?tab=people'},
+      {label:'Notifikasi',icon:'bell',href:'notifications.php'},
+      {label:'Pengaturan',icon:'settings',href:'settings.php'}
+    ]);
+  }
+
+  const notifLabels={all:'Semua',mentions:'Sebutan',comments:'Balasan',reactions:'Reaksi',gifts:'Hadiah & koin',follows:'Pengikut',predict:'Prediksi',live:'Live',system:'Sistem'};
+  function wireNotificationsChrome() {
+    if (!isNotificationsPage || !document.body) return;
+    const q=new URL(location.href).searchParams, f=q.get('f')||'all';
+    sectionOn('notifications');
+    sectionHeader('notifications','Notifikasi',notifLabels[f]||'Aktivitas akun',{icon:'settings',label:'Preferensi notifikasi',href:'settings.php?tab=notifications'});
+    sectionFooter('notifications',[
+      {label:'Semua',icon:'bell',href:'notifications.php?f=all',active:f==='all'},
+      {label:'Sebutan',icon:'at',href:'notifications.php?f=mentions',active:f==='mentions'},
+      {label:'Balasan',icon:'chat',href:'notifications.php?f=comments',active:f==='comments'},
+      {label:'Reaksi',icon:'heart',href:'notifications.php?f=reactions',active:f==='reactions'},
+      {label:'Sistem',icon:'shield',href:'notifications.php?f=system',active:f==='system'}
+    ]);
+  }
+
+  function wireLiveChrome() {
+    if (!isLivePage || !document.body) return;
+    const q=new URL(location.href).searchParams, tab=q.get('tab')||'discover', studio=q.has('studio'), room=q.has('id');
+    let title=studio?'Mulai Live':(room?'Live':'Live');
+    let sub=studio?'Creator Studio':(tab==='following'?'Mengikuti':(tab==='mine'?'Live Saya':'Siaran langsung'));
+    if (room) {
+      const t=document.querySelector('.live-title-row h1,.live-scheduled-content h1'); if(t) title=(t.textContent||'Live').trim();
+      sub='Sedang menonton';
+    }
+    sectionOn('live');
+    sectionHeader('live',title,sub,{icon:'plus',label:'Mulai Live',href:'live.php?studio=1'});
+    sectionFooter('live',[
+      {label:'Untukmu',icon:'live',href:'live.php?tab=discover',active:!studio&&!room&&tab==='discover'},
+      {label:'Mengikuti',icon:'users',href:'live.php?tab=following',active:!studio&&!room&&tab==='following'},
+      {label:'Mulai',icon:'plus',href:'live.php?studio=1',active:studio,primary:true},
+      {label:'Live Saya',icon:'user',href:'live.php?tab=mine',active:!studio&&!room&&tab==='mine'}
+    ]);
+  }
+
+  const aiViewNames={chat:'Chat AI',tools:'AI Tools',creator:'Kreator',library:'Pustaka'};
+  function activeAiView(){ const b=document.querySelector('.deapp-ai-nav button.active'); return b&&b.dataset.aiView?b.dataset.aiView:'chat'; }
+  function wireAiChrome() {
+    if (!isAiPage || !document.body) return;
+    const v=activeAiView();
+    sectionOn('ai');
+    sectionHeader('ai','Deapp AI',aiViewNames[v]||'AI Workspace',{icon:'plus',label:'Chat baru',run:function(){ const b=document.querySelector('.js-ai-new-chat'); if(b)b.click(); }});
+    const defs=[['chat','Chat AI','chat'],['tools','AI Tools','wand'],['creator','Kreator','spark'],['library','Pustaka','bookmark']];
+    sectionFooter('ai',defs.map(function(d){return {label:d[1],icon:d[2],active:v===d[0],run:function(){const b=document.querySelector('.deapp-ai-nav button[data-ai-view="'+d[0]+'"]');if(b)b.click();}};}));
+  }
+
+  const shopTitles={wallet:'Dompet',kirim:'Kirim koin',promo:'Kode promo',etalase:'Etalase',wishlist:'Keinginan',pet:'Pet',virtual:'Item Virtual',vip:'VIP',gifts:'Hadiah',theme:'Tema',frame:'Bingkai',bubble:'Gelembung',sticker:'Stiker',effect:'Efek nama',ticket:'Tiket',bag:'Tas barang',koleksi:'Koleksiku',level:'Level'};
+  function wireShopChrome() {
+    if (!isShopPage || !document.body) return;
+    const q=new URL(location.href).searchParams, tab=q.get('tab')||'wallet';
+    sectionOn('shop');
+    sectionHeader('shop',shopTitles[tab]||'Toko & Dompet','Deapp Store',{icon:'plus',label:'Top Up',href:'settings.php?tab=topup'});
+    sectionFooter('shop',[
+      {label:'Dompet',icon:'wallet',href:'shop.php?tab=wallet',active:tab==='wallet'||tab==='kirim'||tab==='promo'},
+      {label:'Etalase',icon:'shop',href:'shop.php?tab=etalase',active:['etalase','wishlist','virtual','pet'].includes(tab)},
+      {label:'VIP',icon:'crown',href:'shop.php?tab=vip',active:tab==='vip'},
+      {label:'Hadiah',icon:'gift',href:'shop.php?tab=gifts',active:['gifts','ticket','bag'].includes(tab)},
+      {label:'Koleksi',icon:'bookmark',href:'shop.php?tab=koleksi',active:['koleksi','theme','frame','bubble','sticker','effect','level'].includes(tab)}
+    ]);
+  }
+
+  const settingNames={profile:'Profil',appearance:'Tampilan',experience:'Pengalaman aplikasi',language:'Bahasa',ai:'Deapp AI',characters:'Karakter AI',access:'Aksesibilitas',premium:'Premium & mood',topup:'Top Up Koin',focus:'Ruang Fokus',notifications:'Notifikasi',privacy:'Privasi',words:'Kata dibisukan',blocked:'Diblokir & dibisukan',notes:'Catatan pribadi',away:'Arsip & mode rehat',security:'Keamanan',sessions:'Perangkat & sesi',verify:'Verifikasi',data:'Data saya',account:'Akun'};
+  function settingsContext() {
+    const file=(path.split('/').pop()||'').toLowerCase();
+    const tab=new URL(location.href).searchParams.get('tab')||'profile';
+    if(file==='settings.php') return {title:settingNames[tab]||'Pengaturan',group:tab==='privacy'||tab==='words'||tab==='blocked'?'privacy':(tab==='security'||tab==='sessions'?'security':'settings')};
+    const map={
+      'security.php':['Keamanan akun','security'],'security-password.php':['Kata sandi','security'],'security-email.php':['Alamat email','security'],
+      'security-wallet-pin.php':['PIN dompet','security'],'security-2fa.php':['Verifikasi 2 langkah','security'],'security-sessions.php':['Perangkat & sesi','security'],
+      'help.php':['Pusat Bantuan','help'],'privacy.php':['Kebijakan Privasi','privacy'],'policy.php':['Policy & Pedoman','privacy'],'cookies.php':['Kebijakan Cookie','privacy'],
+      'profile-edit.php':['Custom Profile Studio','settings']
+    };
+    const v=map[file]||['Pengaturan','settings']; return {title:v[0],group:v[1]};
+  }
+  function wireSettingsChrome() {
+    if (!(isSettingsPageFamily||isSettingsPage) || !document.body) return;
+    const c=settingsContext();
+    sectionOn('settings');
+    sectionHeader('settings',c.title,'Pengaturan Deapp',{icon:'help',label:'Pusat Bantuan',href:'help.php'});
+    sectionFooter('settings',[
+      {label:'Akun',icon:'user',href:'settings.php?tab=profile',active:c.group==='settings' && /settings\.php$/.test(path) && ['profile','experience','language','ai','characters','premium','topup','focus','notifications','notes','away','verify','data','account'].includes(new URL(location.href).searchParams.get('tab')||'profile')},
+      {label:'Tampilan',icon:'sun',href:'settings.php?tab=appearance',active:/settings\.php$/.test(path) && ['appearance','access'].includes(new URL(location.href).searchParams.get('tab')||'')},
+      {label:'Privasi',icon:'lock',href:'settings.php?tab=privacy',active:c.group==='privacy'},
+      {label:'Keamanan',icon:'shield',href:'security.php',active:c.group==='security'},
+      {label:'Bantuan',icon:'help',href:'help.php',active:c.group==='help'}
+    ]);
+  }
+
+  function wireSectionChrome() {
+    wireStoryChrome();
+    if (storyViewerOpen() || isReelsPage || isPostDetailPage || isProfilePage || isAuthPage) {
+      if (!isMessagesPage && !isNotificationsPage && !isLivePage && !isAiPage && !isShopPage && !isSettingsPageFamily && !isSettingsPage) removeSectionChrome();
+      return;
+    }
+    if (isMessagesPage) return wireMessagesChrome();
+    if (isNotificationsPage) return wireNotificationsChrome();
+    if (isLivePage) return wireLiveChrome();
+    if (isAiPage) return wireAiChrome();
+    if (isShopPage) return wireShopChrome();
+    if (isSettingsPageFamily || isSettingsPage) return wireSettingsChrome();
+    removeSectionChrome();
+  }
+
   function reelIcon(name) {
     const common = 'viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
     if (name === 'back') return '<svg '+common+'><path d="m15 18-6-6 6-6"/></svg>';
@@ -1257,6 +1604,7 @@
     optimizeMediaLoading();
     removePostTranslationUI();
     installPostPublishedHook();
+    wireSectionChrome();
     syncSession();
     syncPageChrome();
     syncComposer();

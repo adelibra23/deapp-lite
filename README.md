@@ -1,24 +1,21 @@
-# DeApp Lite Android v1.9.5 — Long Post, Video Pendek & Threads Comments
+# DeApp Lite Android v1.9.6 — Section Chrome
 
-Patch ini melanjutkan v1.9.4 dengan fokus pada tampilan feed, pengalaman Video Pendek, dan komentar.
+Patch ini melanjutkan v1.9.5 dan memberi header/footer khusus untuk bagian utama aplikasi beserta subhalamannya.
 
 ## Perubahan utama
 
-- Postingan panjang pada feed sekarang ditampilkan maksimal **250 karakter**.
-- Tombol **Lihat selengkapnya** membuka isi postingan penuh tanpa mengubah data/server DeApp.
-- Format rich text/link/mention tetap dipertahankan pada preview 250 karakter.
-- Halaman **Video Pendek** memiliki header dan footer khusus, terpisah dari navigasi Android utama.
-- Header Video Pendek memiliki tombol kembali, judul, dan tombol buat video.
-- Footer Video Pendek memiliki navigasi **Untukmu, Mengikuti, Buat, Tersimpan, Saya**.
-- Posisi metadata, tombol aksi, progress video, dan volume disesuaikan agar tidak tertutup header/footer khusus.
-- Sheet komentar Video Pendek dirapikan dan selalu tampil di atas chrome video.
-- Komentar detail postingan dibuat lebih ringan seperti pola Threads: bubble berat dihilangkan, avatar rail, metadata/action lebih sederhana, dan separator lebih rapi.
-- Kolom komentar detail postingan memakai textarea visual yang dapat bertambah tinggi beberapa baris.
-- Input `name="comment_text"` asli tetap dipertahankan dan disinkronkan, sehingga submit AJAX, balasan, mention, emoji, dan API komentar DeApp tetap menggunakan mekanisme asli.
-- Header/footer Android utama dan FAB composer otomatis disembunyikan hanya saat `reels.php` dibuka agar tidak terjadi navigasi ganda.
-- Pengaman scroll, tap/click, overlay, composer, Story, loader logo, dan optimasi performa dari v1.9.4 tetap dipertahankan.
+- **Story/Cerita** memakai chrome fullscreen dari viewer asli DeApp: progress, identitas pengguna, tombol tutup, reply, reaction, komentar, dan penonton ditata ulang agar lebih native.
+- **Chat**: daftar percakapan memiliki header/footer khusus. Saat percakapan dibuka, header lawan bicara dan composer pesan asli menjadi chrome khusus agar fitur hadiah, opsi, voice note, gambar, emoji, stiker, dan kirim tetap bekerja.
+- **Notifikasi**: header kontekstual mengikuti filter dan footer cepat untuk Semua, Sebutan, Balasan, Reaksi, dan Sistem.
+- **Live**: header/footer khusus untuk Jelajah Live, Mengikuti, Creator Studio, Live Saya, dan ruang Live.
+- **DeApp AI**: header khusus dengan aksi Chat Baru dan footer yang tersinkron dengan Chat AI, AI Tools, Kreator, dan Pustaka.
+- **Toko & Dompet**: judul header mengikuti tab aktif; footer mengelompokkan Dompet, Etalase, VIP, Hadiah, dan Koleksi.
+- **Pengaturan + subhalaman**: header mengikuti halaman aktif dan footer cepat Akun, Tampilan, Privasi, Keamanan, dan Bantuan. Termasuk Security Center, sandi, email, PIN dompet, 2FA, sesi/perangkat, Help, Privacy, Policy, Cookie, dan Profile Studio.
+- Header/footer Android generik disembunyikan otomatis pada section di atas supaya tidak terjadi navigasi ganda.
+- System bar Story/Reels memakai ikon terang untuk kontras dengan latar gelap.
+- Semua perbaikan v1.9.5 tetap dipertahankan: preview posting 250 karakter, Reels khusus, komentar ala Threads, Story aktif, composer publish, loader logo, optimasi performa, dan recovery scroll/tap.
 
-Versi Android: **1.9.5-lite (Build 15)**.
+Versi Android: **1.9.6-lite (Build 16)**.
 
 ## File patch
 
