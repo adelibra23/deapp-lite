@@ -30,12 +30,6 @@
     html,body{scrollbar-width:none!important;background:var(--surface)!important;overscroll-behavior-y:none!important}
     html::-webkit-scrollbar,body::-webkit-scrollbar,*::-webkit-scrollbar{display:none!important;width:0!important;height:0!important;background:transparent!important}
     body{padding-top:0!important;padding-bottom:0!important;-webkit-tap-highlight-color:transparent!important}
-    *,*:before,*:after{box-sizing:border-box!important}
-    html,body{width:100%!important;max-width:100%!important;overflow-x:hidden!important}
-    .layout,.layout-guest,.wide-layout,.wide-main,.main-col,.feed,.card,.settings-layout,.profile-card{min-width:0!important;max-width:100%!important}
-    img,video,canvas,iframe{max-width:100%!important}
-    input,textarea,select,button{max-width:100%!important}
-    .story-tray{display:none!important}
     html.deapp-native-sheet-lock{overflow:hidden!important;overscroll-behavior:none!important}
     body.deapp-native-sheet-lock-body{position:fixed!important;left:0!important;right:0!important;width:100%!important;overflow:hidden!important;overscroll-behavior:none!important}
     .modal-overlay:not(#composer-modal) .modal-box,.deapp-cookie-modal .cookie-modal-card,dialog.c-modal[open] .c-modal-box,.post-card .menu-wrap.open>.dropdown,.deapp-native-profile-options-sheet{touch-action:pan-y!important;overscroll-behavior:contain!important}
@@ -50,7 +44,7 @@
       -webkit-touch-callout:none;
       user-select:none;
     }
-    /* v1.9 — bottom sheet stabil, layout mobile terkunci, detail post & komentar ala Threads. */
+    /* v1.8 — scroll background dikunci saat bottom sheet terbuka dan kartu posting dibuat lebih ringan ala thread conversation. */
     a:active,button:active,[role="button"]:active,.btn:active,.icon-btn:active,.tab:active,.dropdown-item:active,.nav-link:active,.post-action:active,.comment-action:active{
       opacity:1!important;transform:none!important;filter:none!important;-webkit-filter:none!important;box-shadow:none!important;
     }
@@ -144,61 +138,6 @@
       .post-card:not(.post-embedded) .post-actions{padding-left:51px!important}
     }
 
-
-    /* v1.9 — halaman detail posting ala Threads. Header/detail samping diserahkan ke shell native. */
-    .deapp-native-post-detail .post-detail-nav,
-    .deapp-native-post-detail .post-meta-card,
-    .deapp-native-post-detail .wide-side{display:none!important}
-    .deapp-native-post-detail .wide-layout{display:block!important;width:100%!important;max-width:100%!important;margin:0!important;padding:0!important;overflow-x:hidden!important}
-    .deapp-native-post-detail .wide-main{width:100%!important;max-width:100%!important;margin:0!important;padding:0 0 calc(var(--deapp-comment-bar-h,64px) + 28px)!important;min-width:0!important}
-    .deapp-native-post-detail .feed{width:100%!important;max-width:100%!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important}
-    .deapp-native-post-detail .post-detail-card{border-bottom:0!important;padding-bottom:0!important}
-    .deapp-native-post-detail .post-detail-card:before{bottom:62px!important}
-    .deapp-native-post-detail .post-detail-card .comments-section{
-      margin:0!important;padding:8px 14px 18px 56px!important;border-top:1px solid color-mix(in srgb,var(--border) 70%,transparent)!important;
-      width:100%!important;max-width:100%!important;overflow:visible!important;
-    }
-    .deapp-native-post-detail .comment-list{display:grid!important;gap:0!important;width:100%!important;max-width:100%!important}
-    .deapp-native-post-detail .comment{position:relative!important;display:flex!important;gap:10px!important;padding:11px 0 12px!important;border-bottom:1px solid color-mix(in srgb,var(--border) 62%,transparent)!important;min-width:0!important}
-    .deapp-native-post-detail .comment:last-child{border-bottom:0!important}
-    .deapp-native-post-detail .comment>.comment-avatar{width:34px!important;height:34px!important;flex:0 0 34px!important;border-radius:50%!important;object-fit:cover!important;margin:0!important}
-    .deapp-native-post-detail .comment-body{min-width:0!important;flex:1 1 auto!important}
-    .deapp-native-post-detail .comment-bubble{background:transparent!important;border:0!important;border-radius:0!important;padding:0!important;box-shadow:none!important}
-    .deapp-native-post-detail .comment-author-row{display:flex!important;align-items:center!important;gap:5px!important;min-width:0!important}
-    .deapp-native-post-detail .comment-author{font-size:14px!important;font-weight:800!important}
-    .deapp-native-post-detail .comment-text{font-size:14.5px!important;line-height:1.45!important;margin-top:3px!important;overflow-wrap:anywhere!important}
-    .deapp-native-post-detail .comment-meta{display:flex!important;align-items:center!important;gap:11px!important;flex-wrap:wrap!important;margin-top:6px!important;font-size:11.5px!important;color:var(--text-muted)!important}
-    .deapp-native-post-detail .comment-meta button{padding:0!important;min-height:0!important;background:transparent!important;border:0!important;color:var(--text-muted)!important;font-size:11.5px!important}
-    .deapp-native-post-detail .reply-target{position:fixed!important;left:0!important;right:0!important;bottom:var(--deapp-comment-bar-h,64px)!important;z-index:3595!important;margin:0!important;border-radius:0!important;border-left:0!important;border-right:0!important;padding:7px 14px!important;background:var(--surface-2)!important}
-    .deapp-native-post-detail .comment-form{
-      position:fixed!important;left:0!important;right:0!important;bottom:0!important;z-index:3600!important;
-      display:flex!important;align-items:flex-end!important;gap:8px!important;width:100%!important;max-width:100%!important;
-      margin:0!important;padding:8px 10px 9px!important;background:var(--surface)!important;
-      border-top:1px solid var(--border)!important;box-shadow:0 -5px 18px rgba(0,0,0,.055)!important;
-    }
-    .deapp-native-post-detail .comment-form>.comment-avatar{width:34px!important;height:34px!important;flex:0 0 34px!important;margin-bottom:2px!important}
-    .deapp-native-post-detail .comment-form .comment-type-select{height:36px!important;max-width:84px!important;flex:0 0 auto!important;border-radius:18px!important;padding:0 7px!important;font-size:11px!important;background:var(--surface-2)!important}
-    .deapp-native-post-detail .comment-form .comment-input-wrap{
-      flex:1 1 auto!important;min-width:0!important;display:flex!important;align-items:flex-end!important;gap:4px!important;
-      min-height:40px!important;padding:2px 4px 2px 12px!important;border:1px solid var(--border)!important;border-radius:21px!important;background:var(--surface-2)!important;
-    }
-    .deapp-native-post-detail .deapp-native-comment-source{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important;overflow:hidden!important}
-    .deapp-native-post-detail .deapp-native-comment-editor{
-      display:block!important;flex:1 1 auto!important;min-width:0!important;width:100%!important;height:38px;min-height:38px!important;max-height:122px!important;
-      resize:none!important;overflow-y:hidden;border:0!important;outline:0!important;background:transparent!important;color:var(--text)!important;
-      padding:8px 2px 6px!important;margin:0!important;font:inherit!important;font-size:14.5px!important;line-height:20px!important;box-shadow:none!important;
-    }
-    .deapp-native-post-detail .comment-form .js-emoji-trigger{width:34px!important;height:34px!important;flex:0 0 34px!important;padding:7px!important;margin:0!important;background:transparent!important}
-    .deapp-native-post-detail .comment-form .btn-send{width:38px!important;height:38px!important;min-width:38px!important;flex:0 0 38px!important;border-radius:50%!important;padding:9px!important;margin:0 0 1px!important}
-    .deapp-native-post-detail .comment-form.is-typing .comment-type-select,
-    .deapp-native-post-detail .comment-form.is-typing .js-emoji-trigger{display:none!important}
-    .deapp-native-post-detail .context-guard-hint,.deapp-native-post-detail .reply-limit{margin:4px 0 8px!important}
-    @media (max-width:390px){
-      .deapp-native-post-detail .post-detail-card .comments-section{padding-left:12px!important;padding-right:12px!important}
-      .deapp-native-post-detail .comment-form{padding-left:8px!important;padding-right:8px!important}
-      .deapp-native-post-detail .comment-form .comment-type-select{max-width:72px!important}
-    }
-
     .modal-overlay:not(#composer-modal){align-items:flex-end!important;justify-content:center!important;padding:0!important;overflow:hidden!important}
     .modal-overlay:not(#composer-modal) .modal-box{
       width:100%!important;max-width:100%!important;margin:0!important;
@@ -281,6 +220,26 @@
     .deapp-native-profile .profile-reel-tile{border-radius:2px!important}
     .deapp-native-about-row{appearance:none;border:0;width:100%;text-align:left;cursor:pointer}
     .deapp-native-about-row .deapp-version-pill{margin-left:auto;font-size:11px;font-weight:800;color:var(--text-muted);white-space:nowrap}
+
+    /* v1.9 — mobile width, story tray, post detail dan composer komentar ala Threads. */
+    html,body{max-width:100%!important;overflow-x:hidden!important}
+    *,*:before,*:after{box-sizing:border-box!important}
+    .layout,.layout-guest,.main-col,.feed,.card,.post-card,.modal-box,.composer,.settings-wrap,.wide-layout,.wide-main{max-width:100%!important;min-width:0!important}
+    img,video,canvas,iframe{max-width:100%!important}
+    .page-home .story-tray{display:none!important}
+    .deapp-native-post-detail .post-detail-nav,.deapp-native-post-detail .post-meta-card,.deapp-native-post-detail .wide-side,.deapp-native-post-detail .post-detail-more{display:none!important}
+    .deapp-native-post-detail .wide-layout,.deapp-native-post-detail .wide-main{display:block!important;width:100%!important;max-width:100%!important;margin:0!important;padding:0!important}
+    .deapp-native-post-detail .feed{width:100%!important;max-width:100%!important;border:0!important;border-radius:0!important}
+    .deapp-native-post-detail .post-card:not(.post-embedded){padding-bottom:92px!important}
+    .deapp-native-post-detail .comments-section{display:block!important;margin:0!important;padding:8px 14px 96px!important;border-top:1px solid var(--border)!important}
+    .deapp-native-post-detail .comment-form{position:fixed!important;left:0!important;right:0!important;bottom:0!important;z-index:4300!important;display:flex!important;align-items:flex-end!important;gap:8px!important;width:100%!important;max-width:100%!important;padding:9px 10px max(9px,env(safe-area-inset-bottom))!important;background:color-mix(in srgb,var(--surface) 96%,transparent)!important;border-top:1px solid var(--border)!important;backdrop-filter:blur(18px)!important}
+    .deapp-native-post-detail .comment-avatar{width:34px!important;height:34px!important;flex:0 0 34px!important;margin-bottom:3px!important}
+    .deapp-native-post-detail .comment-input-wrap{flex:1 1 auto!important;min-width:0!important;display:flex!important;align-items:flex-end!important;border:1px solid var(--border)!important;border-radius:22px!important;background:var(--surface-2,var(--surface-soft,#f5f5f5))!important;padding:5px 7px 5px 12px!important}
+    .deapp-native-post-detail .comment-input{display:block!important;width:100%!important;min-width:0!important;min-height:28px!important;max-height:126px!important;resize:none!important;overflow-y:auto!important;border:0!important;outline:0!important;background:transparent!important;padding:5px 0!important;font:inherit!important;line-height:1.35!important;color:var(--text)!important}
+    .deapp-native-post-detail .comment-type-select{width:38px!important;max-width:38px!important;height:38px!important;border-radius:19px!important;overflow:hidden!important;color:transparent!important;padding:0!important;flex:0 0 38px!important}
+    .deapp-native-post-detail .comment-form.deapp-comment-typing .comment-type-select,.deapp-native-post-detail .comment-form.deapp-comment-typing .js-emoji-trigger{display:none!important}
+    .deapp-native-post-detail .btn-send{width:38px!important;height:38px!important;flex:0 0 38px!important;border-radius:50%!important;margin-bottom:1px!important}
+    .deapp-native-post-detail .bottom-nav{display:none!important}
   `;
   document.head.appendChild(style);
 
@@ -375,16 +334,14 @@
   function wireSheet(box) {
     if (!box || box.dataset.deappSwipeSheet === '1') return;
     box.dataset.deappSwipeSheet = '1';
-    let sy = 0, last = 0, drag = false, dragEligible = false;
+    let sy = 0, last = 0, drag = false;
     box.addEventListener('touchstart', function (e) {
       if (e.touches.length !== 1) return;
-      const rect = box.getBoundingClientRect();
       sy = e.touches[0].clientY; last = sy; drag = false;
-      dragEligible = (sy - rect.top) <= 64;
-      if (dragEligible) box.style.transition = 'none';
+      box.style.transition = 'none';
     }, {passive:true});
     box.addEventListener('touchmove', function (e) {
-      if (!dragEligible || !e.touches.length) return;
+      if (!e.touches.length) return;
       const y = e.touches[0].clientY, dy = y - sy;
       last = y;
       if (dy > 5 && box.scrollTop <= 0) {
@@ -412,7 +369,6 @@
         }, 210);
       }
       drag = false;
-      dragEligible = false;
     }, {passive:true});
   }
 
@@ -469,7 +425,7 @@
   }
 
   function postAuthorTitle() {
-    const n = document.querySelector('.post-detail-card .post-name,.page-post-detail .post-card .post-name');
+    const n = document.querySelector('.post-card:not(.post-embedded) .post-name');
     return n ? (n.textContent || '').trim().replace(/\s+/g,' ') : 'Postingan';
   }
 
@@ -548,7 +504,7 @@
     const server = document.createElement('button');
     server.type = 'button';
     server.className = 'snav deapp-native-server-row';
-    server.innerHTML = '<span style="font-size:20px;line-height:1">⇄</span><span><b>Ganti server</b><small>Ubah hosting, XAMPP atau alamat server Deapp</small></span>';
+    server.innerHTML = '<span style="font-size:20px;line-height:1">⌁</span><span><b>Ganti server</b><small>Hosting, XAMPP atau alamat server Deapp</small></span>';
     server.addEventListener('click', function(){
       nativeTap();
       try { if (API && API.showServerSettings) API.showServerSettings(); } catch (_) {}
@@ -593,122 +549,10 @@
             }).catch(function(){});
           } catch (_) {}
         }
-        if (/\/api\/post_comment\.php(?:[?#]|$)/i.test(String(rawUrl || ''))) {
-          try {
-            response.clone().json().then(function(data) {
-              if (data && data.success === true) {
-                setTimeout(function(){
-                  document.querySelectorAll('.deapp-native-comment-editor').forEach(function(ta){
-                    const form = ta.closest('.comment-form');
-                    const source = form && form.querySelector('input[name="comment_text"]');
-                    if (source && source.value === '') {
-                      ta.value = '';
-                      ta.placeholder = source.placeholder || 'Tulis komentar…';
-                      resizeNativeCommentEditor(ta);
-                      syncNativeCommentFormState(form);
-                    }
-                  });
-                }, 40);
-              }
-            }).catch(function(){});
-          } catch (_) {}
-        }
         return response;
       });
     };
   }
-
-
-  function resizeNativeCommentEditor(ta) {
-    if (!ta) return;
-    ta.style.height = '38px';
-    const next = Math.max(38, Math.min(122, ta.scrollHeight));
-    ta.style.height = next + 'px';
-    ta.style.overflowY = ta.scrollHeight > 122 ? 'auto' : 'hidden';
-    const form = ta.closest('.comment-form');
-    if (form) requestAnimationFrame(function(){
-      const h = Math.max(56, Math.ceil(form.getBoundingClientRect().height));
-      root.style.setProperty('--deapp-comment-bar-h', h + 'px');
-    });
-  }
-
-  function syncNativeCommentFormState(form) {
-    if (!form) return;
-    const ta = form.querySelector('.deapp-native-comment-editor');
-    if (!ta) return;
-    const active = document.activeElement === ta || (ta.value || '').trim() !== '';
-    form.classList.toggle('is-typing', active);
-  }
-
-  function enhanceNativeCommentForm(form) {
-    if (!isPostDetailPage || !form || form.dataset.deappNativeComment === '1') return;
-    const source = form.querySelector('input[name="comment_text"]');
-    const wrap = form.querySelector('.comment-input-wrap');
-    if (!source || !wrap) return;
-    form.dataset.deappNativeComment = '1';
-    source.classList.add('deapp-native-comment-source');
-
-    const ta = document.createElement('textarea');
-    ta.className = 'deapp-native-comment-editor';
-    ta.rows = 1;
-    ta.maxLength = Number(source.maxLength || 1000);
-    ta.placeholder = source.placeholder || 'Tulis komentar…';
-    ta.setAttribute('aria-label', 'Tulis komentar');
-    ta.setAttribute('enterkeyhint', 'enter');
-    wrap.insertBefore(ta, source);
-
-    function syncToSource() {
-      source.value = ta.value;
-      resizeNativeCommentEditor(ta);
-      syncNativeCommentFormState(form);
-    }
-    ta.addEventListener('input', syncToSource);
-    source.addEventListener('input', function(){
-      if (source.value !== ta.value) {
-        ta.value = source.value;
-        resizeNativeCommentEditor(ta);
-        syncNativeCommentFormState(form);
-      }
-    });
-    source.addEventListener('focus', function(){ setTimeout(function(){ ta.focus(); }, 0); });
-    ta.addEventListener('focus', function(){ syncNativeCommentFormState(form); });
-    ta.addEventListener('blur', function(){ setTimeout(function(){ syncNativeCommentFormState(form); }, 120); });
-    form.addEventListener('submit', function(){ source.value = ta.value; }, true);
-    resizeNativeCommentEditor(ta);
-
-    form.addEventListener('click', function(e){
-      const emoji = e.target.closest('.js-emoji-trigger');
-      if (!emoji) return;
-      setTimeout(function(){
-        if (source.value !== ta.value && source.value) {
-          ta.value = source.value;
-          ta.setSelectionRange(ta.value.length, ta.value.length);
-          syncToSource();
-        }
-        ta.focus();
-      }, 80);
-    });
-  }
-
-  function enhancePostDetailComments() {
-    if (!isPostDetailPage) return;
-    document.querySelectorAll('.post-detail-card .comment-form,.page-post-detail .comment-form').forEach(enhanceNativeCommentForm);
-  }
-
-  document.addEventListener('click', function(e){
-    if (!isPostDetailPage) return;
-    if (e.target.closest('.js-creply,.reply-target button')) {
-      setTimeout(function(){
-        document.querySelectorAll('.deapp-native-comment-editor').forEach(function(ta){
-          const form = ta.closest('.comment-form');
-          const source = form && form.querySelector('input[name="comment_text"]');
-          if (source) ta.placeholder = source.placeholder || 'Tulis komentar…';
-          if (e.target.closest('.js-creply')) ta.focus();
-          syncNativeCommentFormState(form);
-        });
-      }, 40);
-    }
-  }, false);
 
 
   function isVisible(el) {
@@ -795,6 +639,42 @@
       if (!profile && me && me.username && d.BASE_URL) profile = String(d.BASE_URL).replace(/\/$/,'') + '/profile.php?u=' + encodeURIComponent(me.username);
       if (API && API.syncSessionState) API.syncSessionState(logged, avatar, profile, location.href);
     } catch (_) {}
+  }
+
+
+  function enhancePostDetailComments() {
+    if (!isPostDetailPage) return;
+    document.querySelectorAll('.comment-form').forEach(function(form){
+      let input = form.querySelector('.comment-input');
+      if (!input) return;
+      if (input.tagName === 'INPUT') {
+        const ta = document.createElement('textarea');
+        for (const a of Array.from(input.attributes)) ta.setAttribute(a.name, a.value);
+        ta.className = input.className;
+        ta.value = input.value || '';
+        ta.rows = 1;
+        input.replaceWith(ta);
+        input = ta;
+      }
+      if (input.dataset.deappThreadComment === '1') return;
+      input.dataset.deappThreadComment = '1';
+      const sync = function(){
+        const has = (input.value || '').trim().length > 0;
+        form.classList.toggle('deapp-comment-typing', has);
+        input.style.height = 'auto';
+        input.style.height = Math.min(126, Math.max(28, input.scrollHeight)) + 'px';
+      };
+      input.addEventListener('input', sync);
+      input.addEventListener('focus', sync);
+      input.addEventListener('blur', sync);
+      input.addEventListener('keydown', function(e){
+        if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+          e.preventDefault();
+          if ((input.value || '').trim()) form.requestSubmit();
+        }
+      });
+      sync();
+    });
   }
 
   function scan() {
