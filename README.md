@@ -1,27 +1,19 @@
-# Deapp Lite Android v1.4
+# Deapp Lite Android
 
-Deapp Lite adalah Android native shell ringan untuk Deapp. Backend, login, postingan, pesan, notifikasi, Live, Reels, komunitas, dan data tetap berasal dari aplikasi PHP/MySQL Deapp di server.
+Deapp Lite adalah shell Android ringan untuk aplikasi Deapp PHP/MySQL. UI Android memberi pengalaman seperti aplikasi native, sedangkan feed, akun, profil, pesan, Live, Reels, AI, komunitas dan data tetap dilayani server Deapp.
 
-## Tampilan v1.4
+## v1.5.0-lite
 
-- Header native: logo Deapp kiri, wordmark Deapp tengah, menu fitur kanan.
-- Bottom navigation 5 menu: Beranda, Pesan, +, Notifikasi, Profil.
-- Bottom navigation hanya muncul setelah pengguna login.
-- Floating + hanya muncul di Beranda.
-- Menu opsi postingan menjadi draggable bottom sheet.
-- Composer dan modal lain tetap tampil sebagai bottom sheet yang bisa ditarik turun.
-- Profil dibuat edge-to-edge/full mobile.
-- Tab di seluruh aplikasi bisa digeser horizontal dengan touch atau mouse.
-- Pull-to-refresh memakai indikator Android yang lebih besar dan lebih jelas.
-- Interaksi web diberi native pressed feedback dan haptic, tanpa tap-highlight bawaan browser.
-- Scrollbar visual disembunyikan.
+Versi ini menambahkan shell yang sadar status login, animated Welcome splash, header profil kontekstual, FAB posting di profil, composer full-screen dengan tombol terbit native, menu opsi profil, dan Tentang Aplikasi di Pengaturan.
 
-## Build APK
+### Build otomatis
 
-Workflow GitHub Actions berada di `.github/workflows/build-apk.yml` dan otomatis berjalan setiap push ke branch `main`.
+Push ke branch `main` akan menjalankan `.github/workflows/build-apk.yml`. Artifact hasil build bernama `deapp-lite-apk`.
 
-Artifact hasil build bernama `deapp-lite-apk` dan berisi `deapp-lite.apk`.
+### Server
 
-## Versi
+Untuk hosting publik gunakan HTTPS. Untuk XAMPP/LAN gunakan alamat IP perangkat server, bukan `localhost` dari ponsel.
 
-`1.4.0-lite` — versionCode `5`
+
+## Native UI v1.6.0
+Lihat `NATIVE-UI-v1.6.md` untuk Pusat Perizinan, feedback tap tanpa visual browser, suara sukses posting, dan animasi Deapp pull-to-refresh.

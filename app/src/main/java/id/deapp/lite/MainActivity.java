@@ -15,6 +15,9 @@ import android.graphics.Outline;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
+import android.media.AudioManager;
+import android.media.ToneGenerator;
+import android.provider.Settings;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -74,6 +77,7 @@ public class MainActivity extends Activity {
     private static final int REQ_FILE = 2101;
     private static final int REQ_WEBRTC = 2102;
     private static final int REQ_GEO = 2103;
+    private static final int REQ_APP_PERMISSION = 2104;
 
     private FrameLayout root;
     private LinearLayout shell;
@@ -81,12 +85,22 @@ public class MainActivity extends Activity {
     private FrameLayout bottomContainer;
     private WebView webView;
     private SwipeRefreshLayout swipeRefresh;
+    private ImageView refreshLogo;
+    private boolean refreshLogoAnimating = false;
+    private float refreshPullStartY = 0f;
     private ProgressBar progress;
     private FrameLayout offlineOverlay;
     private FrameLayout loadingOverlay;
     private ImageButton featureMenuButton;
     private ImageButton composeFab;
+    private ImageView toolbarLogo;
+    private TextView toolbarTitle;
     private String profileUrl = "";
+    private String profileDisplayName = "";
+    private boolean profilePage = false;
+    private boolean ownProfilePage = false;
+    private boolean composerOpen = false;
+    private boolean welcomeShown = false;
     private View activeSheetOverlay;
     private View activeSheetPanel;
     private NavItem navHome;
@@ -104,6 +118,8 @@ public class MainActivity extends Activity {
     private PermissionRequest pendingPermissionRequest;
     private GeolocationPermissions.Callback pendingGeoCallback;
     private String pendingGeoOrigin;
+    private String pendingPermissionLabel = "";
+    private long lastPostPublishedSoundAt = 0L;
     private String baseUrl = "";
 
     private View customView;
@@ -397,6 +413,10 @@ public class MainActivity extends Activity {
         imeVisible = false;
         currentUrl = baseUrl;
         profileUrl = "";
+        profileDisplayName = "";
+        profilePage = false;
+        ownProfilePage = false;
+        composerOpen = false;
 
         root = new FrameLayout(this);
         root.setBackgroundColor(cBg);
@@ -415,12 +435,14 @@ public class MainActivity extends Activity {
         buildFloatingComposer();
         applyInsetsToShell();
         configureWebView();
+        showWelcomeSplash();
         webView.loadUrl(baseUrl);
     }
 
     private void buildNativeTopBar() {
         topContainer = new FrameLayout(this);
         topContainer.setBackgroundColor(cSurface);
+        topContainer.setVisibility(View.GONE); // header hanya muncul setelah status login diketahui
         shell.addView(topContainer, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(56)));
 
@@ -429,36 +451,29 @@ public class MainActivity extends Activity {
         topContainer.addView(toolbar, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(56), Gravity.BOTTOM));
 
-        // Kiri: mark/logo aplikasi Deapp.
-        ImageView leftLogo = new ImageView(this);
-        leftLogo.setImageResource(R.drawable.deapp_logo);
-        leftLogo.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        leftLogo.setContentDescription("Beranda Deapp");
-        leftLogo.setClickable(true);
-        leftLogo.setFocusable(true);
+        toolbarLogo = new ImageView(this);
+        toolbarLogo.setImageResource(R.drawable.deapp_logo);
+        toolbarLogo.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        toolbarLogo.setContentDescription("Logo Deapp");
+        toolbarLogo.setClickable(true);
+        toolbarLogo.setFocusable(true);
         FrameLayout.LayoutParams leftLp = new FrameLayout.LayoutParams(dp(36), dp(36), Gravity.START | Gravity.CENTER_VERTICAL);
-        toolbar.addView(leftLogo, leftLp);
-        leftLogo.setOnClickListener(v -> {
+        toolbar.addView(toolbarLogo, leftLp);
+        toolbarLogo.setOnClickListener(v -> {
             haptic(v);
-            loadRelative("index.php");
+            if (composerOpen) closeComposer(); else loadRelative("index.php");
         });
 
-        // Tengah: wordmark Deapp. Posisi benar-benar di tengah, tidak bergeser oleh tombol kanan/kiri.
-        TextView wordmark = text("Deapp", 21, cText);
-        wordmark.setTypeface(Typeface.create("sans-serif-black", Typeface.BOLD));
-        wordmark.setLetterSpacing(-0.025f);
-        wordmark.setGravity(Gravity.CENTER);
-        wordmark.setContentDescription("Deapp");
-        wordmark.setClickable(true);
+        toolbarTitle = text("Deapp", 20, cText);
+        toolbarTitle.setTypeface(Typeface.create("sans-serif-black", Typeface.BOLD));
+        toolbarTitle.setLetterSpacing(-0.02f);
+        toolbarTitle.setGravity(Gravity.CENTER);
+        toolbarTitle.setMaxLines(1);
+        toolbarTitle.setEllipsize(android.text.TextUtils.TruncateAt.END);
         FrameLayout.LayoutParams wordLp = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, dp(56), Gravity.CENTER);
-        toolbar.addView(wordmark, wordLp);
-        wordmark.setOnClickListener(v -> {
-            haptic(v);
-            loadRelative("index.php");
-        });
+                dp(220), dp(56), Gravity.CENTER);
+        toolbar.addView(toolbarTitle, wordLp);
 
-        // Kanan: seluruh fitur aplikasi berada di satu menu grid native.
         featureMenuButton = iconButton(R.drawable.ic_native_grid, "Menu fitur Deapp");
         featureMenuButton.setColorFilter(cText);
         featureMenuButton.setBackground(rounded(Color.TRANSPARENT, 99));
@@ -466,7 +481,9 @@ public class MainActivity extends Activity {
         toolbar.addView(featureMenuButton, menuLp);
         featureMenuButton.setOnClickListener(v -> {
             haptic(v);
-            showFeatureMenuSheet();
+            if (composerOpen) publishComposer();
+            else if (profilePage) openProfileOptions();
+            else showFeatureMenuSheet();
         });
 
         View divider = new View(this);
@@ -483,14 +500,13 @@ public class MainActivity extends Activity {
         shell.addView(content, contentLp);
 
         swipeRefresh = new SwipeRefreshLayout(this);
-        // Pull-to-refresh dibuat lebih ikonik: spinner besar, jarak tarik lebih natural,
-        // dan kontras mengikuti tema Deapp.
+        // v1.6: indikator bawaan disembunyikan dan diganti animasi logo Deapp.
         swipeRefresh.setSize(SwipeRefreshLayout.LARGE);
-        swipeRefresh.setColorSchemeColors(cAccent, cText);
-        swipeRefresh.setProgressBackgroundColorSchemeColor(cSurface);
+        swipeRefresh.setColorSchemeColors(Color.TRANSPARENT);
+        swipeRefresh.setProgressBackgroundColorSchemeColor(Color.TRANSPARENT);
         swipeRefresh.setDistanceToTriggerSync(dp(86));
         swipeRefresh.setSlingshotDistance(dp(112));
-        swipeRefresh.setProgressViewOffset(false, dp(10), dp(76));
+        swipeRefresh.setProgressViewOffset(false, dp(8), dp(72));
         content.addView(swipeRefresh, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
@@ -505,10 +521,37 @@ public class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         swipeRefresh.setOnRefreshListener(() -> {
             haptic(swipeRefresh);
+            startDeappRefreshAnimation();
             if (webView != null) webView.reload();
         });
         swipeRefresh.setOnChildScrollUpCallback((parent, child) ->
                 webView != null && webView.canScrollVertically(-1));
+
+        refreshLogo = new ImageView(this);
+        refreshLogo.setImageResource(R.drawable.deapp_logo);
+        refreshLogo.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        refreshLogo.setAlpha(0f);
+        refreshLogo.setScaleX(.72f);
+        refreshLogo.setScaleY(.72f);
+        refreshLogo.setVisibility(View.INVISIBLE);
+        FrameLayout.LayoutParams refreshLogoLp = new FrameLayout.LayoutParams(dp(48), dp(48), Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        refreshLogoLp.topMargin = dp(10);
+        content.addView(refreshLogo, refreshLogoLp);
+
+        swipeRefresh.setOnTouchListener((v, event) -> {
+            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                refreshPullStartY = event.getY();
+            } else if (event.getActionMasked() == MotionEvent.ACTION_MOVE) {
+                if (webView != null && !webView.canScrollVertically(-1) && !swipeRefresh.isRefreshing()) {
+                    float dy = Math.max(0f, event.getY() - refreshPullStartY);
+                    updateDeappPullIndicator(dy);
+                }
+            } else if ((event.getActionMasked() == MotionEvent.ACTION_UP || event.getActionMasked() == MotionEvent.ACTION_CANCEL)
+                    && !swipeRefresh.isRefreshing()) {
+                hideDeappPullIndicator();
+            }
+            return false;
+        });
 
         progress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
         progress.setMax(100);
@@ -537,6 +580,65 @@ public class MainActivity extends Activity {
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(dp(86), dp(86), Gravity.CENTER);
         layer.addView(logo, lp);
         return layer;
+    }
+
+    private void showWelcomeSplash() {
+        if (welcomeShown || root == null) return;
+        welcomeShown = true;
+
+        FrameLayout splash = new FrameLayout(this);
+        splash.setBackgroundColor(cBg);
+        splash.setClickable(true);
+        splash.setFocusable(true);
+        splash.setAlpha(1f);
+        root.addView(splash, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        LinearLayout center = new LinearLayout(this);
+        center.setOrientation(LinearLayout.VERTICAL);
+        center.setGravity(Gravity.CENTER);
+        FrameLayout.LayoutParams centerLp = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER);
+        splash.addView(center, centerLp);
+
+        ImageView logo = new ImageView(this);
+        logo.setImageResource(R.drawable.deapp_logo);
+        logo.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        logo.setAlpha(0f);
+        logo.setScaleX(.76f);
+        logo.setScaleY(.76f);
+        LinearLayout.LayoutParams logoLp = new LinearLayout.LayoutParams(dp(96), dp(96));
+        logoLp.gravity = Gravity.CENTER_HORIZONTAL;
+        center.addView(logo, logoLp);
+
+        TextView welcome = text("Welcome", 34, cText);
+        welcome.setTypeface(Typeface.create("sans-serif-black", Typeface.BOLD));
+        welcome.setLetterSpacing(.015f);
+        welcome.setGravity(Gravity.CENTER);
+        welcome.setAlpha(0f);
+        welcome.setTranslationY(dp(16));
+        LinearLayout.LayoutParams welcomeLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        welcomeLp.gravity = Gravity.CENTER_HORIZONTAL;
+        welcomeLp.topMargin = dp(18);
+        center.addView(welcome, welcomeLp);
+
+        TextView sub = text("to Deapp", 13, cMuted);
+        sub.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+        sub.setLetterSpacing(.12f);
+        sub.setGravity(Gravity.CENTER);
+        sub.setAlpha(0f);
+        LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        subLp.gravity = Gravity.CENTER_HORIZONTAL;
+        subLp.topMargin = dp(7);
+        center.addView(sub, subLp);
+
+        logo.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(460).setStartDelay(80).start();
+        welcome.animate().alpha(1f).translationY(0).setDuration(440).setStartDelay(310).start();
+        sub.animate().alpha(1f).setDuration(380).setStartDelay(570).start();
+        splash.postDelayed(() -> splash.animate().alpha(0f).setDuration(300)
+                .withEndAction(() -> { if (root != null) root.removeView(splash); }).start(), 1550);
     }
 
     private FrameLayout buildOfflineOverlay() {
@@ -769,12 +871,59 @@ public class MainActivity extends Activity {
         }
     }
 
+    private boolean isProfileUrl(String url) {
+        if (url == null) return false;
+        try {
+            String path = URI.create(url).getPath();
+            return path != null && path.toLowerCase(Locale.US).endsWith("/profile.php");
+        } catch (Exception e) {
+            return url.toLowerCase(Locale.US).contains("/profile.php");
+        }
+    }
+
+    private boolean isAuthUrl(String url) {
+        if (url == null) return false;
+        String low = url.toLowerCase(Locale.US);
+        return low.contains("/login.php") || low.contains("/register.php") || low.contains("/forgot-password.php");
+    }
+
     private void updateChromeVisibility() {
         boolean fullscreen = customView != null;
-        boolean showBottom = isLoggedIn && !imeVisible && !fullscreen;
+        boolean authPage = isAuthUrl(currentUrl);
+        boolean showTop = isLoggedIn && !fullscreen && !authPage;
+        if (topContainer != null) topContainer.setVisibility(showTop ? View.VISIBLE : View.GONE);
+        updateTopBarMode();
+
+        boolean showBottom = isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage;
         if (bottomContainer != null) bottomContainer.setVisibility(showBottom ? View.VISIBLE : View.GONE);
-        boolean showFloatingCompose = showBottom && isHomeUrl(currentUrl);
-        if (composeFab != null) composeFab.setVisibility(showFloatingCompose ? View.VISIBLE : View.GONE);
+        boolean showFloatingCompose = showBottom && (isHomeUrl(currentUrl) || (profilePage && ownProfilePage));
+        if (composeFab != null) {
+            composeFab.setVisibility(showFloatingCompose ? View.VISIBLE : View.GONE);
+            composeFab.setContentDescription(profilePage ? "Buat postingan di profil" : "Buat postingan");
+        }
+    }
+
+    private void updateTopBarMode() {
+        if (toolbarTitle == null || featureMenuButton == null) return;
+        if (composerOpen) {
+            toolbarTitle.setText("Buat postingan");
+            featureMenuButton.setImageResource(R.drawable.ic_native_send);
+            featureMenuButton.setContentDescription("Terbitkan postingan");
+            featureMenuButton.setColorFilter(cText);
+            return;
+        }
+        if (profilePage || isProfileUrl(currentUrl)) {
+            String title = profileDisplayName == null ? "" : profileDisplayName.trim();
+            toolbarTitle.setText(title.isEmpty() ? "Profil" : title);
+            featureMenuButton.setImageResource(R.drawable.ic_native_more);
+            featureMenuButton.setContentDescription("Opsi profil");
+            featureMenuButton.setColorFilter(cText);
+            return;
+        }
+        toolbarTitle.setText("Deapp");
+        featureMenuButton.setImageResource(R.drawable.ic_native_grid);
+        featureMenuButton.setContentDescription("Menu fitur Deapp");
+        featureMenuButton.setColorFilter(cText);
     }
 
     private void configureWebView() {
@@ -790,7 +939,7 @@ public class MainActivity extends Activity {
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.4 NativeMobile/4");
+        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.6 NativeMobile/6");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) s.setSafeBrowsingEnabled(true);
 
         CookieManager cm = CookieManager.getInstance();
@@ -814,6 +963,9 @@ public class MainActivity extends Activity {
                 progress.setVisibility(View.VISIBLE);
                 showOffline(false);
                 currentUrl = url == null ? "" : url;
+                profilePage = isProfileUrl(currentUrl);
+                profileDisplayName = "";
+                composerOpen = false;
                 updateNativeNav(url);
                 updateChromeVisibility();
                 updateKeepScreenOn(url);
@@ -831,6 +983,7 @@ public class MainActivity extends Activity {
                 injectNativeShell();
                 progress.setVisibility(View.GONE);
                 swipeRefresh.setRefreshing(false);
+                stopDeappRefreshAnimation();
                 loadingOverlay.setVisibility(View.GONE);
                 currentUrl = url == null ? "" : url;
                 updateNativeNav(url);
@@ -841,6 +994,7 @@ public class MainActivity extends Activity {
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (request.isForMainFrame()) {
                     swipeRefresh.setRefreshing(false);
+                    stopDeappRefreshAnimation();
                     loadingOverlay.setVisibility(View.GONE);
                     showOffline(true);
                 }
@@ -852,7 +1006,10 @@ public class MainActivity extends Activity {
             public void onProgressChanged(WebView view, int newProgress) {
                 progress.setProgress(newProgress);
                 progress.setVisibility(newProgress >= 100 ? View.GONE : View.VISIBLE);
-                if (newProgress >= 100) swipeRefresh.setRefreshing(false);
+                if (newProgress >= 100) {
+                    swipeRefresh.setRefreshing(false);
+                    stopDeappRefreshAnimation();
+                }
             }
 
             @Override
@@ -945,7 +1102,7 @@ public class MainActivity extends Activity {
     private void injectNativeShell() {
         if (webView == null) return;
         if (nativeScript == null || nativeScript.isEmpty()) {
-            nativeScript = readAssetText("deapp_native_v14.js");
+            nativeScript = readAssetText("deapp_native_v16.js");
         }
         if (!nativeScript.isEmpty()) webView.evaluateJavascript(nativeScript, null);
     }
@@ -1203,6 +1360,7 @@ public class MainActivity extends Activity {
         addFeatureTile(grid, R.drawable.ic_native_code, "Developer", () -> loadRelative("developer.php"));
         addFeatureTile(grid, R.drawable.ic_native_shop, "Toko", () -> loadRelative("shop.php"));
         addFeatureTile(grid, R.drawable.ic_native_game, "Mini Game", () -> loadRelative("games.php"));
+        addFeatureTile(grid, R.drawable.ic_native_shield, "Perizinan", this::showPermissionsSheet);
         addFeatureTile(grid, R.drawable.ic_native_settings, "Pengaturan", () -> loadRelative("settings.php"));
 
         View actions = sheetAction("Ganti server", "Hosting, XAMPP atau alamat Deapp lain", this::showServerBottomSheet);
@@ -1297,10 +1455,45 @@ public class MainActivity extends Activity {
                 isLoggedIn = loggedIn;
                 profileUrl = href == null ? "" : href.trim();
                 if (pageUrl != null && !pageUrl.trim().isEmpty()) currentUrl = pageUrl.trim();
+                profilePage = isProfileUrl(currentUrl);
                 syncNativeProfile(avatarUrl, profileUrl);
                 updateNativeNav(currentUrl);
                 updateChromeVisibility();
             });
+        }
+
+        @JavascriptInterface
+        public void syncPageChrome(String pageType, String title, boolean ownProfile) {
+            runOnUiThread(() -> {
+                String type = pageType == null ? "" : pageType.trim().toLowerCase(Locale.US);
+                profilePage = "profile".equals(type) || isProfileUrl(currentUrl);
+                ownProfilePage = profilePage && ownProfile;
+                profileDisplayName = title == null ? "" : title.trim();
+                updateChromeVisibility();
+            });
+        }
+
+        @JavascriptInterface
+        public void syncComposerState(boolean open) {
+            runOnUiThread(() -> {
+                composerOpen = open;
+                updateChromeVisibility();
+            });
+        }
+
+        @JavascriptInterface
+        public void postPublished() {
+            runOnUiThread(MainActivity.this::playPostPublishedSound);
+        }
+
+        @JavascriptInterface
+        public void showPermissions() {
+            runOnUiThread(MainActivity.this::showPermissionsSheet);
+        }
+
+        @JavascriptInterface
+        public void showAboutApp() {
+            runOnUiThread(MainActivity.this::showAboutSheet);
         }
     }
 
@@ -1325,7 +1518,7 @@ public class MainActivity extends Activity {
                 conn.setInstanceFollowRedirects(true);
                 String cookie = CookieManager.getInstance().getCookie(avatarUrl);
                 if (cookie != null && !cookie.isEmpty()) conn.setRequestProperty("Cookie", cookie);
-                conn.setRequestProperty("User-Agent", "DeappLite/1.4");
+                conn.setRequestProperty("User-Agent", "DeappLite/1.6");
                 try (InputStream in = conn.getInputStream()) {
                     Bitmap bitmap = BitmapFactory.decodeStream(in);
                     if (bitmap != null) runOnUiThread(() -> {
@@ -1350,12 +1543,266 @@ public class MainActivity extends Activity {
 
     private void openComposer() {
         if (webView == null) return;
-        webView.evaluateJavascript("(function(){var b=document.querySelector('[data-open-modal=\\\"composer-modal\\\"]');if(b){b.click();return true;}return false;})()", value -> {
+        webView.evaluateJavascript("(function(){if(window.__DEAPP_NATIVE_V16__&&window.__DEAPP_NATIVE_V16__.openComposer){return window.__DEAPP_NATIVE_V16__.openComposer();}var b=document.querySelector('[data-open-modal=\\\"composer-modal\\\"]');if(b){b.click();return true;}return false;})()", value -> {
             if (!"true".equals(value)) {
-                Toast.makeText(this, "Login dulu untuk membuat kiriman", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Login dulu untuk membuat postingan", Toast.LENGTH_SHORT).show();
                 loadRelative("login.php");
             }
         });
+    }
+
+    private void closeComposer() {
+        if (webView == null) return;
+        webView.evaluateJavascript("(function(){if(window.__DEAPP_NATIVE_V16__&&window.__DEAPP_NATIVE_V16__.closeComposer){window.__DEAPP_NATIVE_V16__.closeComposer();return true;}return false;})()", null);
+    }
+
+    private void publishComposer() {
+        if (webView == null) return;
+        webView.evaluateJavascript("(function(){if(window.__DEAPP_NATIVE_V16__&&window.__DEAPP_NATIVE_V16__.submitComposer){return window.__DEAPP_NATIVE_V16__.submitComposer();}var b=document.getElementById('composer-submit');if(b){b.click();return true;}return false;})()", value -> {
+            if (!"true".equals(value)) Toast.makeText(this, "Postingan belum siap diterbitkan", Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    private void openProfileOptions() {
+        if (webView == null) return;
+        webView.evaluateJavascript("(function(){if(window.__DEAPP_NATIVE_V16__&&window.__DEAPP_NATIVE_V16__.openProfileOptions){return window.__DEAPP_NATIVE_V16__.openProfileOptions();}return false;})()", value -> {
+            if (!"true".equals(value)) Toast.makeText(this, "Opsi profil tidak tersedia", Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    private void updateDeappPullIndicator(float dy) {
+        if (refreshLogo == null || refreshLogoAnimating) return;
+        float p = Math.min(1f, dy / dp(92));
+        if (p <= .03f) {
+            hideDeappPullIndicator();
+            return;
+        }
+        refreshLogo.setVisibility(View.VISIBLE);
+        refreshLogo.setAlpha(Math.min(1f, p * 1.35f));
+        float scale = .70f + (.30f * p);
+        refreshLogo.setScaleX(scale);
+        refreshLogo.setScaleY(scale);
+        refreshLogo.setRotation(-16f + (32f * p));
+        refreshLogo.setTranslationY(Math.min(dp(22), dy * .18f));
+    }
+
+    private void hideDeappPullIndicator() {
+        if (refreshLogo == null || refreshLogoAnimating) return;
+        refreshLogo.animate().cancel();
+        refreshLogo.animate().alpha(0f).scaleX(.72f).scaleY(.72f).translationY(0f).rotation(0f)
+                .setDuration(150).withEndAction(() -> {
+                    if (refreshLogo != null && !refreshLogoAnimating) refreshLogo.setVisibility(View.INVISIBLE);
+                }).start();
+    }
+
+    private void startDeappRefreshAnimation() {
+        if (refreshLogo == null) return;
+        refreshLogoAnimating = true;
+        refreshLogo.animate().cancel();
+        refreshLogo.setVisibility(View.VISIBLE);
+        refreshLogo.setAlpha(1f);
+        refreshLogo.setScaleX(1f);
+        refreshLogo.setScaleY(1f);
+        refreshLogo.setTranslationY(dp(10));
+        runRefreshLogoLoop();
+    }
+
+    private void runRefreshLogoLoop() {
+        if (!refreshLogoAnimating || refreshLogo == null) return;
+        refreshLogo.setRotation(0f);
+        refreshLogo.animate().rotation(360f).scaleX(1.08f).scaleY(1.08f)
+                .setDuration(720).withEndAction(() -> {
+                    if (refreshLogo == null || !refreshLogoAnimating) return;
+                    refreshLogo.setScaleX(1f);
+                    refreshLogo.setScaleY(1f);
+                    runRefreshLogoLoop();
+                }).start();
+    }
+
+    private void stopDeappRefreshAnimation() {
+        refreshLogoAnimating = false;
+        if (refreshLogo == null) return;
+        refreshLogo.animate().cancel();
+        refreshLogo.animate().alpha(0f).scaleX(.72f).scaleY(.72f).translationY(0f).rotation(0f)
+                .setDuration(180).withEndAction(() -> {
+                    if (refreshLogo != null) refreshLogo.setVisibility(View.INVISIBLE);
+                }).start();
+    }
+
+    private void playPostPublishedSound() {
+        long now = android.os.SystemClock.elapsedRealtime();
+        if (now - lastPostPublishedSoundAt < 1200) return;
+        lastPostPublishedSoundAt = now;
+        try {
+            ToneGenerator tone = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 68);
+            tone.startTone(ToneGenerator.TONE_PROP_ACK, 170);
+            if (root != null) root.postDelayed(tone::release, 260); else tone.release();
+        } catch (Exception ignored) {}
+    }
+
+    private boolean granted(String permission) {
+        return Build.VERSION.SDK_INT < 23 || checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private boolean permissionGranted(String key) {
+        if ("location".equals(key)) return granted(Manifest.permission.ACCESS_FINE_LOCATION) || granted(Manifest.permission.ACCESS_COARSE_LOCATION);
+        if ("contacts".equals(key)) return granted(Manifest.permission.READ_CONTACTS);
+        if ("notifications".equals(key)) return Build.VERSION.SDK_INT < 33 || granted(Manifest.permission.POST_NOTIFICATIONS);
+        if ("photos".equals(key)) {
+            if (Build.VERSION.SDK_INT >= 34) return granted(Manifest.permission.READ_MEDIA_IMAGES) || granted(Manifest.permission.READ_MEDIA_VIDEO) || granted(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED);
+            if (Build.VERSION.SDK_INT >= 33) return granted(Manifest.permission.READ_MEDIA_IMAGES) || granted(Manifest.permission.READ_MEDIA_VIDEO);
+            return granted(Manifest.permission.READ_EXTERNAL_STORAGE);
+        }
+        if ("microphone".equals(key)) return granted(Manifest.permission.RECORD_AUDIO);
+        if ("phone".equals(key)) return granted(Manifest.permission.CALL_PHONE);
+        if ("camera".equals(key)) return granted(Manifest.permission.CAMERA);
+        return false;
+    }
+
+    private String[] permissionsFor(String key) {
+        if ("location".equals(key)) return new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION};
+        if ("contacts".equals(key)) return new String[]{Manifest.permission.READ_CONTACTS};
+        if ("notifications".equals(key)) return Build.VERSION.SDK_INT >= 33 ? new String[]{Manifest.permission.POST_NOTIFICATIONS} : new String[0];
+        if ("photos".equals(key)) {
+            if (Build.VERSION.SDK_INT >= 34) return new String[]{Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED};
+            if (Build.VERSION.SDK_INT >= 33) return new String[]{Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO};
+            return new String[]{Manifest.permission.READ_EXTERNAL_STORAGE};
+        }
+        if ("microphone".equals(key)) return new String[]{Manifest.permission.RECORD_AUDIO};
+        if ("phone".equals(key)) return new String[]{Manifest.permission.CALL_PHONE};
+        if ("camera".equals(key)) return new String[]{Manifest.permission.CAMERA};
+        return new String[0];
+    }
+
+    private void requestPermissionFromCenter(String key, String label) {
+        if (permissionGranted(key)) {
+            openSystemAppSettings();
+            return;
+        }
+        String[] perms = permissionsFor(key);
+        if (perms.length == 0) {
+            Toast.makeText(this, label + " tidak memerlukan izin tambahan di Android ini", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        pendingPermissionLabel = label;
+        requestPermissions(perms, REQ_APP_PERMISSION);
+    }
+
+    private View permissionRow(int iconRes, String title, String subtitle, String key) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(12), dp(11), dp(12), dp(11));
+        row.setBackground(bordered(cSurface2, cBorder, 16));
+        row.setClickable(true);
+        row.setFocusable(true);
+
+        ImageView icon = new ImageView(this);
+        icon.setImageResource(iconRes);
+        icon.setColorFilter(cText);
+        icon.setPadding(dp(9), dp(9), dp(9), dp(9));
+        icon.setBackground(rounded(cSurface, 99));
+        row.addView(icon, new LinearLayout.LayoutParams(dp(42), dp(42)));
+
+        LinearLayout copy = new LinearLayout(this);
+        copy.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams copyLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        copyLp.leftMargin = dp(11);
+        row.addView(copy, copyLp);
+
+        TextView name = text(title, 14.5f, cText);
+        name.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        copy.addView(name);
+        TextView sub = text(subtitle, 11.5f, cMuted);
+        LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        subLp.topMargin = dp(2);
+        copy.addView(sub, subLp);
+
+        boolean ok = permissionGranted(key);
+        TextView status = text(ok ? "Diizinkan" : "Izinkan", 11.5f, ok ? cSuccess : cAccent);
+        status.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        status.setGravity(Gravity.CENTER);
+        status.setPadding(dp(10), dp(7), dp(10), dp(7));
+        status.setBackground(rounded(ok ? (dark ? Color.parseColor("#11251D") : Color.parseColor("#EAF8F1")) : cAccentSoft, 99));
+        row.addView(status);
+
+        row.setOnClickListener(v -> requestPermissionFromCenter(key, title));
+        return row;
+    }
+
+    private void showPermissionsSheet() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+
+        TextView info = text("Izin hanya diminta saat kamu memilihnya atau saat fitur terkait benar-benar digunakan. Izin yang sudah diberikan dapat dicabut dari Pengaturan Android.", 12.3f, cMuted);
+        info.setLineSpacing(0, 1.14f);
+        LinearLayout.LayoutParams infoLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        infoLp.bottomMargin = dp(12);
+        box.addView(info, infoLp);
+
+        Object[][] rows = new Object[][]{
+                {R.drawable.ic_native_location, "Lokasi", "Untuk fitur lokasi dan geolokasi", "location"},
+                {R.drawable.ic_native_contacts, "Kontak", "Opsional untuk fitur yang memakai daftar kontak", "contacts"},
+                {R.drawable.ic_native_bell, "Notifikasi", "Untuk pemberitahuan Deapp", "notifications"},
+                {R.drawable.ic_native_photo, "Foto & media", "Untuk memilih foto dan video dari perangkat", "photos"},
+                {R.drawable.ic_native_mic, "Mikrofon", "Untuk Live, voice dan media", "microphone"},
+                {R.drawable.ic_native_phone, "Telepon", "Opsional untuk fitur panggilan", "phone"},
+                {R.drawable.ic_native_camera, "Kamera", "Untuk Live, foto dan video", "camera"}
+        };
+        for (Object[] item : rows) {
+            View row = permissionRow((Integer)item[0], (String)item[1], (String)item[2], (String)item[3]);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.bottomMargin = dp(8);
+            box.addView(row, lp);
+        }
+
+        View settings = sheetAction("Buka pengaturan sistem", "Kelola atau cabut izin aplikasi dari Android", this::openSystemAppSettings);
+        LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        slp.topMargin = dp(5);
+        box.addView(settings, slp);
+        showBottomSheet("Perizinan aplikasi", box);
+    }
+
+    private void openSystemAppSettings() {
+        try {
+            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getPackageName()));
+            startActivity(intent);
+        } catch (Exception ignored) {}
+    }
+
+    private void showAboutSheet() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setGravity(Gravity.CENTER_HORIZONTAL);
+
+        ImageView logo = new ImageView(this);
+        logo.setImageResource(R.drawable.deapp_logo);
+        logo.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        LinearLayout.LayoutParams logoLp = new LinearLayout.LayoutParams(dp(74), dp(74));
+        logoLp.bottomMargin = dp(12);
+        box.addView(logo, logoLp);
+
+        TextView name = text("Deapp Lite", 20, cText);
+        name.setTypeface(Typeface.create("sans-serif-black", Typeface.BOLD));
+        name.setGravity(Gravity.CENTER);
+        box.addView(name);
+
+        TextView version = text("Versi 1.6.0-lite · Build 7", 13, cMuted);
+        version.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams versionLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        versionLp.topMargin = dp(5);
+        box.addView(version, versionLp);
+
+        TextView info = text("Deapp Lite adalah aplikasi Android ringan dengan antarmuka native yang terhubung ke server Deapp kamu.", 12.5f, cMuted);
+        info.setGravity(Gravity.CENTER);
+        info.setLineSpacing(0, 1.15f);
+        LinearLayout.LayoutParams infoLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        infoLp.topMargin = dp(14);
+        box.addView(info, infoLp);
+
+        showBottomSheet("Tentang aplikasi", box);
     }
 
     private void openOwnProfile() {
@@ -1501,6 +1948,16 @@ public class MainActivity extends Activity {
             pendingGeoCallback.invoke(pendingGeoOrigin, ok, false);
             pendingGeoCallback = null;
             pendingGeoOrigin = null;
+        } else if (requestCode == REQ_APP_PERMISSION) {
+            boolean ok = grantResults.length > 0;
+            for (int result : grantResults) if (result != PackageManager.PERMISSION_GRANTED) ok = false;
+            String label = pendingPermissionLabel == null || pendingPermissionLabel.isEmpty() ? "Izin" : pendingPermissionLabel;
+            pendingPermissionLabel = "";
+            Toast.makeText(this, ok ? label + " diizinkan" : label + " belum diizinkan", Toast.LENGTH_SHORT).show();
+            if (activeSheetOverlay != null) {
+                dismissBottomSheet(false);
+                root.postDelayed(this::showPermissionsSheet, 140);
+            }
         }
     }
 
@@ -1511,6 +1968,10 @@ public class MainActivity extends Activity {
         }
         if (customView != null) {
             hideCustomView();
+            return;
+        }
+        if (composerOpen) {
+            closeComposer();
             return;
         }
         if (webView != null && webView.canGoBack()) {
@@ -1540,7 +2001,15 @@ public class MainActivity extends Activity {
 
     private void destroyWebView() {
         composeFab = null;
+        refreshLogo = null;
+        refreshLogoAnimating = false;
         featureMenuButton = null;
+        toolbarLogo = null;
+        toolbarTitle = null;
+        profileDisplayName = "";
+        profilePage = false;
+        ownProfilePage = false;
+        composerOpen = false;
         navHome = null;
         navMessage = null;
         navCompose = null;
