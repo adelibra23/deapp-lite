@@ -378,6 +378,18 @@
     .deapp-native-reels #reel-comment-input{height:42px!important;border:1px solid var(--border)!important;border-radius:21px!important;background:var(--surface-2)!important;padding:0 14px!important;box-shadow:none!important}
     .deapp-native-reels .reel-comment-form button[type="submit"]{width:42px!important;height:42px!important;border-radius:50%!important;padding:0!important;display:grid!important;place-items:center!important}
 
+    /* v1.9.7 — saat bottom sheet/modal aktif, navigasi bawah menghilang dan header diredupkan ringan seperti Threads. */
+    html.deapp-bottom-sheet-active .deapp-section-footer,
+    html.deapp-bottom-sheet-active .deapp-reels-footer{
+      opacity:0!important;visibility:hidden!important;pointer-events:none!important;transform:translateY(110%)!important;transition:opacity .16s ease,transform .2s cubic-bezier(.2,.8,.2,1)!important
+    }
+    html.deapp-bottom-sheet-active .deapp-section-header,
+    html.deapp-bottom-sheet-active .deapp-reels-header,
+    html.deapp-bottom-sheet-active .story-topbar,
+    html.deapp-bottom-sheet-active .chat-head{
+      filter:brightness(.78)!important;-webkit-filter:brightness(.78)!important;pointer-events:none!important;transition:filter .16s ease!important
+    }
+
     /* v1.9.6 — chrome khusus per bagian: chat, notifikasi, live, Deapp AI, toko/dompet, pengaturan, dan Story. */
     html.deapp-has-section-chrome body{padding-top:calc(62px + env(safe-area-inset-top))!important;padding-bottom:calc(68px + env(safe-area-inset-bottom))!important}
     .deapp-section-header{
@@ -900,7 +912,7 @@
   function sheetTarget(node) {
     const el = node && node.closest ? node : (node && node.parentElement ? node.parentElement : null);
     if (!el || !el.closest) return false;
-    return !!el.closest('.modal-overlay:not(#composer-modal) .modal-box,.deapp-cookie-modal .cookie-modal-card,dialog.c-modal[open] .c-modal-box,.post-card .menu-wrap.open>.dropdown,.deapp-native-profile-options-sheet');
+    return !!el.closest('.modal-overlay:not(#composer-modal) .modal-box,.deapp-cookie-modal .cookie-modal-card,dialog.c-modal[open] .c-modal-box,.post-card .menu-wrap.open>.dropdown,.deapp-native-profile-options-sheet,#story-sheet:not([hidden]),.reel-sheet:not([hidden]) .reel-sheet-panel,.reel-sheet:not([hidden]) .reel-more-panel');
   }
 
   function hasVisibleWebSheet() {
@@ -909,7 +921,10 @@
       '.deapp-cookie-modal .cookie-modal-card',
       'dialog.c-modal[open] .c-modal-box',
       '.post-card .menu-wrap.open>.dropdown',
-      '.deapp-native-profile-options-sheet'
+      '.deapp-native-profile-options-sheet',
+      '#story-sheet:not([hidden])',
+      '.reel-sheet:not([hidden]) .reel-sheet-panel',
+      '.reel-sheet:not([hidden]) .reel-more-panel'
     ];
     for (const selector of selectors) {
       const nodes = document.querySelectorAll(selector);
@@ -958,6 +973,12 @@
     }
   }
 
+  function syncSheetVisualState() {
+    const open = !!(currentWebSheetOpen || externalNativeSheetOpen);
+    root.classList.toggle('deapp-bottom-sheet-active', open);
+    if (document.body) document.body.classList.toggle('deapp-bottom-sheet-active', open);
+  }
+
   function setExternalSheetOpen(open) {
     externalNativeSheetOpen = !!open;
     // Deliberately do not lock the DOM for a native sheet. The Android overlay is enough.
@@ -966,6 +987,7 @@
       currentWebSheetOpen = false;
       unlockBackgroundScroll(false);
     }
+    syncSheetVisualState();
     return true;
   }
 
@@ -973,6 +995,7 @@
     if (!backgroundScrollLocked) return;
     if (!hasVisibleWebSheet()) {
       currentWebSheetOpen = false;
+      syncSheetVisualState();
       unlockBackgroundScroll(false);
       return;
     }
@@ -991,6 +1014,7 @@
     try {
       const open = hasVisibleWebSheet();
       currentWebSheetOpen = open;
+      syncSheetVisualState();
       if (!open) unlockBackgroundScroll(false);
       else updateBackgroundScrollLock();
       return true;
@@ -1022,6 +1046,7 @@
     try {
       const open = hasVisibleWebSheet();
       currentWebSheetOpen = open;
+      syncSheetVisualState();
       updateBackgroundScrollLock();
       if (open !== lastWebSheetOpen) {
         lastWebSheetOpen = open;
@@ -1371,6 +1396,9 @@
     const more = document.getElementById('reel-more-sheet');
     const open = !!((comments && !comments.hidden) || (create && create.classList.contains('open')) || (more && !more.hidden));
     root.classList.toggle('deapp-reels-overlay-open', open);
+    currentWebSheetOpen = open || hasVisibleWebSheet();
+    syncSheetVisualState();
+    if (API && API.syncWebSheetState && currentWebSheetOpen !== lastWebSheetOpen) { lastWebSheetOpen = currentWebSheetOpen; API.syncWebSheetState(currentWebSheetOpen); }
   }
 
   function wireReelsChrome() {

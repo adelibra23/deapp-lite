@@ -14,6 +14,7 @@ import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
@@ -88,6 +89,10 @@ public class MainActivity extends Activity {
     private FrameLayout loadingOverlay;
     private ImageView loadingLogo;
     private boolean loadingLogoPulseUp = true;
+    private FrameLayout startupSplashOverlay;
+    private ImageView startupSplashLogo;
+    private boolean startupSplashVisible = false;
+    private boolean startupSplashShownThisActivity = false;
     private int loadingGeneration = 0;
     private ImageButton featureMenuButton;
     private ImageButton composeFab;
@@ -440,7 +445,9 @@ public class MainActivity extends Activity {
         buildFloatingComposer();
         applyInsetsToShell();
         configureWebView();
-        // Loading memakai logo Deapp non-blocking; halaman langsung mulai dimuat.
+        // v1.9.7: splash awal tampil penuh selama 5 detik. WebView tetap memuat di belakang
+        // agar setelah splash selesai pengguna langsung melihat halaman yang sudah siap.
+        showStartupSplash();
         showLoading();
         webView.loadUrl(baseUrl);
     }
@@ -550,6 +557,85 @@ public class MainActivity extends Activity {
         offlineOverlay.setVisibility(View.GONE);
         content.addView(offlineOverlay, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    }
+
+    private void showStartupSplash() {
+        if (root == null || startupSplashShownThisActivity) return;
+        startupSplashShownThisActivity = true;
+        if (startupSplashOverlay != null) removeViewFromParent(startupSplashOverlay);
+
+        startupSplashVisible = true;
+        FrameLayout layer = new FrameLayout(this);
+        layer.setBackgroundColor(cBg);
+        layer.setClickable(true);
+        layer.setFocusable(true);
+        layer.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
+
+        LinearLayout center = new LinearLayout(this);
+        center.setOrientation(LinearLayout.VERTICAL);
+        center.setGravity(Gravity.CENTER);
+        FrameLayout.LayoutParams centerLp = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER);
+        layer.addView(center, centerLp);
+
+        startupSplashLogo = new ImageView(this);
+        startupSplashLogo.setImageResource(R.drawable.deapp_logo);
+        startupSplashLogo.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        startupSplashLogo.setContentDescription("Deapp");
+        startupSplashLogo.setScaleX(.90f);
+        startupSplashLogo.setScaleY(.90f);
+        startupSplashLogo.setAlpha(.78f);
+        center.addView(startupSplashLogo, new LinearLayout.LayoutParams(dp(96), dp(96)));
+
+        TextView brand = text("Deapp", 22, cText);
+        brand.setTypeface(Typeface.create("sans-serif-black", Typeface.BOLD));
+        brand.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams brandLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        brandLp.topMargin = dp(14);
+        center.addView(brand, brandLp);
+
+        View pulse = new View(this);
+        pulse.setBackground(rounded(cAccent, 99));
+        pulse.setAlpha(.22f);
+        LinearLayout.LayoutParams pulseLp = new LinearLayout.LayoutParams(dp(36), dp(3));
+        pulseLp.gravity = Gravity.CENTER_HORIZONTAL;
+        pulseLp.topMargin = dp(18);
+        center.addView(pulse, pulseLp);
+
+        root.addView(layer, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        startupSplashOverlay = layer;
+        startStartupLogoAnimation();
+
+        // Total splash sekitar 5 detik: fade dimulai pada 4,7 dtk dan selesai tepat di sekitar 5 dtk.
+        layer.postDelayed(() -> {
+            if (startupSplashOverlay != layer || !startupSplashVisible) return;
+            layer.animate().alpha(0f).setDuration(300).withEndAction(() -> {
+                if (startupSplashOverlay == layer) {
+                    removeViewFromParent(layer);
+                    startupSplashOverlay = null;
+                    startupSplashLogo = null;
+                }
+                startupSplashVisible = false;
+            }).start();
+        }, 4700);
+    }
+
+    private void startStartupLogoAnimation() {
+        if (!startupSplashVisible || startupSplashLogo == null || startupSplashOverlay == null) return;
+        startupSplashLogo.animate().cancel();
+        startupSplashLogo.animate()
+                .scaleX(1.08f).scaleY(1.08f).rotation(2f).alpha(1f)
+                .setDuration(650)
+                .withEndAction(() -> {
+                    if (!startupSplashVisible || startupSplashLogo == null) return;
+                    startupSplashLogo.animate()
+                            .scaleX(.90f).scaleY(.90f).rotation(-2f).alpha(.78f)
+                            .setDuration(650)
+                            .withEndAction(this::startStartupLogoAnimation)
+                            .start();
+                }).start();
     }
 
     private FrameLayout buildLoadingOverlay() {
@@ -908,18 +994,25 @@ public class MainActivity extends Activity {
         boolean shortVideoPage = reelsPage || isReelsUrl(currentUrl);
         boolean specialWebChrome = isSpecialWebChromeType(pageChromeType) || isSpecialSectionUrl(currentUrl);
 
-        // Reels serta section khusus v1.9.6 menggambar header/footer kontekstual di dalam WebView.
+        // Reels serta section khusus v1.9.6+ menggambar header/footer kontekstual di dalam WebView.
         // Chrome Android generik disembunyikan supaya tidak ada dua toolbar/nav yang bertumpuk.
         boolean showTop = isLoggedIn && !fullscreen && !authPage && !shortVideoPage && !specialWebChrome;
         if (topContainer != null) topContainer.setVisibility(showTop ? View.VISIBLE : View.GONE);
         updateTopBarMode();
 
-        boolean showBottom = isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage && !postDetailPage && !shortVideoPage && !specialWebChrome;
+        boolean sheetActive = activeSheetOverlay != null || webSheetOpen;
+        boolean showBottom = isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage && !postDetailPage && !shortVideoPage && !specialWebChrome && !sheetActive;
         if (bottomContainer != null) bottomContainer.setVisibility(showBottom ? View.VISIBLE : View.GONE);
-        boolean showFloatingCompose = isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage && !postDetailPage && !shortVideoPage && !specialWebChrome;
+        boolean showFloatingCompose = isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage && !postDetailPage && !shortVideoPage && !specialWebChrome && !sheetActive;
         if (composeFab != null) {
             composeFab.setVisibility(showFloatingCompose ? View.VISIBLE : View.GONE);
             composeFab.setContentDescription(profilePage ? "Buat postingan di profil" : "Buat postingan");
+        }
+
+        // Web bottom sheets berada di dalam WebView sehingga tidak otomatis meredupkan
+        // toolbar Android. Tambahkan lapisan gelap tipis agar konsisten seperti Threads.
+        if (topContainer != null) {
+            topContainer.setForeground(webSheetOpen ? new ColorDrawable(Color.parseColor("#1F000000")) : null);
         }
 
         if (root != null) {
@@ -997,7 +1090,7 @@ public class MainActivity extends Activity {
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.6 NativeMobile/9.6");
+        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.7 NativeMobile/9.7");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) s.setSafeBrowsingEnabled(true);
 
         CookieManager cm = CookieManager.getInstance();
@@ -1279,7 +1372,7 @@ public class MainActivity extends Activity {
         if (root == null) return;
 
         FrameLayout overlay = new FrameLayout(this);
-        overlay.setBackgroundColor(Color.parseColor("#70000000"));
+        overlay.setBackgroundColor(Color.parseColor("#52000000"));
         overlay.setClickable(true);
         overlay.setFocusable(true);
         overlay.setOnClickListener(v -> dismissBottomSheet(true));
@@ -1317,6 +1410,7 @@ public class MainActivity extends Activity {
         activeSheetOverlay = overlay;
         activeSheetPanel = sheet;
         syncExternalSheetLock(true);
+        updateChromeVisibility();
         updateRefreshAvailability();
 
         ViewCompat.setOnApplyWindowInsetsListener(sheet, (v, insets) -> {
@@ -1357,6 +1451,7 @@ public class MainActivity extends Activity {
 
         syncExternalSheetLock(false);
         if (webView != null) webView.postDelayed(this::recoverWebScroll, 60);
+        updateChromeVisibility();
         updateRefreshAvailability();
         if (animate && panel != null) {
             panel.animate().translationY(Math.max(panel.getHeight(), dp(420))).setDuration(180)
@@ -1603,6 +1698,7 @@ public class MainActivity extends Activity {
         public void syncWebSheetState(boolean open) {
             runOnUiThread(() -> {
                 webSheetOpen = open;
+                updateChromeVisibility();
                 updateRefreshAvailability();
             });
         }
@@ -1649,7 +1745,7 @@ public class MainActivity extends Activity {
                 conn.setInstanceFollowRedirects(true);
                 String cookie = CookieManager.getInstance().getCookie(avatarUrl);
                 if (cookie != null && !cookie.isEmpty()) conn.setRequestProperty("Cookie", cookie);
-                conn.setRequestProperty("User-Agent", "DeappLite/1.9.5");
+                conn.setRequestProperty("User-Agent", "DeappLite/1.9.7");
                 try (InputStream in = conn.getInputStream()) {
                     Bitmap bitmap = BitmapFactory.decodeStream(in);
                     if (bitmap != null) runOnUiThread(() -> {
@@ -2097,6 +2193,14 @@ public class MainActivity extends Activity {
         composeFab = null;
         if (loadingLogo != null) loadingLogo.animate().cancel();
         loadingLogo = null;
+        startupSplashVisible = false;
+        if (startupSplashLogo != null) startupSplashLogo.animate().cancel();
+        startupSplashLogo = null;
+        if (startupSplashOverlay != null) {
+            startupSplashOverlay.animate().cancel();
+            removeViewFromParent(startupSplashOverlay);
+        }
+        startupSplashOverlay = null;
         featureMenuButton = null;
         toolbarLogo = null;
         toolbarTitle = null;

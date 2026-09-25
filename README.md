@@ -1,21 +1,21 @@
-# DeApp Lite Android v1.9.6 — Section Chrome
+# DeApp Lite Android v1.9.7 — Bottom Sheet + Startup Splash
 
-Patch ini melanjutkan v1.9.5 dan memberi header/footer khusus untuk bagian utama aplikasi beserta subhalamannya.
+Patch ini melanjutkan v1.9.6 dan merapikan perilaku modal/bottom sheet serta layar pembuka aplikasi.
 
 ## Perubahan utama
 
-- **Story/Cerita** memakai chrome fullscreen dari viewer asli DeApp: progress, identitas pengguna, tombol tutup, reply, reaction, komentar, dan penonton ditata ulang agar lebih native.
-- **Chat**: daftar percakapan memiliki header/footer khusus. Saat percakapan dibuka, header lawan bicara dan composer pesan asli menjadi chrome khusus agar fitur hadiah, opsi, voice note, gambar, emoji, stiker, dan kirim tetap bekerja.
-- **Notifikasi**: header kontekstual mengikuti filter dan footer cepat untuk Semua, Sebutan, Balasan, Reaksi, dan Sistem.
-- **Live**: header/footer khusus untuk Jelajah Live, Mengikuti, Creator Studio, Live Saya, dan ruang Live.
-- **DeApp AI**: header khusus dengan aksi Chat Baru dan footer yang tersinkron dengan Chat AI, AI Tools, Kreator, dan Pustaka.
-- **Toko & Dompet**: judul header mengikuti tab aktif; footer mengelompokkan Dompet, Etalase, VIP, Hadiah, dan Koleksi.
-- **Pengaturan + subhalaman**: header mengikuti halaman aktif dan footer cepat Akun, Tampilan, Privasi, Keamanan, dan Bantuan. Termasuk Security Center, sandi, email, PIN dompet, 2FA, sesi/perangkat, Help, Privacy, Policy, Cookie, dan Profile Studio.
-- Header/footer Android generik disembunyikan otomatis pada section di atas supaya tidak terjadi navigasi ganda.
-- System bar Story/Reels memakai ikon terang untuk kontras dengan latar gelap.
-- Semua perbaikan v1.9.5 tetap dipertahankan: preview posting 250 karakter, Reels khusus, komentar ala Threads, Story aktif, composer publish, loader logo, optimasi performa, dan recovery scroll/tap.
+- Navigasi menu bawah Android otomatis disembunyikan ketika bottom sheet native atau bottom sheet/modal web sedang aktif.
+- Footer section khusus seperti Notifikasi, Live, DeApp AI, Toko & Dompet, Pengaturan, dan Video Pendek ikut disembunyikan ketika sheet aktif.
+- Header tetap terlihat tetapi diberi efek gelap/dim ringan seperti latar belakang modal bottom sheet Threads.
+- Bottom sheet native menggunakan scrim yang lebih lembut supaya halaman di belakang tetap terbaca tanpa terasa terlalu gelap.
+- Deteksi bottom sheet diperluas ke Story, komentar/more Video Pendek, modal web, menu postingan, dan sheet profil.
+- Floating composer ikut disembunyikan selama bottom sheet aktif agar tidak bertabrakan dengan modal.
+- Splash pembuka baru menampilkan animasi logo DeApp selama sekitar 5 detik.
+- WebView langsung memuat server di belakang splash sehingga durasi splash tidak menunda awal koneksi halaman.
+- Splash hanya tampil sekali per pembukaan Activity/aplikasi, bukan setiap perpindahan halaman.
+- Semua perbaikan v1.9.6 tetap dipertahankan: section chrome, Story, Chat, Notifikasi, Live, DeApp AI, Toko & Dompet, Pengaturan, post 250 karakter, Reels, komentar ala Threads, composer, scroll/tap recovery, dan optimasi loading.
 
-Versi Android: **1.9.6-lite (Build 16)**.
+Versi Android: **1.9.7-lite (Build 17)**.
 
 ## File patch
 
