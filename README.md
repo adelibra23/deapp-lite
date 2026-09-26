@@ -61,3 +61,6 @@ Sebagian backend lama masih mengembalikan HTML. DeApp Android tidak menampilkan 
 
 ## GitHub Actions
 Workflow diganti menjadi `Build DeApp Android APK` dan artifact menjadi `deapp-android-apk` / `deapp-android.apk`.
+
+## Build 45 compile correction
+GitHub Actions run #37 exposed one Java lambda capture error in `renderNativeBlock()`. The v2.1.0 build-fix package freezes the action label/href before the click listener so `compileDebugJavaWithJavac` can continue. Version remains 2.1.0 Build 45.
