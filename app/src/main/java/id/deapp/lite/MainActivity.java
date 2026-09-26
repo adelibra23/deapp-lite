@@ -96,6 +96,9 @@ public class MainActivity extends Activity {
     private FrameLayout refreshIndicator;
     private ImageView refreshIcon;
     private boolean refreshIconAnimating = false;
+    private float refreshPullStartY = Float.NaN;
+    private boolean refreshPullPreview = false;
+    private long refreshIndicatorShownAt = 0L;
     private FrameLayout startupSplashOverlay;
     private ImageView startupSplashLogo;
     private boolean startupSplashVisible = false;
@@ -559,10 +562,44 @@ public class MainActivity extends Activity {
 
         @Override
         protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
+            // Jangan gambar CircleImageView + progress arrow bawaan SwipeRefreshLayout.
+            // DeApp hanya memakai indikator custom agar tidak pernah muncul dua spinner.
             if (child != null && child.getClass().getName().contains("CircleImageView")) {
                 return true;
             }
             return super.drawChild(canvas, child, drawingTime);
+        }
+
+        @Override
+        public boolean dispatchTouchEvent(MotionEvent ev) {
+            if (ev != null && isEnabled()) {
+                switch (ev.getActionMasked()) {
+                    case MotionEvent.ACTION_DOWN:
+                        refreshPullStartY = ev.getY();
+                        refreshPullPreview = false;
+                        break;
+                    case MotionEvent.ACTION_MOVE:
+                        if (!Float.isNaN(refreshPullStartY) && !isRefreshing() &&
+                                activeSheetOverlay == null && !webSheetOpen && !composerOpen &&
+                                webView != null && !webView.canScrollVertically(-1)) {
+                            float dy = ev.getY() - refreshPullStartY;
+                            if (dy > dp(6)) {
+                                refreshPullPreview = true;
+                                updateRefreshPullIndicator(dy);
+                            }
+                        }
+                        break;
+                    case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL:
+                        refreshPullStartY = Float.NaN;
+                        if (refreshPullPreview && !isRefreshing()) {
+                            refreshPullPreview = false;
+                            hideRefreshPreview();
+                        }
+                        break;
+                }
+            }
+            return super.dispatchTouchEvent(ev);
         }
     }
 
@@ -718,21 +755,23 @@ public class MainActivity extends Activity {
     private FrameLayout buildRefreshIndicator() {
         FrameLayout holder = new FrameLayout(this);
         holder.setBackgroundColor(Color.TRANSPARENT);
-        holder.setElevation(0f);
+        holder.setElevation(dp(12));
         holder.setVisibility(View.GONE);
         holder.setAlpha(0f);
-        holder.setScaleX(.84f);
-        holder.setScaleY(.84f);
+        holder.setScaleX(.82f);
+        holder.setScaleY(.82f);
+        holder.setTranslationY(-dp(10));
         holder.setClickable(false);
         holder.setFocusable(false);
 
         refreshIcon = new ImageView(this);
-        refreshIcon.setImageResource(R.drawable.deapp_logo);
-        refreshIcon.clearColorFilter();
+        // Spinner outline minimal seperti Threads, tetapi tetap memakai aset native DeApp.
+        refreshIcon.setImageResource(R.drawable.ic_native_refresh);
+        refreshIcon.setColorFilter(cText);
         refreshIcon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        refreshIcon.setPadding(dp(7), dp(7), dp(7), dp(7));
+        refreshIcon.setPadding(dp(9), dp(9), dp(9), dp(9));
         refreshIcon.setContentDescription("Memperbarui halaman");
-        holder.addView(refreshIcon, new FrameLayout.LayoutParams(dp(46), dp(46), Gravity.CENTER));
+        holder.addView(refreshIcon, new FrameLayout.LayoutParams(dp(42), dp(42), Gravity.CENTER));
         return holder;
     }
 
@@ -740,49 +779,89 @@ public class MainActivity extends Activity {
         if (refreshIndicator == null) return;
         refreshIndicator.animate().cancel();
         if (show) {
+            refreshPullPreview = false;
+            refreshIndicatorShownAt = System.currentTimeMillis();
+            refreshIndicator.bringToFront();
             refreshIndicator.setVisibility(View.VISIBLE);
-            refreshIndicator.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(150).start();
+            refreshIndicator.animate().alpha(1f).scaleX(1f).scaleY(1f).translationY(0f).setDuration(140).start();
             refreshIconAnimating = true;
             startRefreshIconAnimation();
         } else {
             refreshIconAnimating = false;
             if (refreshIcon != null) refreshIcon.animate().cancel();
-            refreshIndicator.animate().alpha(0f).scaleX(.88f).scaleY(.88f).setDuration(140)
-                    .withEndAction(() -> {
-                        if (!refreshIconAnimating && refreshIndicator != null) refreshIndicator.setVisibility(View.GONE);
-                    }).start();
+            long elapsed = System.currentTimeMillis() - refreshIndicatorShownAt;
+            long wait = Math.max(0L, 520L - elapsed);
+            refreshIndicator.postDelayed(() -> finishHideRefreshIndicator(), wait);
         }
+    }
+
+    private void finishHideRefreshIndicator() {
+        if (refreshIndicator == null || refreshIconAnimating || refreshPullPreview) return;
+        refreshIndicator.animate().cancel();
+        refreshIndicator.animate().alpha(0f).scaleX(.88f).scaleY(.88f).translationY(-dp(8)).setDuration(140)
+                .withEndAction(() -> {
+                    if (!refreshIconAnimating && !refreshPullPreview && refreshIndicator != null) {
+                        refreshIndicator.setVisibility(View.GONE);
+                    }
+                }).start();
+    }
+
+    private void updateRefreshPullIndicator(float dy) {
+        if (refreshIndicator == null || refreshIcon == null) return;
+        float trigger = Math.max(1f, dp(78));
+        float progress = Math.max(0f, Math.min(1f, (dy - dp(6)) / trigger));
+        refreshIconAnimating = false;
+        refreshIndicator.animate().cancel();
+        refreshIcon.animate().cancel();
+        refreshIndicator.bringToFront();
+        refreshIndicator.setVisibility(View.VISIBLE);
+        refreshIndicator.setAlpha(Math.min(1f, .18f + progress * .82f));
+        float scale = .78f + .22f * progress;
+        refreshIndicator.setScaleX(scale);
+        refreshIndicator.setScaleY(scale);
+        refreshIndicator.setTranslationY(-dp(10) + dp(18) * progress);
+        refreshIcon.setRotation(220f * progress);
+    }
+
+    private void hideRefreshPreview() {
+        if (refreshIndicator == null || refreshIconAnimating) return;
+        if (refreshIcon != null) refreshIcon.animate().cancel();
+        refreshIndicator.animate().cancel();
+        refreshIndicator.animate().alpha(0f).scaleX(.84f).scaleY(.84f).translationY(-dp(10)).setDuration(130)
+                .withEndAction(() -> {
+                    if (!refreshIconAnimating && refreshIndicator != null) {
+                        refreshIndicator.setVisibility(View.GONE);
+                        if (refreshIcon != null) refreshIcon.setRotation(0f);
+                    }
+                }).start();
     }
 
     private void startRefreshIconAnimation() {
         if (!refreshIconAnimating || refreshIcon == null || refreshIndicator == null || refreshIndicator.getVisibility() != View.VISIBLE) return;
         refreshIcon.animate().cancel();
         refreshIcon.animate()
-                .rotationBy(360f).scaleX(1.08f).scaleY(1.08f)
-                .setDuration(720).setInterpolator(new LinearInterpolator())
-                .withEndAction(() -> {
-                    if (refreshIcon != null) {
-                        refreshIcon.setScaleX(1f);
-                        refreshIcon.setScaleY(1f);
-                    }
-                    startRefreshIconAnimation();
-                }).start();
+                .rotationBy(360f)
+                .setDuration(680).setInterpolator(new LinearInterpolator())
+                .withEndAction(this::startRefreshIconAnimation).start();
     }
 
     private void preparePageReveal(boolean refreshing) {
         if (webView == null || refreshing) return;
+        // Transisi ala Threads: sangat halus, tidak membuat halaman terasa seperti WebView reload.
         webView.animate().cancel();
-        webView.setAlpha(.82f);
-        webView.setTranslationY(dp(5));
+        webView.setAlpha(.70f);
+        webView.setTranslationY(dp(7));
+        webView.setScaleX(.995f);
+        webView.setScaleY(.995f);
     }
 
     private void playPageReveal() {
         if (webView == null) return;
         webView.animate().cancel();
         webView.animate()
-                .alpha(1f).translationY(0f)
-                .setDuration(210)
-                .setInterpolator(new DecelerateInterpolator())
+                .alpha(1f).translationY(0f).scaleX(1f).scaleY(1f)
+                .setDuration(235)
+                .setInterpolator(new DecelerateInterpolator(1.65f))
                 .start();
     }
 
@@ -1209,8 +1288,10 @@ public class MainActivity extends Activity {
         // Web bottom sheets berada di dalam WebView sehingga tidak otomatis meredupkan
         // toolbar Android. Tambahkan lapisan gelap tipis agar konsisten seperti Threads.
         if (topContainer != null) {
-            // v1.9.22: native maupun web bottom sheet meredupkan header Android juga.
-            topContainer.setForeground(sheetActive ? new ColorDrawable(Color.parseColor("#4D000000")) : null);
+            // Native sheet sudah memiliki scrim full-screen sendiri, sehingga menambah foreground
+            // lagi akan membuat header lebih gelap daripada body. Untuk web sheet saja, samakan
+            // alpha header native dengan scrim WebView (42%).
+            topContainer.setForeground(webSheetOpen ? new ColorDrawable(Color.parseColor("#6B000000")) : null);
         }
 
         if (root != null) {
@@ -1259,7 +1340,7 @@ public class MainActivity extends Activity {
             swipeRefresh.setProgressBackgroundColorSchemeColor(Color.TRANSPARENT);
         }
         if (refreshIndicator != null) refreshIndicator.setBackgroundColor(Color.TRANSPARENT);
-        if (refreshIcon != null) refreshIcon.clearColorFilter();
+        if (refreshIcon != null) refreshIcon.setColorFilter(cText);
         if (navHome != null) navHome.refreshTheme();
         if (navMessage != null) navMessage.refreshTheme();
         if (navCompose != null) navCompose.refreshTheme();
@@ -1343,7 +1424,7 @@ public class MainActivity extends Activity {
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.25 NativeMobile/9.25");
+        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.27 NativeMobile/9.27");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) s.setSafeBrowsingEnabled(true);
 
         CookieManager cm = CookieManager.getInstance();
@@ -1376,7 +1457,7 @@ public class MainActivity extends Activity {
                                     (swipeRefresh == null || !swipeRefresh.isRefreshing())) {
                                 showLoading();
                             }
-                        }, 120);
+                        }, 360);
                     }
                 }
                 currentUrl = url == null ? "" : url;
@@ -1636,7 +1717,7 @@ public class MainActivity extends Activity {
         if (root == null) return;
 
         FrameLayout overlay = new FrameLayout(this);
-        overlay.setBackgroundColor(Color.parseColor("#42000000"));
+        overlay.setBackgroundColor(Color.parseColor("#6B000000"));
         overlay.setClickable(true);
         overlay.setFocusable(true);
         overlay.setOnClickListener(v -> dismissBottomSheet(true));
@@ -2037,7 +2118,7 @@ public class MainActivity extends Activity {
                 conn.setInstanceFollowRedirects(true);
                 String cookie = CookieManager.getInstance().getCookie(avatarUrl);
                 if (cookie != null && !cookie.isEmpty()) conn.setRequestProperty("Cookie", cookie);
-                conn.setRequestProperty("User-Agent", "DeappLite/1.9.25");
+                conn.setRequestProperty("User-Agent", "DeappLite/1.9.27");
                 try (InputStream in = conn.getInputStream()) {
                     Bitmap bitmap = BitmapFactory.decodeStream(in);
                     if (bitmap != null) runOnUiThread(() -> {
@@ -2274,7 +2355,7 @@ public class MainActivity extends Activity {
         name.setGravity(Gravity.CENTER);
         box.addView(name);
 
-        TextView version = text("Versi 1.9.25-lite · Build 35", 13, cMuted);
+        TextView version = text("Versi 1.9.27-lite · Build 37", 13, cMuted);
         version.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams versionLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);

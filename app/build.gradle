@@ -10,8 +10,8 @@ android {
         applicationId 'id.deapp.lite'
         minSdk 24
         targetSdk 35
-        versionCode 35
-        versionName '1.9.25-lite'
+        versionCode 37
+        versionName '1.9.27-lite'
     }
 
     compileOptions {

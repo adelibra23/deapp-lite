@@ -166,3 +166,20 @@ Versi: **1.9.15-lite · Build 25 · NativeMobile/9.15**.
 - Static App Shortcuts via `res/xml/shortcuts.xml`: Postingan, Video, Cerita, Chat.
 - `MainActivity` memproses deep shortcut `deapp://shortcut/...` saat cold start dan `onNewIntent`.
 - Chat submit memberi send sound pendek melalui native bridge `chatSent()` setelah composer terdeteksi kosong kembali.
+
+
+## v1.9.26 — Threads Page Motion, Refresh Visibility & Unified Sheet Scrim
+
+- Build **36**, versi **1.9.26-lite**, UA `NativeMobile/9.26`.
+- Transisi halaman memakai fade/micro-slide/scale halus.
+- Pull-to-refresh menampilkan indikator custom sejak drag dimulai dan spinner bawaan tidak digambar.
+- Indikator refresh minimum-visible 520ms agar tidak hilang sebelum terlihat.
+- Native/web bottom sheet menggunakan scrim visual setara 42% untuk body dan header.
+- Header tidak lagi menerima brightness/filter tambahan yang menyebabkan double-dim.
+
+## v1.9.27 — Notification Filter Shell & Settings Header Save
+
+- Build **37**, versi **1.9.27-lite**, UA `NativeMobile/9.27`.
+- Notifikasi memakai filter shell dua tingkat: kategori horizontal dan status baca terpisah.
+- Pengaturan Profil dipecah menjadi Foto profil & Sampul, Info Profil, dan Username.
+- Mode Tampilan, Pengalaman Aplikasi, Bahasa & Terjemahan, dan Aksesibilitas memakai aksi Simpan di header kanan atas.

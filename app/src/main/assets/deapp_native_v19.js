@@ -1538,7 +1538,105 @@
       html.deapp-native-settings-family .topup-order-grid,html.deapp-native-settings-family .topup-proof-form{grid-template-columns:1fr!important}
       html.deapp-native-settings-family .topup-form-actions{grid-column:1!important}
     }
-  `;
+  
+
+    /* v1.9.26 — Threads-like page/sheet polish. Satu scrim konsisten untuk seluruh WebView. */
+    html.deapp-web-sheet-active body:after{
+      content:"";position:fixed;inset:0;z-index:4480;background:rgba(0,0,0,.42);pointer-events:none;
+      animation:deappUnifiedScrimIn .14s ease both!important
+    }
+    @keyframes deappUnifiedScrimIn{from{opacity:0}to{opacity:1}}
+    html.deapp-bottom-sheet-active .deapp-section-header,
+    html.deapp-bottom-sheet-active .deapp-reels-header,
+    html.deapp-bottom-sheet-active .story-topbar,
+    html.deapp-bottom-sheet-active .chat-head{
+      filter:none!important;-webkit-filter:none!important;box-shadow:none!important;
+    }
+    .modal-overlay:not(#composer-modal),.deapp-cookie-modal,dialog.c-modal[open]{
+      z-index:4490!important;background:transparent!important
+    }
+    dialog.c-modal[open]::backdrop{background:transparent!important}
+    .deapp-post-sheet-backdrop,.deapp-native-profile-options-backdrop{
+      z-index:4485!important;background:transparent!important
+    }
+    .post-card .menu-wrap.open>.dropdown,.deapp-native-profile-options-sheet,#story-sheet:not([hidden]),.reel-sheet:not([hidden]){z-index:4490!important}
+
+    /* v1.9.27 — notification filter shell, profile setting subpages, dan save action di header. */
+    html.deapp-native-notifications .deapp-notif-filter-shell{
+      position:sticky!important;top:calc(58px + env(safe-area-inset-top))!important;z-index:4432!important;
+      display:block!important;width:100%!important;margin:0!important;padding:0!important;
+      background:color-mix(in srgb,var(--surface) 97%,transparent)!important;
+      border-bottom:1px solid color-mix(in srgb,var(--border) 66%,transparent)!important;
+      backdrop-filter:blur(18px)!important;-webkit-backdrop-filter:blur(18px)!important
+    }
+    html.deapp-native-notifications .deapp-notif-filter-shell .deapp-notification-tabs{
+      position:relative!important;top:auto!important;z-index:auto!important;margin:0!important;padding:7px 10px 5px!important;
+      border:0!important;background:transparent!important;box-shadow:none!important
+    }
+    html.deapp-native-notifications .deapp-notif-filter-shell .deapp-notif-status-tabs{
+      position:relative!important;top:auto!important;z-index:auto!important;margin:0!important;padding:4px 10px 7px!important;
+      border:0!important;background:transparent!important;min-height:40px!important
+    }
+    html.deapp-native-notifications .deapp-notif-filter-shell .deapp-notif-status-tabs:before{
+      content:"Status";flex:0 0 auto;margin-right:3px;color:var(--text-faint);font-size:10px;font-weight:720;letter-spacing:.01em
+    }
+    html.deapp-native-notifications .deapp-notif-status-tabs a{
+      min-height:30px!important;padding:5px 11px!important;border-radius:999px!important;background:transparent!important;
+      border:1px solid color-mix(in srgb,var(--border) 86%,transparent)!important
+    }
+    html.deapp-native-notifications .deapp-notif-status-tabs a.is-active{
+      background:var(--text)!important;color:var(--surface)!important;border-color:var(--text)!important
+    }
+    html.deapp-native-notifications .deapp-notif-status-label{
+      margin-left:auto!important;max-width:92px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important
+    }
+    html.deapp-native-notifications .notif-layout{margin-top:0!important}
+
+    html.deapp-native-settings-family.deapp-profile-settings-hub-mode .deapp-profile-settings-hidden,
+    html.deapp-native-settings-family.deapp-profile-settings-detail .deapp-profile-settings-hidden{display:none!important}
+    html.deapp-native-settings-family .deapp-profile-settings-hub{
+      display:block!important;margin:0!important;padding:2px 2px 16px!important;background:var(--surface)!important
+    }
+    html.deapp-native-settings-family .deapp-profile-settings-link{
+      position:relative!important;display:grid!important;grid-template-columns:42px minmax(0,1fr) 20px!important;align-items:center!important;
+      gap:11px!important;min-height:68px!important;padding:9px 8px!important;text-decoration:none!important;color:var(--text)!important;
+      border:0!important;border-radius:0!important;background:transparent!important
+    }
+    html.deapp-native-settings-family .deapp-profile-settings-link:after{
+      content:"";position:absolute;left:61px;right:0;bottom:0;height:1px;background:color-mix(in srgb,var(--border) 68%,transparent)
+    }
+    html.deapp-native-settings-family .deapp-profile-settings-link:last-child:after{display:none!important}
+    html.deapp-native-settings-family .deapp-profile-settings-link:active{background:var(--surface-2)!important}
+    html.deapp-native-settings-family .deapp-profile-settings-icon{
+      width:40px!important;height:40px!important;border-radius:12px!important;display:grid!important;place-items:center!important;
+      background:var(--surface-2)!important;color:var(--text)!important
+    }
+    html.deapp-native-settings-family .deapp-profile-settings-icon svg{width:20px!important;height:20px!important;stroke-width:1.8!important}
+    html.deapp-native-settings-family .deapp-profile-settings-copy{display:block!important;min-width:0!important}
+    html.deapp-native-settings-family .deapp-profile-settings-copy b{display:block!important;font-size:14.5px!important;font-weight:760!important;line-height:1.22!important}
+    html.deapp-native-settings-family .deapp-profile-settings-copy small{display:block!important;margin-top:3px!important;color:var(--text-muted)!important;font-size:11.2px!important;line-height:1.35!important}
+    html.deapp-native-settings-family .deapp-profile-settings-chevron{justify-self:end!important;color:var(--text-faint)!important;font-size:24px!important;font-weight:300!important}
+    html.deapp-native-settings-family.deapp-profile-settings-detail .settings-body>.settings-section:not(.deapp-profile-settings-hidden){
+      margin:0!important;border-radius:16px!important
+    }
+
+    html.deapp-native-settings-family.deapp-settings-header-save .deapp-section-action{
+      visibility:visible!important;pointer-events:auto!important;display:grid!important;place-items:center!important;
+      border-radius:50%!important;color:var(--text)!important;background:transparent!important
+    }
+    html.deapp-native-settings-family.deapp-settings-header-save .deapp-section-action svg{width:24px!important;height:24px!important;stroke-width:2!important}
+    html.deapp-native-settings-family.deapp-settings-header-save .deapp-section-action:active{background:var(--surface-2)!important;transform:scale(.94)!important}
+    html.deapp-native-settings-family.deapp-settings-header-save .deapp-section-action:disabled{
+      opacity:.34!important;pointer-events:none!important
+    }
+    html.deapp-native-settings-family .deapp-settings-save-in-header .deapp-original-settings-save{display:none!important}
+    html.deapp-native-settings-family.deapp-settings-header-save .settings-body{padding-bottom:18px!important}
+
+    @media(max-width:430px){
+      html.deapp-native-notifications .deapp-notif-status-label{display:none!important}
+      html.deapp-native-notifications .deapp-notif-filter-shell .deapp-notif-status-tabs:before{margin-right:auto!important}
+    }
+`;
   document.head.appendChild(style);
 
   function nativeTap() {
@@ -1936,7 +2034,7 @@
       const row = document.createElement('button');
       row.type = 'button';
       row.className = 'snav deapp-native-about-row';
-      row.innerHTML = '<span class="deapp-settings-native-icon">ⓘ</span><span><b>Tentang aplikasi</b><small>Deapp Lite untuk Android</small></span><span class="deapp-version-pill">v1.9.25-lite</span>';
+      row.innerHTML = '<span class="deapp-settings-native-icon">ⓘ</span><span><b>Tentang aplikasi</b><small>Deapp Lite untuk Android</small></span><span class="deapp-version-pill">v1.9.27-lite</span>';
       row.addEventListener('click', function(){
         nativeTap();
         try { if (API && API.showAboutApp) API.showAboutApp(); } catch (_) {}
@@ -2110,7 +2208,13 @@
   function syncSheetVisualState() {
     const open = !!(currentWebSheetOpen || externalNativeSheetOpen);
     root.classList.toggle('deapp-bottom-sheet-active', open);
-    if (document.body) document.body.classList.toggle('deapp-bottom-sheet-active', open);
+    root.classList.toggle('deapp-web-sheet-active', !!currentWebSheetOpen);
+    root.classList.toggle('deapp-external-native-sheet-active', !!externalNativeSheetOpen);
+    if (document.body) {
+      document.body.classList.toggle('deapp-bottom-sheet-active', open);
+      document.body.classList.toggle('deapp-web-sheet-active', !!currentWebSheetOpen);
+      document.body.classList.toggle('deapp-external-native-sheet-active', !!externalNativeSheetOpen);
+    }
   }
 
   function setExternalSheetOpen(open) {
@@ -2331,7 +2435,8 @@
       sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>',
       menu:'<path d="M4 7h16M4 12h16M4 17h16"/>',
       logout:'<path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M13 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/>',
-      more:'<circle cx="5" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1" fill="currentColor" stroke="none"/>'
+      more:'<circle cx="5" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1" fill="currentColor" stroke="none"/>',
+      save:'<path d="m5 12.5 4.2 4.2L19 7"/>'
     };
     return '<svg '+c+'>'+(m[name]||m.grid)+'</svg>';
   }
@@ -2394,7 +2499,12 @@
     a.style.visibility='visible';
     a.innerHTML = sectionIcon(action.icon || 'more');
     a.setAttribute('aria-label', action.label || 'Aksi');
-    a.addEventListener('click', function(e){ e.preventDefault(); if (action.run) action.run(); else if (action.href) goSection(action.href); });
+    if (action.disabled) { a.disabled = true; a.setAttribute('aria-disabled','true'); }
+    a.addEventListener('click', function(e){
+      e.preventDefault();
+      if (a.disabled || a.getAttribute('aria-disabled') === 'true') return;
+      if (action.run) action.run(); else if (action.href) goSection(action.href);
+    });
     return h;
   }
 
@@ -2493,26 +2603,51 @@
     const filter = document.querySelector('.nx-filter');
     if (filter) filter.hidden = true;
 
-    let tabs = document.querySelector('.deapp-notification-tabs') || document.querySelector('.tabs.sticky-tabs');
-    let status = document.querySelector('.deapp-notif-status-tabs');
+    const tabs = document.querySelector('.deapp-notification-tabs') || document.querySelector('.tabs.sticky-tabs');
+    if (!tabs) return;
+    tabs.classList.add('deapp-notification-tabs');
+
+    let shell = document.querySelector('.deapp-notif-filter-shell');
+    if (!shell) {
+      shell = document.createElement('div');
+      shell.className = 'deapp-notif-filter-shell';
+      tabs.parentNode.insertBefore(shell, tabs);
+      shell.appendChild(tabs);
+    } else if (tabs.parentNode !== shell) {
+      shell.insertBefore(tabs, shell.firstChild);
+    }
+
+    let status = shell.querySelector('.deapp-notif-status-tabs');
+    const u = new URL(location.href);
+    const unread = u.searchParams.get('unread') === '1';
     if (!status) {
       status = document.createElement('nav');
       status.className = 'deapp-notif-status-tabs';
       status.setAttribute('aria-label','Status notifikasi');
-      const u = new URL(location.href);
-      const make = function(label, unread, active){
-        const a=document.createElement('a');
-        const x=new URL(u.href); x.searchParams.set('unread', unread ? '1' : '0'); x.searchParams.delete('q');
-        a.href=x.href; a.textContent=label; a.className=active?'is-active':''; return a;
-      };
-      const unread = u.searchParams.get('unread') === '1';
-      status.appendChild(make('Semua',false,!unread));
-      status.appendChild(make('Belum dibaca',true,unread));
-      const label=document.createElement('span'); label.className='deapp-notif-status-label'; label.textContent=unread?'Menampilkan yang belum dibaca':'Semua status';
-      status.appendChild(label);
-      if (tabs && tabs.parentNode) tabs.parentNode.insertBefore(status, tabs.nextSibling);
-      else if (filter && filter.parentNode) filter.parentNode.insertBefore(status, filter);
+      shell.appendChild(status);
     }
+    status.innerHTML = '';
+    const make = function(label, unreadValue, active){
+      const a=document.createElement('a');
+      const x=new URL(u.href);
+      x.searchParams.set('unread', unreadValue ? '1' : '0');
+      x.searchParams.delete('q');
+      a.href=x.href; a.textContent=label; a.className=active?'is-active':'';
+      return a;
+    };
+    status.appendChild(make('Semua',false,!unread));
+    status.appendChild(make('Belum dibaca',true,unread));
+    const label=document.createElement('span');
+    label.className='deapp-notif-status-label';
+    label.textContent=unread?'Belum dibaca':'Semua status';
+    status.appendChild(label);
+
+    const active=tabs.querySelector('.tab.active');
+    if (active && tabs.dataset.deappStatusCentered !== (u.searchParams.get('f')||'all')) {
+      tabs.dataset.deappStatusCentered=(u.searchParams.get('f')||'all');
+      setTimeout(function(){ try { active.scrollIntoView({behavior:'auto',block:'nearest',inline:'center'}); } catch (_) {} },50);
+    }
+
     document.querySelectorAll('.notif-item').forEach(function(item){
       let state=item.querySelector('.deapp-notif-read-state');
       if (!state) { state=document.createElement('span'); state.className='deapp-notif-read-state'; item.appendChild(state); }
@@ -2630,9 +2765,10 @@
     if (oldFooter) oldFooter.remove();
     const tabs=document.querySelector('.tabs.sticky-tabs');
     const filter=document.querySelector('.nx-filter');
+    const shell=document.querySelector('.deapp-notif-filter-shell');
     if (tabs) {
       tabs.classList.add('deapp-notification-tabs');
-      if (filter && tabs.nextElementSibling !== filter && filter.parentNode) filter.parentNode.insertBefore(tabs, filter);
+      if (!shell && filter && tabs.nextElementSibling !== filter && filter.parentNode) filter.parentNode.insertBefore(tabs, filter);
       const active=tabs.querySelector('.tab.active');
       if (active && tabs.dataset.deappCentered !== f) {
         tabs.dataset.deappCentered=f;
@@ -2796,7 +2932,87 @@
     const oldFooter=document.querySelector('.deapp-section-footer[data-section="shop"]'); if(oldFooter) oldFooter.remove();
   }
 
-  const settingNames={profile:'Profil',appearance:'Tampilan',experience:'Pengalaman aplikasi',language:'Bahasa',ai:'Deapp AI',characters:'Karakter AI',access:'Aksesibilitas',premium:'Premium & mood',topup:'Top Up Koin',focus:'Ruang Fokus',notifications:'Notifikasi',privacy:'Privasi',words:'Kata dibisukan',blocked:'Diblokir & dibisukan',notes:'Catatan pribadi',away:'Arsip & mode rehat',security:'Keamanan',sessions:'Perangkat & sesi',verify:'Verifikasi',data:'Data saya',account:'Akun'};
+  const settingNames={profile:'Profil',appearance:'Mode tampilan',experience:'Pengalaman aplikasi',language:'Bahasa & terjemahan',ai:'Deapp AI',characters:'Karakter AI',access:'Aksesibilitas',premium:'Premium & mood',topup:'Top Up Koin',focus:'Ruang Fokus',notifications:'Notifikasi',privacy:'Privasi',words:'Kata dibisukan',blocked:'Diblokir & dibisukan',notes:'Catatan pribadi',away:'Arsip & mode rehat',security:'Keamanan',sessions:'Perangkat & sesi',verify:'Verifikasi',data:'Data saya',account:'Akun'};
+  const profileSettingPages={
+    photos:{title:'Foto profil & Sampul',desc:'Atur foto profil dan gambar sampul akun.',icon:'camera'},
+    info:{title:'Info Profil',desc:'Nama, bio, lokasi, situs web dan informasi profil.',icon:'user'},
+    username:{title:'Username',desc:'Kelola @username dan riwayat pergantian nama.',icon:'at'}
+  };
+  const headerSaveTabs={appearance:'appearance',experience:'experience',language:'translation',access:'access'};
+
+  function settingsUrl(tab, extra) {
+    const u=new URL('settings.php',location.href);
+    if (tab) u.searchParams.set('tab',tab);
+    Object.keys(extra||{}).forEach(function(k){ if(extra[k]!=null) u.searchParams.set(k,String(extra[k])); });
+    return u.href;
+  }
+
+  function prepareProfileSettingsPages() {
+    if (!isSettingsPage || !document.body) return;
+    const u=new URL(location.href), tab=u.searchParams.get('tab')||'profile';
+    root.classList.remove('deapp-profile-settings-hub-mode','deapp-profile-settings-detail');
+    document.querySelectorAll('.deapp-profile-settings-hidden').forEach(function(n){ n.classList.remove('deapp-profile-settings-hidden'); });
+    const oldHub=document.querySelector('.deapp-profile-settings-hub');
+    if (tab!=='profile') { if(oldHub) oldHub.remove(); return; }
+
+    const body=document.querySelector('.settings-body');
+    if (!body) return;
+    const sections=Array.from(body.querySelectorAll(':scope > .settings-section, :scope > .card.settings-section'));
+    const byKey={};
+    sections.forEach(function(sec){
+      const h=(sec.querySelector('h3')&&sec.querySelector('h3').textContent||'').trim().toLowerCase();
+      if (h.indexOf('foto profil')>=0 || (sec.querySelector('#avatar-input')&&sec.querySelector('#cover-input'))) byKey.photos=sec;
+      else if (h.indexOf('info profil')>=0 || sec.querySelector('input[name="full_name"]')) byKey.info=sec;
+      else if (sec.id==='username' || h.indexOf('username')>=0) byKey.username=sec;
+    });
+    if (!byKey.photos || !byKey.info || !byKey.username) return;
+
+    const sub=u.searchParams.get('sub')||'';
+    if (!profileSettingPages[sub]) {
+      root.classList.add('deapp-profile-settings-hub-mode');
+      Object.values(byKey).forEach(function(sec){ sec.classList.add('deapp-profile-settings-hidden'); });
+      let hub=oldHub;
+      if (!hub) { hub=document.createElement('section'); hub.className='deapp-profile-settings-hub'; body.insertBefore(hub,body.firstChild); }
+      hub.innerHTML='';
+      ['photos','info','username'].forEach(function(key){
+        const meta=profileSettingPages[key], a=document.createElement('a');
+        a.className='deapp-profile-settings-link'; a.href=settingsUrl('profile',{sub:key});
+        a.innerHTML='<span class="deapp-profile-settings-icon">'+sectionIcon(meta.icon)+'</span><span class="deapp-profile-settings-copy"><b></b><small></small></span><span class="deapp-profile-settings-chevron">›</span>';
+        a.querySelector('b').textContent=meta.title; a.querySelector('small').textContent=meta.desc;
+        hub.appendChild(a);
+      });
+      return;
+    }
+
+    root.classList.add('deapp-profile-settings-detail');
+    if(oldHub) oldHub.remove();
+    Object.keys(byKey).forEach(function(key){ if(key!==sub) byKey[key].classList.add('deapp-profile-settings-hidden'); });
+  }
+
+  function settingsSaveAction(tab) {
+    const actionValue=headerSaveTabs[tab];
+    if (!actionValue) return null;
+    const hidden=document.querySelector('.settings-body form input[name="action"][value="'+actionValue+'"]');
+    const form=hidden&&hidden.closest('form');
+    if (!form) return null;
+    form.classList.add('deapp-settings-save-in-header');
+    let submit=Array.from(form.querySelectorAll('button[type="submit"],input[type="submit"]')).find(function(b){ return !b.closest('.deapp-inline-action'); }) || null;
+    if (submit) submit.classList.add('deapp-original-settings-save');
+    const disabled=!!(submit&&submit.disabled);
+    return {
+      icon:'save',label:'Simpan',disabled:disabled,
+      run:function(){
+        if(disabled) return;
+        nativeTap();
+        try {
+          if (form.requestSubmit) form.requestSubmit(submit||undefined);
+          else if (submit) submit.click();
+          else form.submit();
+        } catch (_) { try { form.submit(); } catch(__){} }
+      }
+    };
+  }
+
   function settingsBack() {
     if (hasVisibleWebSheet()) { closeVisibleWebSheet(); return; }
     const file=(path.split('/').pop()||'').toLowerCase();
@@ -2807,6 +3023,7 @@
     if (file==='profile-edit.php') return goSection('settings.php?tab=profile');
     if (file==='privacy.php' || file==='policy.php' || file==='cookies.php') return goSection('settings.php?tab=privacy');
     if (file==='help.php') return goSection('settings.php');
+    if (file==='settings.php' && params.get('tab')==='profile' && params.has('sub')) return goSection('settings.php?tab=profile');
     if (file==='settings.php' && params.get('tab')==='notifications') return goSection('notifications.php');
     if (file==='settings.php' && params.has('tab')) return goSection('settings.php');
     if (file==='settings.php') return goSection('index.php');
@@ -2818,22 +3035,28 @@
     const params=new URL(location.href).searchParams;
     const hasTab=params.has('tab');
     const tab=params.get('tab')||'profile';
-    if(file==='settings.php' && !hasTab) return {title:'Pengaturan',group:'settings',index:true};
-    if(file==='settings.php') return {title:settingNames[tab]||'Pengaturan',group:tab==='privacy'||tab==='words'||tab==='blocked'?'privacy':(tab==='security'||tab==='sessions'?'security':'settings'),index:false};
+    const sub=params.get('sub')||'';
+    if(file==='settings.php' && !hasTab) return {title:'Pengaturan',group:'settings',index:true,tab:'',sub:''};
+    if(file==='settings.php') {
+      const title=(tab==='profile' && profileSettingPages[sub]) ? profileSettingPages[sub].title : (settingNames[tab]||'Pengaturan');
+      return {title:title,group:tab==='privacy'||tab==='words'||tab==='blocked'?'privacy':(tab==='security'||tab==='sessions'?'security':'settings'),index:false,tab:tab,sub:sub};
+    }
     const map={
       'security.php':['Keamanan akun','security'],'security-password.php':['Kata sandi','security'],'security-email.php':['Alamat email','security'],
       'security-wallet-pin.php':['PIN dompet','security'],'security-2fa.php':['Verifikasi 2 langkah','security'],'security-sessions.php':['Perangkat & sesi','security'],
       'help.php':['Pusat Bantuan','help'],'privacy.php':['Kebijakan Privasi','privacy'],'policy.php':['Policy & Pedoman','privacy'],'cookies.php':['Kebijakan Cookie','privacy'],
       'profile-edit.php':['Custom Profile Studio','settings']
     };
-    const v=map[file]||['Pengaturan','settings']; return {title:v[0],group:v[1]};
+    const v=map[file]||['Pengaturan','settings']; return {title:v[0],group:v[1],tab:'',sub:''};
   }
   function wireSettingsChrome() {
     if (!(isSettingsPageFamily||isSettingsPage) || !document.body) return;
+    prepareProfileSettingsPages();
     const c=settingsContext();
     const isIndex=!!(isSettingsPage && c.index);
     root.classList.toggle('deapp-settings-index',isIndex);
     root.classList.toggle('deapp-settings-subpage',!isIndex);
+    root.classList.remove('deapp-settings-header-save');
     sectionOn('settings');
     const oldFooter=document.querySelector('.deapp-section-footer[data-section="settings"]'); if(oldFooter) oldFooter.remove();
     if (isSettingsPage) {
@@ -2843,7 +3066,9 @@
         if (isIndex) nav.querySelectorAll('.snav.active').forEach(function(n){ n.classList.remove('active'); });
       }
     }
-    sectionHeader('settings',isIndex?'Pengaturan':c.title,'',null);
+    const saveAction=(isSettingsPage && c.tab && headerSaveTabs[c.tab]) ? settingsSaveAction(c.tab) : null;
+    root.classList.toggle('deapp-settings-header-save',!!saveAction);
+    sectionHeader('settings',isIndex?'Pengaturan':c.title,'',saveAction);
   }
 
   function wireSectionChrome() {

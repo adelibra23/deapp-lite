@@ -1,13 +1,12 @@
-# DeApp Lite Android v1.9.25
+# DeApp Lite Android v1.9.27
 
-**Versi:** 1.9.25-lite (Build 35)
+**Versi:** 1.9.27-lite (Build 37)
 
-Pembaruan utama:
+Pembaruan ini merapikan Notifikasi dan Pengaturan agar lebih konsisten sebagai aplikasi Android native-like.
 
-- App Shortcuts Android saat ikon DeApp ditekan lama: Postingan, Video, Cerita, Chat.
-- Shortcut membuka fitur asli DeApp dan tetap memakai server yang sudah dipilih pengguna.
-- Shortcut diproses juga saat aplikasi sudah terbuka melalui `onNewIntent`.
-- Suara kirim chat ringan ditambahkan setelah pesan/lampiran berhasil dikosongkan dari composer (indikasi submit sukses).
-- Reaction sound/haptic, splash, refresh tunggal, UI Threads/Telegram, modal handling, dan perbaikan versi sebelumnya tetap dipertahankan.
+- Notifikasi: tab kategori dan status baca dipisahkan secara visual di dalam filter shell yang sama, sehingga Live dan kategori lain tidak bertabrakan dengan status `Semua / Belum dibaca`.
+- Profil: `Foto profil & Sampul`, `Info Profil`, dan `Username` kini menjadi subhalaman mandiri.
+- Mode Tampilan, Pengalaman Aplikasi, Bahasa & Terjemahan, serta Aksesibilitas: tombol Simpan dipindahkan ke header kanan atas dengan ikon minimal ala Threads.
+- Semua form dan backend asli DeApp tetap dipertahankan.
 
-Lihat `AUDIT-v1.9.25.md` untuk detail.
+Lihat `AUDIT-v1.9.27.md` untuk detail perubahan.
