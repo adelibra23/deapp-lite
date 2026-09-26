@@ -150,3 +150,19 @@ Versi: **1.9.15-lite · Build 25 · NativeMobile/9.15**.
 - Chat detail dan section tertentu memakai parent-aware back agar tidak memutar history tab/filter.
 - Header Android dan header web ikut redup ketika sheet aktif.
 - FAB plus Beranda hanya muncul setelah `onPageCommitVisible`/`onPageFinished` dan splash startup selesai.
+
+## v1.9.24 — Single Refresh, Threads Reveal, Discovery Rails
+
+- Build **34**, versi **1.9.24-lite**, UA `NativeMobile/9.24`.
+- `SwipeRefreshLayout` tidak lagi menggambar indikator bawaan; hanya indikator logo DeApp custom.
+- Transisi WebView page-start/page-commit memakai reveal halus ala Threads.
+- Bottom navigation menggunakan vector outline baru dengan active state minimal.
+- Beranda menampilkan rail horizontal berbasis data nyata: saran akun, teaser post, dan sponsor Ads Manager bila tersedia.
+
+
+## v1.9.25 — Android App Shortcuts & Chat Send Sound
+
+- Build **35**, versi **1.9.25-lite**, UA `NativeMobile/9.25`.
+- Static App Shortcuts via `res/xml/shortcuts.xml`: Postingan, Video, Cerita, Chat.
+- `MainActivity` memproses deep shortcut `deapp://shortcut/...` saat cold start dan `onNewIntent`.
+- Chat submit memberi send sound pendek melalui native bridge `chatSent()` setelah composer terdeteksi kosong kembali.

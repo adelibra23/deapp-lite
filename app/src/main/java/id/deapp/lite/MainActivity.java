@@ -11,6 +11,7 @@ import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.Canvas;
 import android.graphics.Outline;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -136,6 +137,8 @@ public class MainActivity extends Activity {
     private String pendingPermissionLabel = "";
     private long lastPostPublishedSoundAt = 0L;
     private long lastReactionFeedbackAt = 0L;
+    private long lastChatSendSoundAt = 0L;
+    private String pendingAppShortcut = "";
     private String baseUrl = "";
 
     private View customView;
@@ -160,6 +163,7 @@ public class MainActivity extends Activity {
         readPalette();
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
         baseUrl = prefs.getString(KEY_URL, "").trim();
+        captureAppShortcut(getIntent());
 
         if (Build.VERSION.SDK_INT >= 33) {
             getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
@@ -464,7 +468,15 @@ public class MainActivity extends Activity {
         // agar setelah splash selesai pengguna langsung melihat halaman yang sudah siap.
         showStartupSplash();
         showLoading();
-        webView.loadUrl(baseUrl);
+        String initialUrl = baseUrl;
+        if ("video".equals(pendingAppShortcut)) {
+            initialUrl = baseUrl + "reels.php";
+            pendingAppShortcut = "";
+        } else if ("chat".equals(pendingAppShortcut)) {
+            initialUrl = baseUrl + "messages.php";
+            pendingAppShortcut = "";
+        }
+        webView.loadUrl(initialUrl);
     }
 
     private void buildNativeTopBar() {
@@ -537,15 +549,32 @@ public class MainActivity extends Activity {
         topContainer.addView(divider, divLp);
     }
 
+    /**
+     * SwipeRefreshLayout tetap menangani gesture tarik, tetapi indikator bawaan
+     * tidak pernah digambar. DeApp memakai satu indikator logo sendiri agar tidak
+     * muncul spinner/arrow ganda pada saat refresh.
+     */
+    private class DeappSwipeRefreshLayout extends SwipeRefreshLayout {
+        DeappSwipeRefreshLayout() { super(MainActivity.this); }
+
+        @Override
+        protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
+            if (child != null && child.getClass().getName().contains("CircleImageView")) {
+                return true;
+            }
+            return super.drawChild(canvas, child, drawingTime);
+        }
+    }
+
     private void buildWebContent() {
         FrameLayout content = new FrameLayout(this);
         LinearLayout.LayoutParams contentLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
         shell.addView(content, contentLp);
 
-        swipeRefresh = new SwipeRefreshLayout(this);
-        // v1.9.12: gesture refresh tetap native, tetapi spinner bawaan dibuat transparan
-        // dan diganti indikator ikon refresh yang lebih bersih di atas WebView.
+        swipeRefresh = new DeappSwipeRefreshLayout();
+        // v1.9.24: gesture refresh tetap native, tetapi CircleImageView/arrow bawaan
+        // tidak digambar sama sekali. Hanya indikator logo DeApp di layer luar yang terlihat.
         swipeRefresh.setSize(SwipeRefreshLayout.DEFAULT);
         swipeRefresh.setColorSchemeColors(Color.TRANSPARENT);
         swipeRefresh.setProgressBackgroundColorSchemeColor(Color.TRANSPARENT);
@@ -688,8 +717,8 @@ public class MainActivity extends Activity {
 
     private FrameLayout buildRefreshIndicator() {
         FrameLayout holder = new FrameLayout(this);
-        holder.setBackground(bordered(cSurface, cBorder, 99));
-        holder.setElevation(dp(8));
+        holder.setBackgroundColor(Color.TRANSPARENT);
+        holder.setElevation(0f);
         holder.setVisibility(View.GONE);
         holder.setAlpha(0f);
         holder.setScaleX(.84f);
@@ -701,7 +730,7 @@ public class MainActivity extends Activity {
         refreshIcon.setImageResource(R.drawable.deapp_logo);
         refreshIcon.clearColorFilter();
         refreshIcon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        refreshIcon.setPadding(dp(11), dp(11), dp(11), dp(11));
+        refreshIcon.setPadding(dp(7), dp(7), dp(7), dp(7));
         refreshIcon.setContentDescription("Memperbarui halaman");
         holder.addView(refreshIcon, new FrameLayout.LayoutParams(dp(46), dp(46), Gravity.CENTER));
         return holder;
@@ -738,6 +767,23 @@ public class MainActivity extends Activity {
                     }
                     startRefreshIconAnimation();
                 }).start();
+    }
+
+    private void preparePageReveal(boolean refreshing) {
+        if (webView == null || refreshing) return;
+        webView.animate().cancel();
+        webView.setAlpha(.82f);
+        webView.setTranslationY(dp(5));
+    }
+
+    private void playPageReveal() {
+        if (webView == null) return;
+        webView.animate().cancel();
+        webView.animate()
+                .alpha(1f).translationY(0f)
+                .setDuration(210)
+                .setInterpolator(new DecelerateInterpolator())
+                .start();
     }
 
     private void refreshCurrentPage() {
@@ -938,7 +984,7 @@ public class MainActivity extends Activity {
             icon.setClipToOutline(true);
             icon.setColorFilter(primary ? cBg : cMuted);
             // v1.9.14: ikon bottom navigation dibuat sedikit lebih besar tanpa menaikkan tinggi bar.
-            icon.setPadding(primary ? dp(9) : dp(7), primary ? dp(9) : dp(7), primary ? dp(9) : dp(7), primary ? dp(9) : dp(7));
+            icon.setPadding(primary ? dp(8) : dp(6), primary ? dp(8) : dp(6), primary ? dp(8) : dp(6), primary ? dp(8) : dp(6));
             icon.setBackground(primary ? rounded(cText, 99) : rounded(Color.TRANSPARENT, 14));
             FrameLayout.LayoutParams iconLp = new FrameLayout.LayoutParams(primary ? dp(44) : dp(42), primary ? dp(44) : dp(42), Gravity.CENTER);
             root.addView(icon, iconLp);
@@ -962,8 +1008,8 @@ public class MainActivity extends Activity {
             if (primary) return;
             avatarBitmap = null;
             icon.setImageResource(fallbackRes);
-            icon.setPadding(dp(9), dp(9), dp(9), dp(9));
-            icon.setBackground(rounded(Color.TRANSPARENT, 14));
+            icon.setPadding(dp(6), dp(6), dp(6), dp(6));
+            icon.setBackgroundColor(Color.TRANSPARENT);
         }
 
         void setActive(boolean active) {
@@ -985,10 +1031,10 @@ public class MainActivity extends Activity {
                 return;
             }
             icon.setColorFilter(active ? cText : cMuted);
-            icon.setAlpha(active ? 1f : .76f);
-            icon.setBackground(active ? rounded(cSurface2, 14) : rounded(Color.TRANSPARENT, 14));
-            icon.setScaleX(active ? 1.03f : 1f);
-            icon.setScaleY(active ? 1.03f : 1f);
+            icon.setAlpha(active ? 1f : .74f);
+            icon.setBackgroundColor(Color.TRANSPARENT);
+            icon.setScaleX(active ? 1.06f : 1f);
+            icon.setScaleY(active ? 1.06f : 1f);
         }
 
         void refreshTheme() {
@@ -1212,7 +1258,7 @@ public class MainActivity extends Activity {
             swipeRefresh.setColorSchemeColors(Color.TRANSPARENT);
             swipeRefresh.setProgressBackgroundColorSchemeColor(Color.TRANSPARENT);
         }
-        if (refreshIndicator != null) refreshIndicator.setBackground(bordered(cSurface, cBorder, 99));
+        if (refreshIndicator != null) refreshIndicator.setBackgroundColor(Color.TRANSPARENT);
         if (refreshIcon != null) refreshIcon.clearColorFilter();
         if (navHome != null) navHome.refreshTheme();
         if (navMessage != null) navMessage.refreshTheme();
@@ -1297,7 +1343,7 @@ public class MainActivity extends Activity {
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.22 NativeMobile/9.22");
+        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.25 NativeMobile/9.25");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) s.setSafeBrowsingEnabled(true);
 
         CookieManager cm = CookieManager.getInstance();
@@ -1319,9 +1365,10 @@ public class MainActivity extends Activity {
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
                 final int generation = ++loadingGeneration;
+                boolean pullRefreshing = swipeRefresh != null && swipeRefresh.isRefreshing();
+                preparePageReveal(pullRefreshing);
                 showOffline(false);
                 if (loadingOverlay != null) {
-                    boolean pullRefreshing = swipeRefresh != null && swipeRefresh.isRefreshing();
                     boolean alreadyShowing = loadingOverlay.getVisibility() == View.VISIBLE;
                     if (!pullRefreshing && !alreadyShowing) {
                         loadingOverlay.postDelayed(() -> {
@@ -1352,6 +1399,7 @@ public class MainActivity extends Activity {
                 loadingGeneration++;
                 pageReadyForChrome = true;
                 injectNativeShell();
+                playPageReveal();
                 view.postDelayed(MainActivity.this::recoverWebScroll, 80);
                 if (loadingOverlay != null) hideLoading();
                 updateChromeVisibility();
@@ -1362,6 +1410,7 @@ public class MainActivity extends Activity {
                 super.onPageFinished(view, url);
                 loadingGeneration++;
                 injectNativeShell();
+                playPageReveal();
                 view.postDelayed(MainActivity.this::recoverWebScroll, 120);
                 swipeRefresh.setRefreshing(false);
                 showRefreshIndicator(false);
@@ -1374,6 +1423,7 @@ public class MainActivity extends Activity {
                 if (!isSpecialWebChromeType(pageChromeType)) pageChromeType = isSpecialSectionUrl(currentUrl) ? "section" : "";
                 updateNativeNav(url);
                 updateChromeVisibility();
+                dispatchPendingAppShortcut();
             }
 
             @Override
@@ -1383,6 +1433,7 @@ public class MainActivity extends Activity {
                     swipeRefresh.setRefreshing(false);
                     showRefreshIndicator(false);
                     hideLoading();
+                    if (webView != null) { webView.animate().cancel(); webView.setAlpha(1f); webView.setTranslationY(0f); }
                     showOffline(true);
                 }
             }
@@ -1886,6 +1937,11 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void chatSent() {
+            runOnUiThread(MainActivity.this::playChatSentSound);
+        }
+
+        @JavascriptInterface
         public void syncSessionState(boolean loggedIn, String avatarUrl, String href, String pageUrl) {
             runOnUiThread(() -> {
                 isLoggedIn = loggedIn;
@@ -1981,7 +2037,7 @@ public class MainActivity extends Activity {
                 conn.setInstanceFollowRedirects(true);
                 String cookie = CookieManager.getInstance().getCookie(avatarUrl);
                 if (cookie != null && !cookie.isEmpty()) conn.setRequestProperty("Cookie", cookie);
-                conn.setRequestProperty("User-Agent", "DeappLite/1.9.22");
+                conn.setRequestProperty("User-Agent", "DeappLite/1.9.25");
                 try (InputStream in = conn.getInputStream()) {
                     Bitmap bitmap = BitmapFactory.decodeStream(in);
                     if (bitmap != null) runOnUiThread(() -> {
@@ -2046,6 +2102,17 @@ public class MainActivity extends Activity {
             ToneGenerator tone = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 44);
             tone.startTone(ToneGenerator.TONE_PROP_ACK, 65);
             if (root != null) root.postDelayed(tone::release, 130); else tone.release();
+        } catch (Exception ignored) {}
+    }
+
+    private void playChatSentSound() {
+        long now = android.os.SystemClock.elapsedRealtime();
+        if (now - lastChatSendSoundAt < 180) return;
+        lastChatSendSoundAt = now;
+        try {
+            ToneGenerator tone = new ToneGenerator(AudioManager.STREAM_MUSIC, 34);
+            tone.startTone(ToneGenerator.TONE_CDMA_PIP, 55);
+            if (root != null) root.postDelayed(tone::release, 120); else tone.release();
         } catch (Exception ignored) {}
     }
 
@@ -2207,7 +2274,7 @@ public class MainActivity extends Activity {
         name.setGravity(Gravity.CENTER);
         box.addView(name);
 
-        TextView version = text("Versi 1.9.22-lite · Build 32", 13, cMuted);
+        TextView version = text("Versi 1.9.25-lite · Build 35", 13, cMuted);
         version.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams versionLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -2240,6 +2307,77 @@ public class MainActivity extends Activity {
     private String jsonString(String value) {
         try { return new JSONArray("[" + value + "]").getString(0); }
         catch (Exception e) { return ""; }
+    }
+
+    private void captureAppShortcut(Intent intent) {
+        if (intent == null) return;
+        try {
+            Uri data = intent.getData();
+            if (data == null || !"deapp".equalsIgnoreCase(data.getScheme()) || !"shortcut".equalsIgnoreCase(data.getHost())) return;
+            String path = data.getPath();
+            if (path == null) return;
+            String action = path.replace("/", "").trim().toLowerCase(Locale.US);
+            if ("post".equals(action) || "video".equals(action) || "story".equals(action) || "chat".equals(action)) {
+                pendingAppShortcut = action;
+            }
+        } catch (Exception ignored) {}
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        captureAppShortcut(intent);
+        if (pendingAppShortcut.isEmpty()) return;
+        if (baseUrl == null || baseUrl.trim().isEmpty()) {
+            showServerSetup(false);
+            return;
+        }
+        if (webView == null) {
+            showWebView(baseUrl);
+            return;
+        }
+        dispatchPendingAppShortcut();
+    }
+
+    private void dispatchPendingAppShortcut() {
+        if (pendingAppShortcut == null || pendingAppShortcut.isEmpty() || webView == null) return;
+        String action = pendingAppShortcut;
+        if ("video".equals(action)) {
+            pendingAppShortcut = "";
+            loadRelative("reels.php");
+            return;
+        }
+        if ("chat".equals(action)) {
+            pendingAppShortcut = "";
+            loadRelative("messages.php");
+            return;
+        }
+        if (!isHomeUrl(currentUrl) || !pageReadyForChrome) {
+            loadRelative("index.php");
+            return;
+        }
+        if ("post".equals(action)) {
+            pendingAppShortcut = "";
+            openComposer();
+            return;
+        }
+        if ("story".equals(action)) {
+            pendingAppShortcut = "";
+            openStoryShortcut();
+        }
+    }
+
+    private void openStoryShortcut() {
+        if (webView == null) return;
+        webView.evaluateJavascript(
+                "(function(){try{var b=document.querySelector('.story-add[data-open-modal=\"story-modal\"],.story-add,[data-open-modal=\"story-modal\"]');if(b){b.click();return true;}return false;}catch(e){return false;}})()",
+                value -> {
+                    if (!"true".equals(value)) {
+                        Toast.makeText(this, "Login dulu untuk membuat cerita", Toast.LENGTH_SHORT).show();
+                        loadRelative("login.php");
+                    }
+                });
     }
 
     private void shareCurrentPage() {

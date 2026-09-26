@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shortcut_post_short">Postingan</string>
+    <string name="shortcut_post_long">Buat postingan baru</string>
+    <string name="shortcut_video_short">Video</string>
+    <string name="shortcut_video_long">Buka Video Pendek</string>
+    <string name="shortcut_story_short">Cerita</string>
+    <string name="shortcut_story_long">Buat cerita baru</string>
+    <string name="shortcut_chat_short">Chat</string>
+    <string name="shortcut_chat_long">Buka pesan Deapp</string>
+    <string name="shortcut_unavailable">Fitur ini belum tersedia</string>
+</resources>

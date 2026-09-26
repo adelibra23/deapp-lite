@@ -1505,6 +1505,28 @@
     @media(prefers-reduced-motion:reduce){.deapp-pet-motion,.deapp-sticker-motion,.deapp-virtual-motion,.topup-coin-orbit>span{animation:none!important;transform:none!important}}
     body.exp-visual-saver .deapp-pet-motion,body.exp-visual-saver .deapp-sticker-motion,body.exp-visual-saver .deapp-virtual-motion{animation:none!important;transform:none!important}
 
+    /* v1.9.24 — discovery rails Beranda ala Threads: data asli DeApp, swipe horizontal. */
+    .deapp-home-discovery{display:block!important;margin:0!important;padding:3px 0 9px!important;background:var(--surface)!important;border-bottom:1px solid color-mix(in srgb,var(--border) 66%,transparent)!important;overflow:hidden!important}
+    .deapp-home-rail{margin:0 0 13px!important;padding:0!important}.deapp-home-rail:last-child{margin-bottom:2px!important}
+    .deapp-home-rail-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;padding:1px 12px 8px!important}
+    .deapp-home-rail-head b{font-size:14px!important;line-height:1.25!important;font-weight:820!important;letter-spacing:-.018em!important;color:var(--text)!important}
+    .deapp-home-rail-head a{font-size:11px!important;font-weight:720!important;color:var(--text-muted)!important;text-decoration:none!important;white-space:nowrap!important}
+    .deapp-home-track{display:flex!important;gap:9px!important;width:100%!important;max-width:100%!important;padding:0 10px 5px!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:none!important;-webkit-overflow-scrolling:touch!important;scroll-snap-type:x proximity!important;overscroll-behavior-x:contain!important;touch-action:pan-x pan-y!important}
+    .deapp-home-track::-webkit-scrollbar{display:none!important}.deapp-home-track>*{scroll-snap-align:start!important}
+    .deapp-home-person-card{position:relative!important;flex:0 0 188px!important;min-height:168px!important;padding:15px 12px 12px!important;border:1px solid color-mix(in srgb,var(--border) 82%,transparent)!important;border-radius:18px!important;background:var(--surface)!important;box-shadow:none!important;text-align:center!important;overflow:hidden!important}
+    .deapp-home-person-card>a:first-child{display:inline-flex!important;line-height:0!important}.deapp-home-person-card img{width:54px!important;height:54px!important;border-radius:50%!important;object-fit:cover!important;border:1px solid color-mix(in srgb,var(--border) 70%,transparent)!important}
+    .deapp-home-person-name{display:block!important;margin-top:8px!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:13px!important;line-height:1.25!important;font-weight:820!important;color:var(--text)!important;text-decoration:none!important}
+    .deapp-home-person-sub{min-height:26px!important;margin:3px 0 9px!important;overflow:hidden!important;display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important;font-size:10.5px!important;line-height:1.25!important;color:var(--text-muted)!important}
+    .deapp-home-person-card .js-follow,.deapp-home-person-card .btn{width:100%!important;min-height:34px!important;margin:0!important;border-radius:999px!important;font-size:11px!important;font-weight:780!important}
+    .deapp-home-reco-card{display:grid!important;grid-template-columns:minmax(0,1fr) 78px!important;gap:10px!important;flex:0 0 270px!important;min-height:112px!important;padding:12px!important;border:1px solid color-mix(in srgb,var(--border) 82%,transparent)!important;border-radius:18px!important;background:var(--surface)!important;color:var(--text)!important;text-decoration:none!important;overflow:hidden!important}
+    .deapp-home-reco-copy{min-width:0!important;display:flex!important;flex-direction:column!important}.deapp-home-reco-author{display:flex!important;align-items:center!important;gap:7px!important;min-width:0!important;margin-bottom:7px!important;font-size:11px!important;font-weight:780!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+    .deapp-home-reco-author img{width:27px!important;height:27px!important;border-radius:50%!important;object-fit:cover!important;flex:none!important}.deapp-home-reco-text{display:-webkit-box!important;-webkit-line-clamp:3!important;-webkit-box-orient:vertical!important;overflow:hidden!important;font-size:12px!important;line-height:1.38!important;color:var(--text-muted)!important}.deapp-home-reco-meta{margin-top:auto!important;padding-top:7px!important;font-size:9.5px!important;color:var(--text-faint)!important;font-weight:700!important}
+    .deapp-home-reco-media{width:78px!important;height:88px!important;border-radius:13px!important;object-fit:cover!important;align-self:center!important;background:var(--surface-2)!important}
+    .deapp-home-reco-card.no-media{grid-template-columns:1fr!important;flex-basis:244px!important}.deapp-home-reco-card.no-media .deapp-home-reco-media{display:none!important}
+    .deapp-home-sponsored-track .deapp-ad-card{flex:0 0 min(86vw,310px)!important;width:min(86vw,310px)!important;max-width:310px!important;margin:0!important;border-radius:18px!important;overflow:hidden!important;box-shadow:none!important;border:1px solid color-mix(in srgb,var(--border) 82%,transparent)!important}
+    .deapp-home-sponsored-track .deapp-ad-card .ad-head{padding:11px 11px 7px!important}.deapp-home-sponsored-track .deapp-ad-card .ad-body{padding:10px 12px 12px!important}.deapp-home-sponsored-track .deapp-ad-card .ad-body h3{font-size:14px!important}.deapp-home-sponsored-track .deapp-ad-card .ad-body p{font-size:11.5px!important;line-height:1.4!important}.deapp-home-sponsored-track .deapp-ad-card .ad-cta{min-height:34px!important;border-radius:999px!important;font-size:11px!important}
+    html.is-dark .deapp-home-person-card,html.is-dark .deapp-home-reco-card,html.is-dark .deapp-home-sponsored-track .deapp-ad-card{background:var(--surface)!important}
+
     @media(max-width:560px){
       .deapp-section-header{grid-template-columns:44px minmax(0,1fr) 44px;padding-left:6px;padding-right:6px}
       .deapp-section-header .deapp-section-left,.deapp-section-header .deapp-section-action{width:40px;height:40px}
@@ -1914,7 +1936,7 @@
       const row = document.createElement('button');
       row.type = 'button';
       row.className = 'snav deapp-native-about-row';
-      row.innerHTML = '<span class="deapp-settings-native-icon">ⓘ</span><span><b>Tentang aplikasi</b><small>Deapp Lite untuk Android</small></span><span class="deapp-version-pill">v1.9.22-lite</span>';
+      row.innerHTML = '<span class="deapp-settings-native-icon">ⓘ</span><span><b>Tentang aplikasi</b><small>Deapp Lite untuk Android</small></span><span class="deapp-version-pill">v1.9.25-lite</span>';
       row.addEventListener('click', function(){
         nativeTap();
         try { if (API && API.showAboutApp) API.showAboutApp(); } catch (_) {}
@@ -2439,10 +2461,20 @@
       form.addEventListener('reset', function(){ setTimeout(sync,0); });
       form.addEventListener('submit', function(){
         let tries=0;
+        let soundPlayed=false;
+        const hadText=(input.value||'').trim().length>0;
+        const fileInput=form.querySelector('input[type="file"]');
+        const hadFile=!!(fileInput&&fileInput.files&&fileInput.files.length);
         const waitClear=function(){
           tries++;
           sync();
-          if ((input.value||'').length && tries < 14) setTimeout(waitClear,120);
+          const textCleared=(input.value||'').length===0;
+          const fileCleared=!(fileInput&&fileInput.files&&fileInput.files.length);
+          if (!soundPlayed && (hadText||hadFile) && textCleared && fileCleared) {
+            soundPlayed=true;
+            try { if (API && API.chatSent) API.chatSent(); } catch(e) {}
+          }
+          if ((!textCleared || !fileCleared) && tries < 18) setTimeout(waitClear,120);
         };
         setTimeout(waitClear,70);
       });
@@ -2488,6 +2520,70 @@
     });
   }
 
+
+  function homeRail(title, moreText, moreHref, className) {
+    const section=document.createElement('section');
+    section.className='deapp-home-rail '+(className||'');
+    const head=document.createElement('div'); head.className='deapp-home-rail-head';
+    const b=document.createElement('b'); b.textContent=title; head.appendChild(b);
+    if(moreHref){const a=document.createElement('a');a.href=moreHref;a.textContent=moreText||'Lihat semua';head.appendChild(a);}
+    const track=document.createElement('div'); track.className='deapp-home-track';
+    section.appendChild(head); section.appendChild(track); return {section:section,track:track};
+  }
+
+  function buildHomeDiscoveryRails() {
+    if (!document.body || !document.body.classList.contains('page-home') || document.readyState !== 'complete') return;
+    const feed=document.getElementById('feed'), tabs=document.querySelector('.feed-tabs');
+    if(!feed || !tabs) return;
+    let host=document.querySelector('.deapp-home-discovery');
+    if(host && host.dataset.deappBuilt==='1') return;
+    if(!host){host=document.createElement('div');host.className='deapp-home-discovery';feed.parentNode.insertBefore(host,feed);}
+
+    const people=Array.from(document.querySelectorAll('.side-col .suggest-list .suggest-item')).slice(0,8);
+    const posts=Array.from(feed.querySelectorAll(':scope > .post-card:not(.post-embedded):not(.deapp-ad-card)')).slice(0,8);
+    const railAds=Array.from(document.querySelectorAll('.side-col .deapp-ad-card.ad-placement-rail')).slice(0,4);
+    if(!people.length && !posts.length && !railAds.length){host.remove();return;}
+    host.innerHTML='';
+
+    if(people.length){
+      const rail=homeRail('Orang yang mungkin Anda kenal','Lihat semua','explore.php?tab=people','deapp-home-people-rail');
+      people.forEach(function(src){
+        const name=src.querySelector('.suggest-name'), sub=src.querySelector('.suggest-sub'), avatar=src.querySelector('img'), profile=(name&&name.href)||(avatar&&avatar.closest('a')&&avatar.closest('a').href)||'#';
+        const card=document.createElement('article'); card.className='deapp-home-person-card';
+        const av=document.createElement('a'); av.href=profile; const im=document.createElement('img'); im.src=avatar&&avatar.src?avatar.src:''; im.alt=''; im.loading='lazy'; av.appendChild(im); card.appendChild(av);
+        const nm=document.createElement('a');nm.className='deapp-home-person-name';nm.href=profile;nm.textContent=(name&&name.textContent||'Akun DeApp').trim();card.appendChild(nm);
+        const sb=document.createElement('div');sb.className='deapp-home-person-sub';sb.textContent=(sub&&sub.textContent||'Disarankan untuk Anda').trim();card.appendChild(sb);
+        const follow=src.querySelector('.js-follow,.btn'); if(follow){const f=follow.cloneNode(true);f.removeAttribute('id');card.appendChild(f);}
+        rail.track.appendChild(card);
+      });
+      host.appendChild(rail.section);
+    }
+
+    if(posts.length){
+      const rail=homeRail('Disarankan untuk Anda','Jelajahi','explore.php','deapp-home-reco-rail');
+      posts.forEach(function(post){
+        const id=post.dataset.postId||''; const href=post.dataset.postHref||(id?('post.php?id='+encodeURIComponent(id)):'#');
+        const a=document.createElement('a');a.className='deapp-home-reco-card';a.href=href;
+        const copy=document.createElement('div');copy.className='deapp-home-reco-copy';
+        const author=document.createElement('div');author.className='deapp-home-reco-author';
+        const av=post.querySelector('.post-avatar'); if(av&&av.src){const im=document.createElement('img');im.src=av.src;im.alt='';im.loading='lazy';author.appendChild(im);}
+        const nm=document.createElement('span');nm.textContent=(post.querySelector('.post-name')&&post.querySelector('.post-name').textContent||'DeApp').trim();author.appendChild(nm);copy.appendChild(author);
+        const content=post.querySelector('.post-content:not(.deapp-post-preview)')||post.querySelector('.deapp-post-preview')||post.querySelector('.post-content');
+        const tx=document.createElement('div');tx.className='deapp-home-reco-text';tx.textContent=(content&&content.textContent||'Lihat kiriman yang mungkin Anda sukai.').replace(/Lihat selengkapnya\s*$/,'').trim();copy.appendChild(tx);
+        const meta=document.createElement('div');meta.className='deapp-home-reco-meta';meta.textContent='Buka kiriman';copy.appendChild(meta);a.appendChild(copy);
+        const media=post.querySelector('.media-grid img,.post-bg img,.media-cell img'); if(media&&media.src){const mi=document.createElement('img');mi.className='deapp-home-reco-media';mi.src=media.src;mi.alt='';mi.loading='lazy';a.appendChild(mi);}else a.classList.add('no-media');
+        rail.track.appendChild(a);
+      });
+      host.appendChild(rail.section);
+    }
+
+    if(railAds.length){
+      const rail=homeRail('Bersponsor','Preferensi iklan','ads.php?tab=settings','deapp-home-sponsored-rail');rail.track.classList.add('deapp-home-sponsored-track');
+      railAds.forEach(function(ad){ad.classList.add('deapp-home-sponsored-source');rail.track.appendChild(ad);});
+      host.appendChild(rail.section);
+    }
+    host.dataset.deappBuilt='1';
+  }
 
   function removeProfileBioTranslation() {
     if (!isProfilePage) return;
@@ -3294,6 +3390,7 @@
     ensurePostBackdrop();
     injectAboutSettings();
     collapseLongPosts();
+    buildHomeDiscoveryRails();
     wireReelsChrome();
     enhancePostDetailComments();
     installReactionHaptics();

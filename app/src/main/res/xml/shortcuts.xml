@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="new_post"
+        android:enabled="true"
+        android:icon="@drawable/ic_native_add"
+        android:shortcutShortLabel="@string/shortcut_post_short"
+        android:shortcutLongLabel="@string/shortcut_post_long"
+        android:shortcutDisabledMessage="@string/shortcut_unavailable">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="id.deapp.lite"
+            android:targetClass="id.deapp.lite.MainActivity"
+            android:data="deapp://shortcut/post" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="short_video"
+        android:enabled="true"
+        android:icon="@drawable/ic_native_video"
+        android:shortcutShortLabel="@string/shortcut_video_short"
+        android:shortcutLongLabel="@string/shortcut_video_long"
+        android:shortcutDisabledMessage="@string/shortcut_unavailable">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="id.deapp.lite"
+            android:targetClass="id.deapp.lite.MainActivity"
+            android:data="deapp://shortcut/video" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="new_story"
+        android:enabled="true"
+        android:icon="@drawable/ic_native_camera"
+        android:shortcutShortLabel="@string/shortcut_story_short"
+        android:shortcutLongLabel="@string/shortcut_story_long"
+        android:shortcutDisabledMessage="@string/shortcut_unavailable">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="id.deapp.lite"
+            android:targetClass="id.deapp.lite.MainActivity"
+            android:data="deapp://shortcut/story" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="open_chat"
+        android:enabled="true"
+        android:icon="@drawable/ic_native_message"
+        android:shortcutShortLabel="@string/shortcut_chat_short"
+        android:shortcutLongLabel="@string/shortcut_chat_long"
+        android:shortcutDisabledMessage="@string/shortcut_unavailable">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="id.deapp.lite"
+            android:targetClass="id.deapp.lite.MainActivity"
+            android:data="deapp://shortcut/chat" />
+    </shortcut>
+</shortcuts>
