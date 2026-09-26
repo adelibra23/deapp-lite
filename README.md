@@ -1,28 +1,19 @@
-# DeApp Android v2.0.1
+# DeApp Lite Android v1.9.32
 
-Native Android build hotfix for GitHub Actions compile failure.
+Patch Android Lite untuk DeApp dengan struktur Toko & Dompet yang lebih native dan terpisah per halaman.
 
-# DeApp Android 2.0
+## Highlight v1.9.32
 
-DeApp Android 2.0 is the native rebuild of the previous Android wrapper. The app name and version no longer use **Lite**.
+- `Toko & Dompet` menjadi halaman induk / dashboard.
+- Dompet, Kirim Koin, Kode Promo, Etalase, Pet, Item Virtual, VIP dan fitur toko lainnya dibuka sebagai halaman detail mandiri.
+- Grid menu Toko tidak ikut tampil di halaman detail sehingga halaman tidak terasa seperti tab web yang bercampur.
+- Tombol `Menu lainnya` sekarang membuka halaman mandiri, bukan bottom sheet.
+- Halaman Menu lainnya memuat Keinginan, Pet Care 3D, Boost Lab, Showroom 3D, Hadiah, Tema/Bingkai, Stiker/Gelembung, Tiket, Tas Barang, Koleksi, Level, dan fitur lanjutan lain.
+- Tombol Back pada detail Toko kembali ke dashboard `Toko & Dompet`; dashboard kembali ke Beranda.
+- Semua link masuk ke `shop.php` tanpa tab dinormalisasi ke dashboard Toko.
+- Fitur/carousel Beranda `Disarankan untuk Anda` dihapus sepenuhnya. Rail `Orang yang mungkin Anda kenal` dan `Bersponsor` tetap dipertahankan bila datanya tersedia.
 
-## What changed
+## Versi
 
-The Android UI no longer renders PHP pages inside a WebView. `MainActivity` is a native Java activity and all visible screens are made from Android Views. PHP/MySQL remains the backend and the app communicates with it over HTTP/JSON.
-
-Core flows such as login, 2FA, registration, feed, posts, comments, reactions, chat, notifications, profile, search, Shop & Wallet, Settings and All Features are represented by native Android screens. Server pages that do not yet have a complete JSON endpoint are passed through a native document/form adapter so they still render as Android Views instead of a website.
-
-## Version
-
-- versionCode: 43
-- versionName: 2.0.0
-- namespace: `id.deapp.app`
-- applicationId: `id.deapp.lite` only for upgrade compatibility with existing installations
-
-## Existing server configuration
-
-On first launch after upgrading, DeApp attempts to migrate the server URL stored by older releases. The old WebView login cookie cannot be transferred safely into the new native HTTP session, so the user may need to sign in once again after upgrading to 2.0.
-
-## Build
-
-This patch is intended to be extracted over the existing DeApp Android project. It adds `org.jsoup:jsoup` for safe server document parsing in the native compatibility layer. GitHub Actions/Gradle will download that dependency during build.
+- `versionCode 42`
+- `versionName '1.9.32-lite'`
