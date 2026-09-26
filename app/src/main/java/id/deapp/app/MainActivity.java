@@ -11,6 +11,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -22,15 +23,19 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
 import android.view.inputmethod.EditorInfo;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.Space;
+import android.widget.Spinner;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -43,6 +48,8 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -84,6 +91,10 @@ public class MainActivity extends Activity {
     private ImageButton topBack;
     private ImageButton topAction;
     private ToneGenerator tone;
+    private static final int REQ_PICK_PROFILE_IMAGE = 2101;
+    private String pendingImageUpload = "";
+    private byte[] pendingStoryImage = null;
+    private String pendingStoryMime = "image/jpeg";
 
     private int bg, surface, surface2, text, muted, border, accent, accentSoft, danger, success;
     private boolean dark;
@@ -107,13 +118,6 @@ public class MainActivity extends Activity {
         readPalette();
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
         baseUrl = normalizeBase(prefs.getString(KEY_SERVER, ""));
-        if (baseUrl.isEmpty()) {
-            String legacy = normalizeBase(getSharedPreferences("deapp_lite", MODE_PRIVATE).getString(KEY_SERVER, ""));
-            if (!legacy.isEmpty()) {
-                baseUrl = legacy;
-                prefs.edit().putString(KEY_SERVER, legacy).apply();
-            }
-        }
         tone = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 30);
         if (Build.VERSION.SDK_INT >= 33) {
             getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
@@ -134,6 +138,42 @@ public class MainActivity extends Activity {
         if (client != null && current != null && !"login".equals(current.key) && !"register".equals(current.key)) {
             handleShortcut(intent);
         }
+    }
+
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != REQ_PICK_PROFILE_IMAGE || resultCode != RESULT_OK || data == null || data.getData() == null) return;
+        Uri uri = data.getData();
+        String target = pendingImageUpload;
+        pendingImageUpload = "";
+        if ("story".equals(target)) {
+            runNet(() -> {
+                String mime = getContentResolver().getType(uri); if (mime == null || mime.isEmpty()) mime = "image/jpeg";
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                try (InputStream in = getContentResolver().openInputStream(uri)) { if (in == null) throw new IllegalStateException("File tidak dapat dibaca."); byte[] buf = new byte[8192]; int n; while ((n = in.read(buf)) > 0) out.write(buf, 0, n); }
+                return new Object[]{mime, out.toByteArray()};
+            }, obj -> { pendingStoryMime = (String)obj[0]; pendingStoryImage = (byte[])obj[1]; showNativeNotice("Foto siap", "Foto akan ikut diterbitkan bersama Cerita.", success); }, e -> showNativeNotice("Foto gagal dibaca", e.getMessage(), danger));
+            return;
+        }
+        runNet(() -> {
+            String mime = getContentResolver().getType(uri);
+            if (mime == null || mime.isEmpty()) mime = "image/jpeg";
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            try (InputStream in = getContentResolver().openInputStream(uri)) {
+                if (in == null) throw new IllegalStateException("File tidak dapat dibaca.");
+                byte[] buf = new byte[8192]; int n; while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+            }
+            LinkedHashMap<String,String> fields = new LinkedHashMap<>();
+            fields.put("csrf", client.ensureCsrf());
+            String endpoint = "cover".equals(target) ? "/api/upload_cover.php" : "/api/upload_avatar.php";
+            String field = "cover".equals(target) ? "cover" : "avatar";
+            return client.postMultipart(endpoint, fields, field, field + ".jpg", mime, out.toByteArray());
+        }, r -> {
+            if (r.ok()) {
+                showNativeNotice("Berhasil", "Foto profil diperbarui.", success);
+                navigate(new Screen("profile-media", "", "Foto Profil & Sampul"), false);
+            } else showNativeNotice("Belum berhasil", jsonError(r.body, "Upload gambar gagal."), danger);
+        }, e -> showNativeNotice("Upload gagal", e.getMessage(), danger));
     }
 
     @Override protected void onDestroy() {
@@ -336,7 +376,7 @@ public class MainActivity extends Activity {
         server.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
         LinearLayout.LayoutParams fp = new LinearLayout.LayoutParams(-1, dp(54)); fp.topMargin = dp(28); box.addView(server, fp);
         Button save = primary("Hubungkan"); LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-1, dp(52)); bp.topMargin = dp(14); box.addView(save, bp);
-        TextView note = tv("UI Android versi 2.0 tidak memakai WebView. Server PHP/MySQL tetap menjadi backend DeApp.", 13, muted);
+        TextView note = tv("DeApp Android 2.1 menggunakan UI native Java. Server PHP/MySQL tetap menjadi backend DeApp.", 13, muted);
         LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(-1, -2); np.topMargin = dp(16); box.addView(note, np);
         save.setOnClickListener(v -> {
             String value = normalizeBase(server.getText().toString());
@@ -443,12 +483,19 @@ public class MainActivity extends Activity {
             case "notifications": showNotifications(); break;
             case "profile": showProfile(s.arg); break;
             case "compose": showComposer(); break;
+            case "story-create": showStoryCreate(); break;
             case "post": showPost(parseInt(s.arg)); break;
             case "search": showSearch(); break;
             case "shop": showShop(); break;
+            case "shop-detail": showShopDetail(s.arg,s.title); break;
+            case "shop-more": showShopMore(); break;
+            case "topup": showTopup(); break;
             case "settings": showSettings(); break;
+            case "settings-detail": showSettingsDetail(s.arg,s.title); break;
+            case "profile-settings": showProfileSettings(); break;
+            case "profile-media": showProfileMedia(); break;
             case "features": showAllFeatures(); break;
-            case "generic": showGenericNativePage(s.arg,s.title); break;
+            case "module": showNativeModule(s.arg,s.title); break;
             default: showHome();
         }
     }
@@ -456,6 +503,13 @@ public class MainActivity extends Activity {
     private void handleBack(){
         if("login".equals(current.key)){finish();return;}
         if("register".equals(current.key)){showLogin();return;}
+        if("notifications".equals(current.key) || "shop".equals(current.key) || "settings".equals(current.key)){history.clear();goRoot("home","","Beranda");return;}
+        if("shop-detail".equals(current.key) || "shop-more".equals(current.key) || "topup".equals(current.key)){
+            history.clear(); navigate(new Screen("shop","","Toko & Dompet"),false); return;
+        }
+        if("profile-media".equals(current.key)){navigate(new Screen("profile-settings","","Pengaturan Profil"),false);return;}
+        if("profile-settings".equals(current.key)){history.clear();navigate(new Screen("settings","","Pengaturan"),false);return;}
+        if("settings-detail".equals(current.key)){if(current.arg.contains("native_section=")){history.clear();navigate(new Screen("profile-settings","","Pengaturan Profil"),false);}else{history.clear();navigate(new Screen("settings","","Pengaturan"),false);}return;}
         if(!history.isEmpty()){Screen s=history.pop();navigate(s,false);return;}
         if(!"home".equals(current.key)){goRoot("home","","Beranda");return;}
         finish();
@@ -463,19 +517,57 @@ public class MainActivity extends Activity {
 
     private void showHome() {
         configureChrome("DeApp",false,R.drawable.ic_native_search,"Cari",v->navigate(new Screen("search","","Cari"),true));showBottom(true);
-        SwipeRefreshLayout refresh=new SwipeRefreshLayout(this);refresh.setColorSchemeColors(text);refresh.setProgressBackgroundColorSchemeColor(surface);ScrollView sc=new ScrollView(this);LinearLayout feed=column();feed.setPadding(0,dp(8),0,dp(18));sc.addView(feed);refresh.addView(sc);swap(refresh);
+        SwipeRefreshLayout refresh=new SwipeRefreshLayout(this);refresh.setColorSchemeColors(text);refresh.setProgressBackgroundColorSchemeColor(surface);
+        ScrollView sc=new ScrollView(this);LinearLayout feed=column();feed.setPadding(0,dp(8),0,dp(18));sc.addView(feed);refresh.addView(sc);swap(refresh);
         LinearLayout composer=rowCard();TextView avatar=bold("+",22);avatar.setGravity(Gravity.CENTER);avatar.setBackground(rounded(surface2,99));composer.addView(avatar,new LinearLayout.LayoutParams(dp(42),dp(42)));TextView ask=tv("Apa yang baru?",15,muted);ask.setGravity(Gravity.CENTER_VERTICAL);LinearLayout.LayoutParams ap=new LinearLayout.LayoutParams(0,dp(42),1);ap.leftMargin=dp(12);composer.addView(ask,ap);composer.setOnClickListener(v->navigate(new Screen("compose","","Postingan"),true));feed.addView(composer,cardMargin());
+        LinearLayout discovery=column();feed.addView(discovery);
         TextView loading=tv("Memuat kiriman…",13,muted);loading.setGravity(Gravity.CENTER);loading.setPadding(0,dp(24),0,dp(24));feed.addView(loading);
-        Runnable load=()->runNet(()->client.get("/api/feed.php?scope=feed&offset=0"),r->{refresh.setRefreshing(false);renderFeed(feed,r.body,r.url);},e->{refresh.setRefreshing(false);renderInlineError(feed,"Feed belum dapat dimuat.",()->showHome());});
-        refresh.setOnRefreshListener(() -> load.run());load.run();
+        Runnable load=()->{
+            runNet(()->client.get("/api/feed.php?scope=feed&offset=0"),r->{refresh.setRefreshing(false);renderFeed(feed,r.body,r.url);},e->{refresh.setRefreshing(false);renderInlineError(feed,"Feed belum dapat dimuat.",()->showHome());});
+            loadHomeDiscovery(discovery);
+        };
+        refresh.setOnRefreshListener(load::run);load.run();
     }
 
     private void renderFeed(LinearLayout feed,String html,String url){
-        while(feed.getChildCount()>1)feed.removeViewAt(1);
+        while(feed.getChildCount()>2)feed.removeViewAt(2);
         Document d=Jsoup.parse(html,url);Elements cards=d.select("article.post-card");
         if(cards.isEmpty()){TextView empty=tv("Belum ada kiriman untuk ditampilkan.",14,muted);empty.setGravity(Gravity.CENTER);empty.setPadding(dp(20),dp(34),dp(20),dp(34));feed.addView(empty);return;}
         int count=0;for(Element e:cards){if(count++>=30)break;Post p=parsePost(e);feed.addView(postCard(p),cardMargin());}
     }
+
+    private void loadHomeDiscovery(LinearLayout host){
+        runNet(()->client.get("/index.php"),r->{
+            host.removeAllViews();
+            Document d=Jsoup.parse(r.body,r.url);
+            Elements people=d.select(".suggest-item");
+            if(!people.isEmpty()) addPeopleRail(host,people);
+            Elements ads=d.select(".deapp-ad-card");
+            if(!ads.isEmpty()) addSponsoredRail(host,ads);
+        },e->{});
+    }
+
+    private void addPeopleRail(LinearLayout host,Elements people){
+        TextView h=bold("Orang yang mungkin Anda kenal",15.5f);h.setPadding(dp(14),dp(18),dp(14),dp(8));host.addView(h);
+        HorizontalScrollView hsv=new HorizontalScrollView(this);hsv.setHorizontalScrollBarEnabled(false);LinearLayout row=new LinearLayout(this);row.setOrientation(LinearLayout.HORIZONTAL);row.setPadding(dp(10),0,dp(10),dp(4));hsv.addView(row);
+        int count=0;for(Element e:people){if(count++>=10)break;Element link=e.selectFirst("a.suggest-name");if(link==null)continue;String name=link.text().trim();String href=relative(link.absUrl("href"));String user=textOf(e,".suggest-sub","");Element img=e.selectFirst("img");
+            LinearLayout card=column();card.setPadding(dp(12),dp(14),dp(12),dp(12));card.setGravity(Gravity.CENTER_HORIZONTAL);card.setBackground(outlined(surface,border,18));
+            ImageView av=avatarView(58);if(img!=null)loadImage(av,img.absUrl("src"));card.addView(av);TextView n=bold(name.isEmpty()?"Pengguna":name,13.5f);n.setGravity(Gravity.CENTER);LinearLayout.LayoutParams np=new LinearLayout.LayoutParams(-1,-2);np.topMargin=dp(9);card.addView(n,np);TextView u=tv(user,11.5f,muted);u.setGravity(Gravity.CENTER);card.addView(u);TextView see=tv("Lihat profil",12.5f,accent);see.setGravity(Gravity.CENTER);see.setPadding(0,dp(10),0,0);card.addView(see);card.setOnClickListener(v->navigate(new Screen("profile",href,"Profil"),true));
+            LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(dp(164),dp(166));cp.rightMargin=dp(8);row.addView(card,cp);
+        }
+        host.addView(hsv,new LinearLayout.LayoutParams(-1,dp(178)));
+    }
+
+    private void addSponsoredRail(LinearLayout host,Elements ads){
+        TextView h=bold("Bersponsor",15.5f);h.setPadding(dp(14),dp(16),dp(14),dp(8));host.addView(h);
+        HorizontalScrollView hsv=new HorizontalScrollView(this);hsv.setHorizontalScrollBarEnabled(false);LinearLayout row=new LinearLayout(this);row.setOrientation(LinearLayout.HORIZONTAL);row.setPadding(dp(10),0,dp(10),dp(6));hsv.addView(row);int count=0;
+        for(Element e:ads){if(count++>=6)break;String brand=textOf(e,".ad-brand b","Sponsor");String body=textOf(e,".ad-copy,.ad-body,.ad-text","");Element im=e.selectFirst(".ad-media img,img");Element dest=e.selectFirst("a.js-ad-destination,a[rel~=sponsored]");String href=dest==null?"":dest.absUrl("href");String cta=dest==null?"Pelajari":dest.text().trim();
+            LinearLayout card=column();card.setPadding(dp(14),dp(13),dp(14),dp(13));card.setBackground(outlined(surface,border,18));TextView label=tv("Disponsori",11.5f,muted);card.addView(label);TextView b=bold(brand,14.5f);LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,-2);bp.topMargin=dp(4);card.addView(b,bp);if(!body.isEmpty()){TextView tx=tv(body,13.5f,text);tx.setMaxLines(3);LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(-1,-2);tp.topMargin=dp(8);card.addView(tx,tp);}if(im!=null){ImageView image=new ImageView(this);image.setScaleType(ImageView.ScaleType.CENTER_CROP);image.setBackground(rounded(surface2,14));image.setClipToOutline(true);image.setOutlineProvider(roundOutline(14));loadImage(image,im.absUrl("src"));LinearLayout.LayoutParams ip=new LinearLayout.LayoutParams(-1,dp(112));ip.topMargin=dp(10);card.addView(image,ip);}TextView action=tv(cta.isEmpty()?"Pelajari":cta,13,accent);action.setPadding(0,dp(10),0,0);card.addView(action);if(!href.isEmpty())card.setOnClickListener(v->openExternal(href));LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(dp(270),-2);cp.rightMargin=dp(8);row.addView(card,cp);
+        }
+        host.addView(hsv,new LinearLayout.LayoutParams(-1,-2));
+    }
+
+    private void openExternal(String url){try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(url)));}catch(Exception e){showNativeNotice("Tidak dapat membuka tautan",url,danger);}}
 
     static final class Post {int id;String name="",username="",avatar="",time="",content="",media="",reactions="",comments="";}
     private Post parsePost(Element e){Post p=new Post();p.id=parseInt(e.attr("data-post-id"));Element n=e.selectFirst(".post-name");if(n!=null){p.name=n.text();p.username=usernameFromHref(n.absUrl("href"));}Element a=e.selectFirst("img.post-avatar");if(a!=null)p.avatar=a.absUrl("src");Element t=e.selectFirst(".post-time");if(t!=null)p.time=t.text();Element c=e.selectFirst(".post-content,.post-bg-text");if(c!=null)p.content=c.text();Element m=e.selectFirst(".post-media img,.media-grid img,.post-media video[poster]");if(m!=null)p.media=m.hasAttr("src")?m.absUrl("src"):m.absUrl("poster");Element r=e.selectFirst(".js-react-count");if(r!=null)p.reactions=r.text();Element co=e.selectFirst(".js-comment-count");if(co!=null)p.comments=co.text();return p;}
@@ -498,6 +590,13 @@ public class MainActivity extends Activity {
         configureChrome("Postingan",true,R.drawable.ic_native_send,"Terbitkan",v -> {});showBottom(false);LinearLayout box=column();box.setPadding(dp(16),dp(12),dp(16),dp(18));EditText input=new EditText(this);input.setHint("Apa yang baru?");input.setHintTextColor(muted);input.setTextColor(text);input.setTextSize(17);input.setGravity(Gravity.TOP);input.setBackgroundColor(Color.TRANSPARENT);input.setMinLines(7);input.setMaxLines(18);box.addView(input,new LinearLayout.LayoutParams(-1,0,1));TextView hint=tv("Postingan teks · publik",12.5f,muted);box.addView(hint);swap(box);topAction.setOnClickListener(v->{String body=input.getText().toString().trim();if(body.isEmpty()){input.setError("Tulis sesuatu dulu");return;}topAction.setEnabled(false);runNet(()->{String csrf=client.ensureCsrf();JSONObject j=new JSONObject();j.put("csrf",csrf);j.put("content",body);j.put("privacy","public");return client.postJson("/api/post_create.php",j.toString());},r->{topAction.setEnabled(true);if(r.ok()){tone.startTone(ToneGenerator.TONE_PROP_ACK,70);showNativeNotice("Diposting","Kiriman sudah tampil di DeApp.",success);goRoot("home","","Beranda");}else showNativeNotice("Gagal memposting",jsonError(r.body,"Coba lagi."),danger);},e->{topAction.setEnabled(true);showNativeNotice("Gagal",e.getMessage(),danger);});});
     }
 
+    private void showStoryCreate(){
+        configureChrome("Buat Cerita",true,R.drawable.ic_native_send,"Terbitkan",v->{});showBottom(false);pendingStoryImage=null;
+        LinearLayout box=column();box.setPadding(dp(16),dp(14),dp(16),dp(20));EditText caption=new EditText(this);caption.setHint("Tulis cerita…");caption.setHintTextColor(muted);caption.setTextColor(text);caption.setTextSize(18);caption.setGravity(Gravity.TOP);caption.setBackground(rounded(surface2,18));caption.setPadding(dp(16),dp(16),dp(16),dp(16));caption.setMinLines(8);box.addView(caption,new LinearLayout.LayoutParams(-1,0,1));
+        LinearLayout opts=new LinearLayout(this);opts.setGravity(Gravity.CENTER_VERTICAL);TextView photo=tv("＋ Foto",14,accent);photo.setGravity(Gravity.CENTER);photo.setBackground(outlined(surface,border,14));photo.setPadding(dp(16),dp(12),dp(16),dp(12));photo.setOnClickListener(v->{pendingImageUpload="story";Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("image/*");startActivityForResult(i,REQ_PICK_PROFILE_IMAGE);});opts.addView(photo,new LinearLayout.LayoutParams(0,-2,1));Switch comments=new Switch(this);comments.setText("Komentar");comments.setTextColor(text);comments.setChecked(true);LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(0,-2,1);cp.leftMargin=dp(10);opts.addView(comments,cp);LinearLayout.LayoutParams op=new LinearLayout.LayoutParams(-1,-2);op.topMargin=dp(12);box.addView(opts,op);swap(box);
+        topAction.setOnClickListener(v->{String textBody=caption.getText().toString().trim();if(textBody.isEmpty()&&pendingStoryImage==null){showNativeNotice("Cerita kosong","Tulis teks atau pilih foto dulu.",danger);return;}topAction.setEnabled(false);runNet(()->{LinkedHashMap<String,String> fields=new LinkedHashMap<>();fields.put("csrf",client.ensureCsrf());fields.put("caption",textBody);fields.put("bg_style","g1");fields.put("allow_comments",comments.isChecked()?"1":"0");return client.postMultipart("/api/story_create.php",fields,pendingStoryImage==null?null:"image","story.jpg",pendingStoryMime,pendingStoryImage);},r->{topAction.setEnabled(true);if(r.ok()){pendingStoryImage=null;showNativeNotice("Cerita diterbitkan","Ceritamu tayang selama 24 jam.",success);goRoot("home","","Beranda");}else showNativeNotice("Belum terbit",jsonError(r.body,"Cerita gagal diterbitkan."),danger);},e->{topAction.setEnabled(true);showNativeNotice("Gagal",e.getMessage(),danger);});});
+    }
+
     private void showPost(int id){configureChrome("Postingan",true,0,"",null);showBottom(false);LinearLayout host=column();ScrollView sc=new ScrollView(this);sc.addView(host);swap(sc);runNet(()->client.get("/post.php?id="+id),r->{host.removeAllViews();Document d=Jsoup.parse(r.body,r.url);Element card=d.selectFirst("article.post-card");if(card!=null)host.addView(postCard(parsePost(card)),cardMargin());loadComments(host,id);},e->renderInlineError(host,"Postingan tidak dapat dibuka.",()->showPost(id)));}
     private void loadComments(LinearLayout host,int id){runNet(()->client.get("/api/post_comments.php?post_id="+id),r->{try{JSONObject o=new JSONObject(r.body);JSONArray a=o.optJSONArray("comments");TextView h=bold("Komentar",16);h.setPadding(dp(16),dp(20),dp(16),dp(8));host.addView(h);if(a!=null)for(int i=0;i<a.length();i++){JSONObject c=a.optJSONObject(i);LinearLayout row=column();row.setPadding(dp(16),dp(10),dp(16),dp(10));String name=c.optString("name",c.optString("username","Pengguna"));row.addView(bold(name,13.5f));row.addView(tv(c.optString("body",c.optString("comment","")),14.5f,text));host.addView(row);}}catch(Exception ignored){}},e->{});}
 
@@ -515,42 +614,203 @@ public class MainActivity extends Activity {
 
     private void renderMessages(LinearLayout msgs,String body){msgs.removeAllViews();try{JSONObject o=new JSONObject(body);JSONObject partner=o.optJSONObject("partner");if(partner!=null&&!partner.optString("name").isEmpty())topTitle.setText(partner.optString("name"));JSONArray a=o.optJSONArray("messages");if(a==null)return;for(int i=0;i<a.length();i++){JSONObject m=a.optJSONObject(i);boolean mine=m.optBoolean("mine");TextView b=tv(m.optString("body",m.optString("sticker","")),14.5f,text);b.setPadding(dp(12),dp(9),dp(12),dp(9));b.setBackground(rounded(mine?(dark?Color.parseColor("#214667"):Color.parseColor("#DFF2FF")):surface2,16));LinearLayout line=new LinearLayout(this);line.setGravity(mine?Gravity.RIGHT:Gravity.LEFT);line.addView(b,new LinearLayout.LayoutParams(-2,-2));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.topMargin=dp(5);msgs.addView(line,lp);TextView tm=tv(m.optString("time",""),10.5f,muted);tm.setGravity(mine?Gravity.RIGHT:Gravity.LEFT);msgs.addView(tm);}}catch(Exception e){msgs.addView(tv("Pesan belum dapat ditampilkan.",13,muted));}}
 
-    private void showNotifications(){configureChrome("Notifikasi",false,R.drawable.ic_native_settings,"Pengaturan notifikasi",v->navigate(new Screen("generic","/settings.php?tab=notifications","Pengaturan Notifikasi"),true));showBottom(true);LinearLayout list=column();ScrollView sc=new ScrollView(this);sc.addView(list);swap(sc);runNet(()->client.get("/api/notif_panel.php"),r->{list.removeAllViews();try{JSONObject o=new JSONObject(r.body);JSONArray a=o.optJSONArray("items");if(a==null||a.length()==0){list.addView(emptyState("Belum ada notifikasi","Aktivitas baru akan muncul di sini."));return;}for(int i=0;i<a.length();i++){JSONObject n=a.optJSONObject(i);LinearLayout row=rowCard();String av=n.optString("avatar");ImageView iv=avatarView(44);if(!av.isEmpty())loadImage(iv,av);else iv.setImageResource(R.drawable.ic_native_bell);row.addView(iv);LinearLayout meta=column();meta.setBackgroundColor(Color.TRANSPARENT);TextView msg=tv(n.optString("message","Notifikasi"),14.5f,text);TextView tm=tv((n.optBoolean("unread")?"Belum dibaca · ":"")+n.optString("time",""),11.5f,n.optBoolean("unread")?accent:muted);meta.addView(msg);meta.addView(tm);LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(0,-2,1);mp.leftMargin=dp(12);row.addView(meta,mp);String link=n.optString("link","");row.setOnClickListener(v->openPath(link,"Notifikasi"));list.addView(row,cardMargin());}}catch(Exception x){renderInlineError(list,"Notifikasi belum dapat dibaca.",this::showNotifications);}},e->renderInlineError(list,"Notifikasi belum dapat dimuat.",this::showNotifications));}
+    private void showNotifications(){configureChrome("Notifikasi",true,R.drawable.ic_native_settings,"Pengaturan notifikasi",v->navigate(new Screen("settings-detail","/settings.php?tab=notifications","Pengaturan Notifikasi"),true));showBottom(true);LinearLayout list=column();ScrollView sc=new ScrollView(this);sc.addView(list);swap(sc);runNet(()->client.get("/api/notif_panel.php"),r->{list.removeAllViews();try{JSONObject o=new JSONObject(r.body);JSONArray a=o.optJSONArray("items");if(a==null||a.length()==0){list.addView(emptyState("Belum ada notifikasi","Aktivitas baru akan muncul di sini."));return;}for(int i=0;i<a.length();i++){JSONObject n=a.optJSONObject(i);LinearLayout row=rowCard();String av=n.optString("avatar");ImageView iv=avatarView(44);if(!av.isEmpty())loadImage(iv,av);else iv.setImageResource(R.drawable.ic_native_bell);row.addView(iv);LinearLayout meta=column();meta.setBackgroundColor(Color.TRANSPARENT);TextView msg=tv(n.optString("message","Notifikasi"),14.5f,text);TextView tm=tv((n.optBoolean("unread")?"Belum dibaca · ":"")+n.optString("time",""),11.5f,n.optBoolean("unread")?accent:muted);meta.addView(msg);meta.addView(tm);LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(0,-2,1);mp.leftMargin=dp(12);row.addView(meta,mp);String link=n.optString("link","");row.setOnClickListener(v->openPath(link,"Notifikasi"));list.addView(row,cardMargin());}}catch(Exception x){renderInlineError(list,"Notifikasi belum dapat dibaca.",this::showNotifications);}},e->renderInlineError(list,"Notifikasi belum dapat dimuat.",this::showNotifications));}
 
-    private void showProfile(String path){configureChrome("Profil",false,R.drawable.ic_native_more_vertical,"Menu",v->navigate(new Screen("features","","Semua Fitur"),true));showBottom(true);LinearLayout host=column();ScrollView sc=new ScrollView(this);sc.addView(host);swap(sc);String target=path;if(target==null||target.isEmpty()){runNet(()->client.get("/index.php"),r->{discoverOwnProfile(r.body,r.url);showProfile(ownProfilePath);},e->renderInlineError(host,"Profil belum dapat dibuka.",()->showProfile("")));return;}runNet(()->client.get(target),r->{host.removeAllViews();Document d=Jsoup.parse(r.body,r.url);Element cover=d.selectFirst(".profile-cover");if(cover!=null){ImageView cv=new ImageView(this);cv.setScaleType(ImageView.ScaleType.CENTER_CROP);Element cimg=cover.selectFirst("img");if(cimg!=null)loadImage(cv,cimg.absUrl("src"));else cv.setBackgroundColor(surface2);host.addView(cv,new LinearLayout.LayoutParams(-1,dp(150)));}LinearLayout info=column();info.setPadding(dp(16),dp(12),dp(16),dp(18));Element av=d.selectFirst("img.profile-avatar");ImageView ava=avatarView(86);if(av!=null)loadImage(ava,av.absUrl("src"));info.addView(ava);String name=textOf(d,".profile-name","Profil");info.addView(bold(name,22));String un=textOf(d,".profile-username","");info.addView(tv(un,14,muted));String bio=textOf(d,".profile-bio","");if(!bio.isEmpty()){TextView bv=tv(bio,14.5f,text);LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,-2);bp.topMargin=dp(12);info.addView(bv,bp);}Element stats=d.selectFirst(".profile-stats");if(stats!=null){TextView sv=tv(stats.text(),13,muted);LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,-2);sp.topMargin=dp(14);info.addView(sv,sp);}host.addView(info);Elements posts=d.select("article.post-card");for(Element e:posts)host.addView(postCard(parsePost(e)),cardMargin());},e->renderInlineError(host,"Profil belum dapat dimuat.",()->showProfile(target)));}
+    private void showProfile(String path){configureChrome("Profil",false,R.drawable.ic_native_settings,"Pengaturan profil",v->navigate(new Screen("profile-settings","","Pengaturan Profil"),true));showBottom(true);LinearLayout host=column();ScrollView sc=new ScrollView(this);sc.addView(host);swap(sc);String target=path;if(target==null||target.isEmpty()){runNet(()->client.get("/index.php"),r->{discoverOwnProfile(r.body,r.url);showProfile(ownProfilePath);},e->renderInlineError(host,"Profil belum dapat dibuka.",()->showProfile("")));return;}runNet(()->client.get(target),r->{host.removeAllViews();Document d=Jsoup.parse(r.body,r.url);Element cover=d.selectFirst(".profile-cover");if(cover!=null){ImageView cv=new ImageView(this);cv.setScaleType(ImageView.ScaleType.CENTER_CROP);Element cimg=cover.selectFirst("img");if(cimg!=null)loadImage(cv,cimg.absUrl("src"));else cv.setBackgroundColor(surface2);host.addView(cv,new LinearLayout.LayoutParams(-1,dp(150)));}LinearLayout info=column();info.setPadding(dp(16),dp(12),dp(16),dp(18));Element av=d.selectFirst("img.profile-avatar");ImageView ava=avatarView(86);if(av!=null)loadImage(ava,av.absUrl("src"));info.addView(ava);String name=textOf(d,".profile-name","Profil");info.addView(bold(name,22));String un=textOf(d,".profile-username","");info.addView(tv(un,14,muted));String bio=textOf(d,".profile-bio","");if(!bio.isEmpty()){TextView bv=tv(bio,14.5f,text);LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,-2);bp.topMargin=dp(12);info.addView(bv,bp);}Element stats=d.selectFirst(".profile-stats");if(stats!=null){TextView sv=tv(stats.text(),13,muted);LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,-2);sp.topMargin=dp(14);info.addView(sv,sp);}host.addView(info);Elements posts=d.select("article.post-card");for(Element e:posts)host.addView(postCard(parsePost(e)),cardMargin());},e->renderInlineError(host,"Profil belum dapat dimuat.",()->showProfile(target)));}
 
     private void showSearch(){configureChrome("Cari",true,0,"",null);showBottom(false);LinearLayout box=column();box.setPadding(dp(12),dp(10),dp(12),dp(20));EditText q=field("Cari orang atau tagar");box.addView(q,new LinearLayout.LayoutParams(-1,dp(52)));LinearLayout results=column();LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,0,1);rp.topMargin=dp(8);box.addView(results,rp);swap(box);q.setSingleLine(true);q.setImeOptions(EditorInfo.IME_ACTION_SEARCH);q.setOnEditorActionListener((v,a,e)->{if(a==EditorInfo.IME_ACTION_SEARCH){searchNow(q.getText().toString(),results);return true;}return false;});}
-    private void searchNow(String query,LinearLayout results){String q=query.trim();if(q.isEmpty())return;runNet(()->client.get("/api/search_suggest.php?q="+java.net.URLEncoder.encode(q,"UTF-8")),r->{results.removeAllViews();try{JSONObject o=new JSONObject(r.body);JSONArray users=o.optJSONArray("users");if(users!=null)for(int i=0;i<users.length();i++){JSONObject u=users.optJSONObject(i);LinearLayout row=rowCard();ImageView av=avatarView(42);loadImage(av,u.optString("avatar"));row.addView(av);LinearLayout m=column();m.setBackgroundColor(Color.TRANSPARENT);m.addView(bold(u.optString("name","Pengguna"),14.5f));m.addView(tv("@"+u.optString("username"),12,muted));LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(0,-2,1);mp.leftMargin=dp(10);row.addView(m,mp);String path=relative(u.optString("url"));row.setOnClickListener(v->navigate(new Screen("profile",path,"Profil"),true));results.addView(row,cardMargin());}JSONArray tags=o.optJSONArray("tags");if(tags!=null)for(int i=0;i<tags.length();i++){JSONObject t=tags.optJSONObject(i);TextView tr=tv("#"+t.optString("tag")+"   "+t.optString("count"),15,accent);tr.setPadding(dp(16),dp(14),dp(16),dp(14));String path=relative(t.optString("url"));tr.setOnClickListener(v->navigate(new Screen("generic",path,"Tagar"),true));results.addView(tr);}}catch(Exception ex){results.addView(tv("Pencarian belum dapat ditampilkan.",13,muted));}},e->showNativeNotice("Pencarian gagal",e.getMessage(),danger));}
+    private void searchNow(String query,LinearLayout results){String q=query.trim();if(q.isEmpty())return;runNet(()->client.get("/api/search_suggest.php?q="+java.net.URLEncoder.encode(q,"UTF-8")),r->{results.removeAllViews();try{JSONObject o=new JSONObject(r.body);JSONArray users=o.optJSONArray("users");if(users!=null)for(int i=0;i<users.length();i++){JSONObject u=users.optJSONObject(i);LinearLayout row=rowCard();ImageView av=avatarView(42);loadImage(av,u.optString("avatar"));row.addView(av);LinearLayout m=column();m.setBackgroundColor(Color.TRANSPARENT);m.addView(bold(u.optString("name","Pengguna"),14.5f));m.addView(tv("@"+u.optString("username"),12,muted));LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(0,-2,1);mp.leftMargin=dp(10);row.addView(m,mp);String path=relative(u.optString("url"));row.setOnClickListener(v->navigate(new Screen("profile",path,"Profil"),true));results.addView(row,cardMargin());}JSONArray tags=o.optJSONArray("tags");if(tags!=null)for(int i=0;i<tags.length();i++){JSONObject t=tags.optJSONObject(i);TextView tr=tv("#"+t.optString("tag")+"   "+t.optString("count"),15,accent);tr.setPadding(dp(16),dp(14),dp(16),dp(14));String path=relative(t.optString("url"));tr.setOnClickListener(v->navigate(new Screen("module",path,"Tagar"),true));results.addView(tr);}}catch(Exception ex){results.addView(tv("Pencarian belum dapat ditampilkan.",13,muted));}},e->showNativeNotice("Pencarian gagal",e.getMessage(),danger));}
 
-    private void showShop(){configureChrome("Toko & Dompet",true,R.drawable.ic_native_more,"Semua fitur",v->navigate(new Screen("features","","Semua Fitur"),true));showBottom(false);ScrollView sc=new ScrollView(this);LinearLayout box=column();box.setPadding(dp(12),dp(12),dp(12),dp(24));sc.addView(box);box.addView(sectionTitle("Dompet & Koin"));addMenu(box,R.drawable.ic_native_shop,"Dompet","Saldo, transaksi, dan keamanan dompet","/shop.php?tab=wallet","Dompet");addMenu(box,R.drawable.ic_native_add,"Top Up","Isi saldo koin DeApp","/settings.php?tab=topup","Top Up");addMenu(box,R.drawable.ic_native_send,"Kirim Koin","Kirim koin ke pengguna lain","/shop.php?tab=send","Kirim Koin");addMenu(box,R.drawable.ic_native_code,"Kode Promo","Tukarkan kode promo dan hadiah","/shop.php?tab=promo","Kode Promo");box.addView(sectionTitle("Toko & Koleksi"));addMenu(box,R.drawable.ic_native_grid,"Etalase","Jelajahi item dan koleksi","/shop.php?tab=shop","Etalase");addMenu(box,R.drawable.ic_native_sparkles,"Pet","Peliharaan virtual DeApp","/shop.php?tab=pets","Pet");addMenu(box,R.drawable.ic_native_game,"Item Virtual","Aksesori dan item koleksi","/shop.php?tab=virtual","Item Virtual");addMenu(box,R.drawable.ic_native_more,"Menu lainnya","Hadiah, stiker, tiket, koleksi, level, dan lainnya","/shop.php?tab=more","Menu lainnya");swap(sc);}
+    private void showShop(){
+        configureChrome("Toko & Dompet",true,R.drawable.ic_native_more,"Semua fitur",v->navigate(new Screen("features","","Semua Fitur"),true));showBottom(false);
+        ScrollView sc=new ScrollView(this);LinearLayout box=column();box.setPadding(dp(12),dp(8),dp(12),dp(28));sc.addView(box);
+        TextView intro=tv("Kelola koin, transaksi, dan koleksi DeApp dari halaman native terpisah.",13.5f,muted);intro.setPadding(dp(8),dp(6),dp(8),dp(8));box.addView(intro);
+        box.addView(sectionTitle("Dompet & Koin"));
+        addMenu(box,R.drawable.ic_native_shop,"Dompet","Saldo, riwayat transaksi, dan keamanan dompet","/shop.php?tab=wallet","Dompet");
+        addMenu(box,R.drawable.ic_native_add,"Top Up","Isi koin DeApp dan cek riwayat top up","/topup.php","Top Up");
+        addMenu(box,R.drawable.ic_native_send,"Kirim Koin","Kirim koin ke pengguna lain","/shop.php?tab=kirim","Kirim Koin");
+        addMenu(box,R.drawable.ic_native_code,"Kode Promo","Tukarkan kode promo dan hadiah","/shop.php?tab=promo","Kode Promo");
+        box.addView(sectionTitle("Toko & Koleksi"));
+        addMenu(box,R.drawable.ic_native_grid,"Etalase","Jelajahi item yang tersedia","/shop.php?tab=etalase","Etalase");
+        addMenu(box,R.drawable.ic_native_sparkles,"Pet","Peliharaan virtual DeApp","/shop.php?tab=pet","Pet");
+        addMenu(box,R.drawable.ic_native_game,"Item Virtual","Aksesori, booster, dan item pet","/shop.php?tab=virtual","Item Virtual");
+        addMenu(box,R.drawable.ic_native_sparkles,"VIP","Paket dan manfaat VIP","/shop.php?tab=vip","VIP");
+        LinearLayout more=rowCard();ImageView mi=new ImageView(this);mi.setImageResource(R.drawable.ic_native_more);mi.setColorFilter(text);mi.setPadding(dp(8),dp(8),dp(8),dp(8));mi.setBackground(rounded(surface2,12));more.addView(mi,new LinearLayout.LayoutParams(dp(44),dp(44)));LinearLayout mm=column();mm.setBackgroundColor(Color.TRANSPARENT);mm.addView(bold("Menu lainnya",14.5f));mm.addView(tv("Keinginan, hadiah, tema, stiker, tiket, tas, koleksi, level, dan lainnya",12.3f,muted));LinearLayout.LayoutParams mmp=new LinearLayout.LayoutParams(0,-2,1);mmp.leftMargin=dp(12);more.addView(mm,mmp);more.addView(tv("›",26,muted));more.setOnClickListener(v->navigate(new Screen("shop-more","","Menu lainnya"),true));box.addView(more,cardMargin());
+        swap(sc);
+    }
 
-    private void showSettings(){configureChrome("Pengaturan",true,0,"",null);showBottom(false);ScrollView sc=new ScrollView(this);LinearLayout box=column();box.setPadding(dp(12),dp(12),dp(12),dp(24));sc.addView(box);addMenu(box,R.drawable.ic_native_user,"Profil","Foto, info profil, username","/settings.php?tab=profile","Profil");addMenu(box,R.drawable.ic_native_shield,"Privasi & Keamanan","Kontrol akun, sesi, blokir","/settings.php?tab=privacy","Privasi & Keamanan");addMenu(box,R.drawable.ic_native_sparkles,"Mode Tampilan","Tema dan pengalaman aplikasi","/settings.php?tab=appearance","Mode Tampilan");addMenu(box,R.drawable.ic_native_message,"Bahasa & Terjemahan","Bahasa, terjemahan, aksesibilitas","/settings.php?tab=language","Bahasa & Terjemahan");addMenu(box,R.drawable.ic_native_bell,"Notifikasi","Atur notifikasi dan suara","/settings.php?tab=notifications","Notifikasi");TextView logout=tv("Keluar dari akun",15,danger);logout.setGravity(Gravity.CENTER);logout.setPadding(dp(14),dp(16),dp(14),dp(16));logout.setBackground(outlined(surface,border,14));LinearLayout.LayoutParams lp=cardMargin();lp.topMargin=dp(24);box.addView(logout,lp);logout.setOnClickListener(v->logout());swap(sc);}
+    private void showShopMore(){
+        configureChrome("Menu lainnya",true,0,"",null);showBottom(false);ScrollView sc=new ScrollView(this);LinearLayout box=column();box.setPadding(dp(12),dp(8),dp(12),dp(28));sc.addView(box);
+        String[][] items={{"Keinginan","Item yang kamu simpan untuk dibeli","/shop.php?tab=wishlist"},{"Pet Care 3D","Makanan dan perawatan pet","/shop.php?tab=virtual&vcat=pet_food"},{"Boost Lab","Booster dan XP pet","/shop.php?tab=virtual&vcat=pet_booster"},{"Showroom 3D","Aksesori dan gaya pet","/shop.php?tab=virtual&vcat=pet_accessory"},{"Hadiah","Katalog hadiah virtual","/shop.php?tab=gifts"},{"Tema","Tema profil dan visual","/shop.php?tab=theme"},{"Bingkai","Bingkai profil","/shop.php?tab=frame"},{"Gelembung","Gaya gelembung chat","/shop.php?tab=bubble"},{"Stiker","Paket stiker DeApp","/shop.php?tab=sticker"},{"Efek Nama","Efek nama pengguna","/shop.php?tab=effect"},{"Tiket","Tiket fitur dan rename","/shop.php?tab=ticket"},{"Tas Barang","Inventori item milikmu","/shop.php?tab=bag"},{"Koleksiku","Semua koleksi yang dimiliki","/shop.php?tab=koleksi"},{"Level","Progress dan level akun","/shop.php?tab=level"}};
+        int[] icons={R.drawable.ic_native_bookmark,R.drawable.ic_native_sparkles,R.drawable.ic_native_sparkles,R.drawable.ic_native_sparkles,R.drawable.ic_native_sparkles,R.drawable.ic_native_photo,R.drawable.ic_native_sparkles,R.drawable.ic_native_message,R.drawable.ic_native_sparkles,R.drawable.ic_native_sparkles,R.drawable.ic_native_bookmark,R.drawable.ic_native_message,R.drawable.ic_native_bookmark,R.drawable.ic_native_grid};
+        for(int i=0;i<items.length;i++)addMenu(box,icons[i],items[i][0],items[i][1],items[i][2],items[i][0]);swap(sc);
+    }
 
-    private void showAllFeatures(){configureChrome("Semua Fitur",true,0,"",null);showBottom(false);ScrollView sc=new ScrollView(this);LinearLayout box=column();box.setPadding(dp(12),dp(12),dp(12),dp(24));sc.addView(box);String[][] items={{"Cari","Temukan orang, tagar, dan konten","/explore.php"},{"Video Pendek","Video vertikal dan kreator","/reels.php"},{"Live","Siaran langsung DeApp","/live.php"},{"Komunitas","Grup dan forum topik","/communities.php"},{"ASK","Pertanyaan dan jawaban","/inbox.php"},{"Tersimpan","Bookmark dan koleksi","/bookmarks.php"},{"Memori","Postingan yang kamu ingat","/memories.php"},{"Toko & Dompet","Koin, pet, item, koleksi","/shop.php"},{"DeApp AI","Asisten AI DeApp","/deapp-ai.php"},{"Games","Mini game sosial","/games.php"},{"Pengaturan","Akun dan pengalaman aplikasi","/settings.php"}};int[] icons={R.drawable.ic_native_search,R.drawable.ic_native_video,R.drawable.ic_native_live,R.drawable.ic_native_community,R.drawable.ic_native_message,R.drawable.ic_native_bookmark,R.drawable.ic_native_sparkles,R.drawable.ic_native_shop,R.drawable.ic_native_sparkles,R.drawable.ic_native_game,R.drawable.ic_native_settings};for(int i=0;i<items.length;i++){String[] it=items[i];addMenu(box,icons[i],it[0],it[1],it[2],it[0]);}swap(sc);}
+    private void showShopDetail(String path,String title){
+        configureChrome(title,true,0,"",null);showBottom(false);
+        runNet(()->client.get(path),r->{Document d=Jsoup.parse(r.body,r.url);ScrollView sc=new ScrollView(this);LinearLayout box=column();box.setPadding(dp(12),dp(8),dp(12),dp(28));sc.addView(box);Element mainEl=d.selectFirst("main#main-content");if(mainEl==null)mainEl=d.body();for(Element nav:mainEl.select(".shop-menu-grid,.wide-side,.site-footer,.topbar,.mobile-bottom-nav"))nav.remove();renderNativeModuleDocument(box,mainEl,r.url,true);swap(sc);},e->showNetworkError("Halaman toko belum dapat dimuat.",()->showShopDetail(path,title)));
+    }
+
+    private void showTopup(){
+        configureChrome("Top Up",true,0,"",null);showBottom(false);
+        runNet(()->client.get("/topup.php"),r->{Document d=Jsoup.parse(r.body,r.url);ScrollView sc=new ScrollView(this);LinearLayout box=column();box.setPadding(dp(12),dp(8),dp(12),dp(28));sc.addView(box);Element mainEl=d.selectFirst("main#main-content");if(mainEl==null)mainEl=d.body();renderNativeModuleDocument(box,mainEl,r.url,true);swap(sc);},e->showNetworkError("Top Up belum dapat dimuat.",this::showTopup));
+    }
+
+    private void showSettings(){
+        configureChrome("Pengaturan",true,0,"",null);showBottom(false);ScrollView sc=new ScrollView(this);LinearLayout box=column();box.setPadding(dp(12),dp(8),dp(12),dp(28));sc.addView(box);
+        addMenu(box,R.drawable.ic_native_user,"Profil","Foto profil & sampul, info profil, username","native:profile-settings","Pengaturan Profil");
+        addMenu(box,R.drawable.ic_native_sparkles,"Mode Tampilan","Tema, warna, dan tampilan aplikasi","/settings.php?tab=appearance","Mode Tampilan");
+        addMenu(box,R.drawable.ic_native_settings,"Pengalaman Aplikasi","Kepadatan, sudut, dan mode hemat visual","/settings.php?tab=experience","Pengalaman Aplikasi");
+        addMenu(box,R.drawable.ic_native_contacts,"Bahasa & Terjemahan","Bahasa aplikasi dan terjemahan","/settings.php?tab=language","Bahasa & Terjemahan");
+        addMenu(box,R.drawable.ic_native_sparkles,"Aksesibilitas","Animasi, kontras, dan kenyamanan","/settings.php?tab=access","Aksesibilitas");
+        addMenu(box,R.drawable.ic_native_bell,"Notifikasi","Notifikasi, suara, dan preferensi","/settings.php?tab=notifications","Pengaturan Notifikasi");
+        addMenu(box,R.drawable.ic_native_shield,"Privasi & Keamanan","Privasi akun, blokir, sesi, dan keamanan","/settings.php?tab=privacy","Privasi & Keamanan");
+        addMenu(box,R.drawable.ic_native_sparkles,"DeApp AI","Bahasa dan preferensi AI","/settings.php?tab=ai","Pengaturan AI");
+        addMenu(box,R.drawable.ic_native_user,"Karakter","Karakter dan asisten virtual","/settings.php?tab=characters","Karakter");
+        TextView logout=tv("Keluar dari akun",15,danger);logout.setGravity(Gravity.CENTER);logout.setPadding(dp(14),dp(16),dp(14),dp(16));logout.setBackground(outlined(surface,border,14));LinearLayout.LayoutParams lp=cardMargin();lp.topMargin=dp(24);box.addView(logout,lp);logout.setOnClickListener(v->logout());swap(sc);
+    }
+
+    private void showProfileSettings(){
+        configureChrome("Pengaturan Profil",true,0,"",null);showBottom(false);ScrollView sc=new ScrollView(this);LinearLayout box=column();box.setPadding(dp(12),dp(8),dp(12),dp(28));sc.addView(box);
+        addMenu(box,R.drawable.ic_native_camera,"Foto Profil & Sampul","Ubah avatar dan foto sampul","native:profile-media","Foto Profil & Sampul");
+        addMenu(box,R.drawable.ic_native_user,"Info Profil","Nama tampilan, bio, lokasi, situs, tanggal lahir","native:profile-info","Info Profil");
+        addMenu(box,R.drawable.ic_native_user,"Username","Ganti username dan pengaturan alihan","native:username","Username");
+        addMenu(box,R.drawable.ic_native_sparkles,"Custom Profile Studio","Tema, pola cover, aura, dan detail profil","/profile-edit.php","Custom Profile Studio");swap(sc);
+    }
+
+    private void showProfileMedia(){
+        configureChrome("Foto Profil & Sampul",true,0,"",null);showBottom(false);ScrollView sc=new ScrollView(this);LinearLayout box=column();box.setPadding(dp(16),dp(14),dp(16),dp(28));sc.addView(box);
+        LinearLayout avatarCard=column();avatarCard.setPadding(dp(16),dp(16),dp(16),dp(16));avatarCard.setBackground(outlined(surface,border,18));ImageView av=avatarView(92);avatarCard.addView(av);avatarCard.addView(bold("Foto profil",16),new LinearLayout.LayoutParams(-1,-2));TextView avSub=tv("JPG, PNG, WEBP atau GIF. Maksimal mengikuti batas server DeApp.",12.5f,muted);avatarCard.addView(avSub);Button avBtn=primary("Pilih foto profil");LinearLayout.LayoutParams abp=new LinearLayout.LayoutParams(-1,dp(48));abp.topMargin=dp(12);avatarCard.addView(avBtn,abp);avBtn.setOnClickListener(v->pickProfileImage("avatar"));box.addView(avatarCard,cardMargin());
+        LinearLayout coverCard=column();coverCard.setPadding(dp(16),dp(16),dp(16),dp(16));coverCard.setBackground(outlined(surface,border,18));ImageView cover=new ImageView(this);cover.setScaleType(ImageView.ScaleType.CENTER_CROP);cover.setBackground(rounded(surface2,14));cover.setClipToOutline(true);cover.setOutlineProvider(roundOutline(14));coverCard.addView(cover,new LinearLayout.LayoutParams(-1,dp(150)));TextView ch=bold("Foto sampul",16);LinearLayout.LayoutParams chp=new LinearLayout.LayoutParams(-1,-2);chp.topMargin=dp(12);coverCard.addView(ch,chp);coverCard.addView(tv("Ukuran ideal 1200 × 400 piksel.",12.5f,muted));Button cvBtn=primary("Pilih foto sampul");LinearLayout.LayoutParams cbp=new LinearLayout.LayoutParams(-1,dp(48));cbp.topMargin=dp(12);coverCard.addView(cvBtn,cbp);cvBtn.setOnClickListener(v->pickProfileImage("cover"));box.addView(coverCard,cardMargin());swap(sc);
+        String target=ownProfilePath; if(target==null||target.isEmpty())target="/index.php";String finalTarget=target;runNet(()->client.get(finalTarget),r->{Document d=Jsoup.parse(r.body,r.url);Element ai=d.selectFirst("img.profile-avatar,.drawer-user img,.dropdown-user img");if(ai!=null)loadImage(av,ai.absUrl("src"));Element ci=d.selectFirst(".profile-cover img,.profile-cover");if(ci!=null){String src=ci.tagName().equals("img")?ci.absUrl("src"):extractBackgroundUrl(ci.attr("style"),r.url);if(!src.isEmpty())loadImage(cover,src);}},e->{});
+    }
+
+    private void pickProfileImage(String type){pendingImageUpload=type;Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("image/*");startActivityForResult(i,REQ_PICK_PROFILE_IMAGE);}
+
+    private String extractBackgroundUrl(String style,String base){if(style==null)return"";int a=style.indexOf("url(");if(a<0)return"";int b=style.indexOf(')',a);if(b<0)return"";String raw=style.substring(a+4,b).replace("\"","").replace("'","").trim();try{return new java.net.URL(new java.net.URL(base),raw).toString();}catch(Exception e){return raw;}}
+
+    private void showSettingsDetail(String path,String title){
+        if(path.contains("native_section=info")){showProfileFormSection("profile",title);return;}
+        if(path.contains("native_section=username")){showProfileFormSection("username",title);return;}
+        showNativeModule(path,title,true);
+    }
+
+    private void showProfileFormSection(String actionValue,String title){
+        configureChrome(title,true,0,"",null);showBottom(false);
+        runNet(()->client.get("/settings.php?tab=profile"),r->{Document d=Jsoup.parse(r.body,r.url);Element chosen=null;for(Element f:d.select("form")){Element a=f.selectFirst("input[name=action]");if(a!=null&&actionValue.equals(a.attr("value"))){chosen=f;break;}}ScrollView sc=new ScrollView(this);LinearLayout box=column();box.setPadding(dp(14),dp(10),dp(14),dp(28));sc.addView(box);if(chosen==null){box.addView(emptyState("Belum tersedia","Form "+title+" tidak ditemukan pada server DeApp."));}else{boolean[] bound={false};renderNativeForm(box,chosen,r.url,true,bound);if("username".equals(actionValue)){Element info=chosen.parent();if(info!=null){String hint=textOf(info,"p.muted","Username dipakai pada tautan profil dan mention.");TextView t=tv(hint,12.5f,muted);LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(-1,-2);tp.topMargin=dp(12);box.addView(t,tp);}}}swap(sc);},e->showNetworkError("Pengaturan profil belum dapat dimuat.",()->showProfileFormSection(actionValue,title)));
+    }
+
+
+    private void showAllFeatures(){configureChrome("Semua Fitur",true,0,"",null);showBottom(false);ScrollView sc=new ScrollView(this);LinearLayout box=column();box.setPadding(dp(12),dp(8),dp(12),dp(28));sc.addView(box);String[][] items={{"Cari","Temukan orang, tagar, dan konten","/explore.php"},{"Video Pendek","Video vertikal dan kreator","/reels.php"},{"Live","Siaran langsung DeApp","/live.php"},{"Komunitas","Grup dan forum topik","/community.php"},{"ASK","Pertanyaan dan jawaban","/inbox.php"},{"Tersimpan","Bookmark dan koleksi","/bookmarks.php"},{"Koneksi","Pengikut, mengikuti, dan relasi","/connections.php"},{"Memori","Postingan yang kamu ingat","/memories.php"},{"Toko & Dompet","Koin, pet, item, koleksi","/shop.php"},{"DeApp AI","Asisten AI DeApp","/ai.php"},{"Karakter","Karakter AI dan percakapan","/characters.php"},{"Games","Mini game sosial","/games.php"},{"DeApp Tap","Interaksi cepat","/tap.php"},{"Media","Galeri media akun","/media.php"},{"Iklan","Kampanye dan iklan sponsor","/ads.php"},{"Developer","Aplikasi dan integrasi developer","/developer.php"},{"Bantuan","Pusat bantuan DeApp","/help.php"},{"Pengaturan","Akun dan pengalaman aplikasi","/settings.php"}};int[] icons={R.drawable.ic_native_search,R.drawable.ic_native_video,R.drawable.ic_native_live,R.drawable.ic_native_community,R.drawable.ic_native_message,R.drawable.ic_native_bookmark,R.drawable.ic_native_user,R.drawable.ic_native_sparkles,R.drawable.ic_native_shop,R.drawable.ic_native_sparkles,R.drawable.ic_native_user,R.drawable.ic_native_game,R.drawable.ic_native_tap,R.drawable.ic_native_photo,R.drawable.ic_native_bell,R.drawable.ic_native_code,R.drawable.ic_native_message,R.drawable.ic_native_settings};for(int i=0;i<items.length;i++)addMenu(box,icons[i],items[i][0],items[i][1],items[i][2],items[i][0]);swap(sc);}
+
 
     private TextView sectionTitle(String s){TextView h=bold(s,13);h.setTextColor(muted);h.setPadding(dp(8),dp(18),dp(8),dp(8));return h;}
     private void addMenu(LinearLayout box,int icon,String title,String subtitle,String path,String pageTitle){LinearLayout row=rowCard();ImageView i=new ImageView(this);i.setImageResource(icon);i.setColorFilter(text);i.setPadding(dp(8),dp(8),dp(8),dp(8));i.setBackground(rounded(surface2,12));row.addView(i,new LinearLayout.LayoutParams(dp(44),dp(44)));LinearLayout m=column();m.setBackgroundColor(Color.TRANSPARENT);m.addView(bold(title,14.5f));m.addView(tv(subtitle,12.3f,muted));LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(0,-2,1);mp.leftMargin=dp(12);row.addView(m,mp);TextView arrow=tv("›",26,muted);row.addView(arrow);row.setOnClickListener(v->{if("/shop.php".equals(path))navigate(new Screen("shop","","Toko & Dompet"),true);else if("/settings.php".equals(path))navigate(new Screen("settings","","Pengaturan"),true);else openPath(path,pageTitle);});box.addView(row,cardMargin());}
 
-    private void showGenericNativePage(String path,String fallbackTitle){
-        configureChrome(fallbackTitle.isEmpty()?"DeApp":fallbackTitle,true,0,"",null);showBottom(false);
-        // Keep the previous page visible until data is ready; then swap in one short native transition.
-        runNet(()->client.get(path),r->{Document d=Jsoup.parse(r.body,r.url);String title=fallbackTitle;Element h=d.selectFirst("main h1, main h2, .page-title, h1");if(h!=null&&!h.text().isEmpty())title=h.text();configureChrome(title,true,0,"",null);ScrollView sc=new ScrollView(this);LinearLayout box=column();box.setPadding(dp(14),dp(8),dp(14),dp(28));sc.addView(box);Element mainEl=d.selectFirst("main#main-content");if(mainEl==null)mainEl=d.body();renderNativeDocument(box,mainEl,r.url);swap(sc);},e->showNetworkError("Halaman belum dapat dimuat.",()->showGenericNativePage(path,fallbackTitle)));
+    static final class NativeInputBinding {
+        final String name;
+        final String kind;
+        final View view;
+        final ArrayList<String> values;
+        NativeInputBinding(String name,String kind,View view,ArrayList<String> values){this.name=name;this.kind=kind;this.view=view;this.values=values;}
     }
 
-    private void renderNativeDocument(LinearLayout box,Element mainEl,String url){
-        if(mainEl==null){box.addView(emptyState("Konten kosong","Tidak ada data untuk ditampilkan."));return;}
-        Elements nodes=mainEl.select("h1,h2,h3,p,.alert,.empty-state,a.btn,a.dropdown-item,a.dev-app-row,a.settings-link,form");int rendered=0;
-        for(Element e:nodes){if(rendered>90)break;if(hasSelectedAncestor(e,nodes))continue;String tag=e.tagName();if(tag.matches("h1|h2|h3")){TextView h=bold(e.text(),tag.equals("h1")?22:tag.equals("h2")?18:16);LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,-2);hp.topMargin=dp(16);box.addView(h,hp);rendered++;}else if(tag.equals("p")||e.hasClass("alert")||e.hasClass("empty-state")){String t=e.text().trim();if(t.isEmpty())continue;TextView p=tv(t,14,e.hasClass("alert")?text:muted);p.setPadding(dp(4),dp(6),dp(4),dp(6));box.addView(p);rendered++;}else if(tag.equals("a")){String href=relative(e.absUrl("href"));String label=e.text().trim();if(href.isEmpty()||label.isEmpty())continue;TextView a=tv(label,14.5f,accent);a.setPadding(dp(14),dp(14),dp(14),dp(14));a.setBackground(outlined(surface,border,14));LinearLayout.LayoutParams ap=cardMargin();box.addView(a,ap);a.setOnClickListener(v->openPath(href,label));rendered++;}else if(tag.equals("form")){renderSimpleForm(box,e,url);rendered++;}}
-        if(rendered==0){String textBody=mainEl.text().trim();if(textBody.length()>1200)textBody=textBody.substring(0,1200)+"…";box.addView(tv(textBody.isEmpty()?"Halaman siap digunakan.":textBody,14.5f,text));}
+    private void showNativeModule(String path,String fallbackTitle){showNativeModule(path,fallbackTitle,false);}
+
+    private void showNativeModule(String path,String fallbackTitle,boolean headerSave){
+        configureChrome(fallbackTitle.isEmpty()?"DeApp":fallbackTitle,true,0,"",null);showBottom(false);
+        runNet(()->client.get(path),r->{
+            Document d=Jsoup.parse(r.body,r.url);String title=fallbackTitle;Element h=d.selectFirst("main h1, main h2, .page-title, h1");if(h!=null&&!h.text().trim().isEmpty())title=h.text().trim();
+            configureChrome(title,true,0,"",null);ScrollView sc=new ScrollView(this);LinearLayout box=column();box.setPadding(dp(12),dp(8),dp(12),dp(28));sc.addView(box);
+            Element mainEl=d.selectFirst("main#main-content");if(mainEl==null)mainEl=d.selectFirst("main");if(mainEl==null)mainEl=d.body();
+            for(Element e:mainEl.select("script,style,nav,.topbar,.mobile-bottom-nav,.wide-side,.settings-nav,.shop-menu-grid,.sidebar,.site-footer"))e.remove();
+            renderNativeModuleDocument(box,mainEl,r.url,headerSave);swap(sc);
+        },e->showNetworkError("Halaman belum dapat dimuat.",()->showNativeModule(path,fallbackTitle,headerSave)));
     }
+
+    private void renderNativeModuleDocument(LinearLayout box,Element mainEl,String url,boolean headerSave){
+        if(mainEl==null){box.addView(emptyState("Konten kosong","Tidak ada data untuk ditampilkan."));return;}
+        boolean[] saveBound={false};
+        Elements blocks=mainEl.select("section.card,section.settings-section,article,.card,.dev-app-row,.community-card,.game-card,.gift-card,.shop-card,.pet-shop-card,.virtual-shop-card,.reel-card,.credit-row,.notif-row,.empty-state,.alert");
+        int rendered=0;
+        for(Element block:blocks){
+            if(rendered>=70)break;if(hasSelectedAncestor(block,blocks))continue;
+            renderNativeBlock(box,block,url,headerSave&&!saveBound[0],saveBound);rendered++;
+        }
+        if(rendered==0){
+            Elements forms=mainEl.select("form");for(Element form:forms){if(rendered++>12)break;renderNativeForm(box,form,url,headerSave&&!saveBound[0],saveBound);}
+            Elements links=mainEl.select("a[href]");for(Element a:links){if(rendered++>40)break;String label=a.text().trim();String href=relative(a.absUrl("href"));if(label.isEmpty()||href.isEmpty())continue;addNativeLinkRow(box,label,href);}
+            if(rendered==0){String body=mainEl.text().trim();if(body.length()>2600)body=body.substring(0,2600)+"…";box.addView(tv(body.isEmpty()?"Halaman siap digunakan.":body,14.5f,text));}
+        }
+    }
+
+    private void renderNativeBlock(LinearLayout box,Element block,String url,boolean headerSave,boolean[] saveBound){
+        LinearLayout card=column();card.setPadding(dp(15),dp(14),dp(15),dp(14));card.setBackground(outlined(surface,border,18));
+        Element img=block.selectFirst("img");if(img!=null&&!img.absUrl("src").isEmpty()){ImageView iv=new ImageView(this);iv.setScaleType(ImageView.ScaleType.CENTER_CROP);iv.setBackground(rounded(surface2,14));iv.setClipToOutline(true);iv.setOutlineProvider(roundOutline(14));loadImage(iv,img.absUrl("src"));card.addView(iv,new LinearLayout.LayoutParams(-1,dp(160)));}
+        Element head=block.selectFirst("h1,h2,h3,h4,.title,.card-title,.settings-title");if(head!=null&&!head.text().trim().isEmpty()){TextView hv=bold(head.text().trim(),head.tagName().equals("h1")?20:16);LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,-2);hp.topMargin=img==null?0:dp(12);card.addView(hv,hp);}
+        Elements paras=block.select("p,.muted,.description,.subtitle,small");int pc=0;for(Element pe:paras){if(pc++>=4)break;if(hasSelectedAncestor(pe,paras))continue;String t=pe.text().trim();if(t.isEmpty()||(head!=null&&t.equals(head.text().trim())))continue;if(t.length()>420)t=t.substring(0,420)+"…";TextView pv=tv(t,13.5f,pe.hasClass("muted")?muted:text);LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(-1,-2);pp.topMargin=dp(7);card.addView(pv,pp);}
+        Elements forms=block.select("form");for(Element form:forms){renderNativeForm(card,form,url,headerSave&&!saveBound[0],saveBound);headerSave=false;}
+        Elements actions=block.select("a[href],button");int ac=0;for(Element a:actions){if(ac++>=5)break;if(ancestorTag(a,"form")!=null)continue;String label=a.text().trim();if(label.isEmpty())label=a.attr("aria-label");if(label.isEmpty())continue;TextView action=tv(label,13.5f,accent);action.setGravity(Gravity.CENTER);action.setPadding(dp(12),dp(12),dp(12),dp(12));action.setBackground(outlined(surface,border,14));LinearLayout.LayoutParams ap=new LinearLayout.LayoutParams(-1,-2);ap.topMargin=dp(9);card.addView(action,ap);String href=a.tagName().equals("a")?relative(a.absUrl("href")):"";if(!href.isEmpty())action.setOnClickListener(v->openPath(href,label));else if(a.hasClass("js-shop"))action.setOnClickListener(v->performShopAction(a));else if(a.hasClass("js-virtual")||a.hasAttr("data-virtual-action"))action.setOnClickListener(v->performVirtualAction(a));}
+        if(card.getChildCount()==0){String t=block.text().trim();if(!t.isEmpty())card.addView(tv(t,14,text));}
+        box.addView(card,cardMargin());
+    }
+
+    private void addNativeLinkRow(LinearLayout box,String label,String href){
+        LinearLayout row=rowCard();TextView t=tv(label,14.5f,text);row.addView(t,new LinearLayout.LayoutParams(0,-2,1));row.addView(tv("›",25,muted));row.setOnClickListener(v->openPath(href,label));box.addView(row,cardMargin());
+    }
+
+    private void renderNativeForm(LinearLayout box,Element form,String pageUrl,boolean headerSave,boolean[] saveBound){
+        Elements controls=form.select("input[name]:not([type=hidden]):not([type=submit]):not([type=file]),textarea[name],select[name]");if(controls.isEmpty())return;
+        LinearLayout formBox=column();formBox.setPadding(dp(2),dp(6),dp(2),dp(2));LinkedHashMap<String,String> hidden=new LinkedHashMap<>();for(Element h:form.select("input[type=hidden][name]"))hidden.put(h.attr("name"),h.attr("value"));
+        LinkedHashMap<String,NativeInputBinding> bindings=new LinkedHashMap<>();
+        for(Element c:controls){String name=c.attr("name");if(name.isEmpty()||bindings.containsKey(name))continue;String type=c.tagName().equals("input")?c.attr("type").toLowerCase(Locale.ROOT):c.tagName();String label=findFieldLabel(c,name);
+            if("checkbox".equals(type)){Switch sw=new Switch(this);sw.setText(label);sw.setTextColor(text);sw.setTextSize(14);sw.setChecked(c.hasAttr("checked"));sw.setPadding(dp(2),dp(8),dp(2),dp(8));formBox.addView(sw,new LinearLayout.LayoutParams(-1,-2));bindings.put(name,new NativeInputBinding(name,"checkbox",sw,null));continue;}
+            if("radio".equals(type)){Elements radios=form.select("input[type=radio][name='"+name.replace("'","")+"']");Spinner sp=new Spinner(this);ArrayList<String> labels=new ArrayList<>(),vals=new ArrayList<>();int sel=0,idx=0;for(Element r:radios){String rl=findFieldLabel(r,r.attr("value"));labels.add(rl);vals.add(r.attr("value"));if(r.hasAttr("checked"))sel=idx;idx++;}ArrayAdapter<String> ad=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,labels);sp.setAdapter(ad);sp.setSelection(sel);TextView lh=tv(label,12.5f,muted);lh.setPadding(dp(2),dp(8),dp(2),dp(5));formBox.addView(lh);formBox.addView(sp,new LinearLayout.LayoutParams(-1,dp(52)));bindings.put(name,new NativeInputBinding(name,"select",sp,vals));continue;}
+            if("select".equals(type)){Spinner sp=new Spinner(this);ArrayList<String> labels=new ArrayList<>(),vals=new ArrayList<>();int sel=0,idx=0;for(Element o:c.select("option")){labels.add(o.text());vals.add(o.attr("value"));if(o.hasAttr("selected"))sel=idx;idx++;}ArrayAdapter<String> ad=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,labels);sp.setAdapter(ad);sp.setSelection(sel);TextView lh=tv(label,12.5f,muted);lh.setPadding(dp(2),dp(8),dp(2),dp(5));formBox.addView(lh);formBox.addView(sp,new LinearLayout.LayoutParams(-1,dp(52)));bindings.put(name,new NativeInputBinding(name,"select",sp,vals));continue;}
+            EditText f=field(label);String value="textarea".equals(type)?c.text():c.attr("value");f.setText(value);if("password".equals(type))f.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);else if("email".equals(type))f.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);else if("number".equals(type))f.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_DECIMAL);if("textarea".equals(type)){f.setSingleLine(false);f.setGravity(Gravity.TOP);f.setMinLines(3);f.setPadding(dp(14),dp(12),dp(14),dp(12));}
+            TextView lh=tv(label,12.5f,muted);lh.setPadding(dp(2),dp(8),dp(2),dp(5));formBox.addView(lh);LinearLayout.LayoutParams fp=new LinearLayout.LayoutParams(-1,"textarea".equals(type)?dp(100):dp(52));formBox.addView(f,fp);bindings.put(name,new NativeInputBinding(name,"text",f,null));
+        }
+        String action=form.absUrl("action");if(action.isEmpty())action=pageUrl;String finalAction=relative(action);String method=form.attr("method").toLowerCase(Locale.ROOT);String buttonText="Simpan";Element b=form.selectFirst("button[type=submit],input[type=submit],button:not([type])");if(b!=null){String bt=b.tagName().equals("input")?b.attr("value"):b.text();if(!bt.trim().isEmpty())buttonText=bt.trim();}
+        final String submitLabel=buttonText;Runnable submit=()->submitNativeForm(finalAction,method,hidden,bindings,submitLabel);
+        if(headerSave&&!saveBound[0]){saveBound[0]=true;topAction.setVisibility(View.VISIBLE);topAction.setImageResource(R.drawable.ic_native_save);topAction.setContentDescription("Simpan");topAction.setOnClickListener(v->submit.run());}else{Button sb=primary(submitLabel);LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,dp(48));bp.topMargin=dp(12);formBox.addView(sb,bp);sb.setOnClickListener(v->submit.run());}
+        LinearLayout.LayoutParams fp=new LinearLayout.LayoutParams(-1,-2);fp.topMargin=dp(4);box.addView(formBox,fp);
+    }
+
+    private String findFieldLabel(Element c,String fallback){Element idLabel=null;String id=c.id();if(!id.isEmpty()&&c.ownerDocument()!=null)idLabel=c.ownerDocument().selectFirst("label[for='"+id+"']");if(idLabel==null)idLabel=ancestorTag(c,"label");String label=idLabel==null?"":idLabel.ownText().trim();if(label.isEmpty())label=fallback.replace('_',' ');return label;}
+    private Element ancestorTag(Element e,String tag){Element p=e==null?null:e.parent();while(p!=null){if(tag.equalsIgnoreCase(p.tagName()))return p;p=p.parent();}return null;}
+
+    private void submitNativeForm(String action,String method,LinkedHashMap<String,String> hidden,LinkedHashMap<String,NativeInputBinding> bindings,String label){
+        LinkedHashMap<String,String> data=new LinkedHashMap<>(hidden);for(NativeInputBinding b:bindings.values()){if("checkbox".equals(b.kind)){if(((Switch)b.view).isChecked())data.put(b.name,"1");}else if("select".equals(b.kind)){Spinner sp=(Spinner)b.view;int pos=sp.getSelectedItemPosition();String val=b.values!=null&&pos>=0&&pos<b.values.size()?b.values.get(pos):String.valueOf(sp.getSelectedItem());data.put(b.name,val);}else data.put(b.name,((EditText)b.view).getText().toString());}
+        if("get".equals(method)){StringBuilder q=new StringBuilder();try{for(Map.Entry<String,String> e:data.entrySet()){if(q.length()>0)q.append('&');q.append(java.net.URLEncoder.encode(e.getKey(),"UTF-8")).append('=').append(java.net.URLEncoder.encode(e.getValue()==null?"":e.getValue(),"UTF-8"));}}catch(Exception ignored){}openPath(action+(action.contains("?")?"&":"?")+q,current.title);return;}
+        topAction.setEnabled(false);runNet(()->client.postForm(action,data),r->{topAction.setEnabled(true);if(r.code>=200&&r.code<400){showNativeNotice("Tersimpan",label+" berhasil.",success);if("settings-detail".equals(current.key))showSettingsDetail(current.arg,current.title);else if("shop-detail".equals(current.key))showShopDetail(current.arg,current.title);else showNativeModule(current.arg,current.title,false);}else showNativeNotice("Belum tersimpan",htmlError(r.body,r.url,"Coba lagi."),danger);},e->{topAction.setEnabled(true);showNativeNotice("Gagal",e.getMessage(),danger);});
+    }
+
+    private void performShopAction(Element e){String rawAction=e.attr("data-action");final String action=rawAction.isEmpty()?"buy":rawAction;String code=e.attr("data-code");String tier=e.attr("data-tier");String slot=e.attr("data-slot");runNet(()->{JSONObject j=new JSONObject();j.put("csrf",client.ensureCsrf());j.put("action",action);if(!code.isEmpty())j.put("code",code);if(!tier.isEmpty())j.put("tier",tier);if(!slot.isEmpty())j.put("slot",slot);return client.postJson("/api/shop_buy.php",j.toString());},r->{if(r.ok()){showNativeNotice("Berhasil",jsonError(r.body,"Toko diperbarui."),success);showShopDetail(current.arg,current.title);}else showNativeNotice("Belum berhasil",jsonError(r.body,"Aksi toko gagal."),danger);},x->showNativeNotice("Gagal",x.getMessage(),danger));}
+
+    private void performVirtualAction(Element e){String action=e.hasAttr("data-virtual-action")?e.attr("data-virtual-action"):e.attr("data-action");String code=e.attr("data-code");String slot=e.attr("data-slot");runNet(()->{JSONObject j=new JSONObject();j.put("csrf",client.ensureCsrf());j.put("action",action);j.put("code",code);if(!slot.isEmpty())j.put("slot",slot);return client.postJson("/api/virtual_item.php",j.toString());},r->{if(r.ok()){showNativeNotice("Berhasil",jsonError(r.body,"Item virtual diperbarui."),success);showShopDetail(current.arg,current.title);}else showNativeNotice("Belum berhasil",jsonError(r.body,"Aksi item virtual gagal."),danger);},x->showNativeNotice("Gagal",x.getMessage(),danger));}
 
     private boolean hasSelectedAncestor(Element e,Elements set){Element p=e.parent();while(p!=null){if(set.contains(p))return true;p=p.parent();}return false;}
 
-    private void renderSimpleForm(LinearLayout box,Element form,String pageUrl){
-        Elements inputs=form.select("input:not([type=hidden]):not([type=submit]):not([type=file]), textarea, select");if(inputs.isEmpty())return;LinearLayout card=column();card.setPadding(dp(12),dp(10),dp(12),dp(12));card.setBackground(outlined(surface,border,16));LinkedHashMap<String,EditText> fields=new LinkedHashMap<>();LinkedHashMap<String,String> hidden=new LinkedHashMap<>();for(Element h:form.select("input[type=hidden][name]"))hidden.put(h.attr("name"),h.attr("value"));for(Element in:inputs){String name=in.attr("name");if(name.isEmpty())continue;String label=name.replace('_',' ');EditText f=field(label);String value=in.tagName().equals("textarea")?in.text():in.attr("value");f.setText(value);if(in.attr("type").equals("password"))f.setInputType(129);LinearLayout.LayoutParams fp=new LinearLayout.LayoutParams(-1,dp(50));fp.topMargin=dp(8);card.addView(f,fp);fields.put(name,f);}String buttonText="Simpan";Element b=form.selectFirst("button[type=submit],button:not([type])");if(b!=null&&!b.text().trim().isEmpty())buttonText=b.text().trim();Button submit=primary(buttonText);LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,dp(48));bp.topMargin=dp(10);card.addView(submit,bp);String action=form.absUrl("action");if(action.isEmpty())action=pageUrl;String finalAction=relative(action);submit.setOnClickListener(v->{submit.setEnabled(false);LinkedHashMap<String,String> data=new LinkedHashMap<>(hidden);for(Map.Entry<String,EditText> en:fields.entrySet())data.put(en.getKey(),en.getValue().getText().toString());runNet(()->client.postForm(finalAction,data),r->{submit.setEnabled(true);if(r.code>=200&&r.code<400){showNativeNotice("Tersimpan","Perubahan berhasil dikirim ke DeApp.",success);showGenericNativePage(finalAction,current.title);}else showNativeNotice("Belum tersimpan",htmlError(r.body,r.url,"Coba lagi."),danger);},e->{submit.setEnabled(true);showNativeNotice("Gagal",e.getMessage(),danger);});});box.addView(card,cardMargin());
+    private void openPath(String raw,String title){
+        String direct=raw==null?"":raw.trim();if(direct.isEmpty())return;
+        if(direct.startsWith("native:")){String n=direct.substring(7);if("profile-settings".equals(n))navigate(new Screen("profile-settings","","Pengaturan Profil"),true);else if("profile-media".equals(n))navigate(new Screen("profile-media","","Foto Profil & Sampul"),true);else if("profile-info".equals(n))navigate(new Screen("settings-detail","/settings.php?tab=profile&native_section=info","Info Profil"),true);else if("username".equals(n))navigate(new Screen("settings-detail","/settings.php?tab=profile&native_section=username","Username"),true);return;}
+        String path=relative(direct);if(path.isEmpty())return;
+        if(path.startsWith("http://")||path.startsWith("https://")){if(!path.startsWith(client.baseUrl())){openExternal(path);return;}path=relative(path);}
+        if(path.contains("index.php")){goRoot("home","","Beranda");return;}
+        if(path.contains("messages.php")){int c=queryInt(path,"c");if(c>0)navigate(new Screen("chat",String.valueOf(c),title),true);else navigate(new Screen("messages","","Chat"),true);return;}
+        if(path.contains("notifications.php")){navigate(new Screen("notifications","","Notifikasi"),true);return;}
+        if(path.contains("profile.php")){navigate(new Screen("profile",path,"Profil"),true);return;}
+        if(path.contains("post.php")){int id=queryInt(path,"id");if(id>0){navigate(new Screen("post",String.valueOf(id),"Postingan"),true);return;}}
+        if(path.contains("shop.php")){String tab=query(path,"tab");if(tab.isEmpty()){navigate(new Screen("shop","","Toko & Dompet"),true);return;}String st=shopTitle(tab);navigate(new Screen("shop-detail",path,st),true);return;}
+        if(path.contains("topup.php")||path.contains("settings.php?tab=topup")){navigate(new Screen("topup","","Top Up"),true);return;}
+        if(path.contains("settings.php")){String tab=query(path,"tab");if(tab.isEmpty()){navigate(new Screen("settings","","Pengaturan"),true);return;}navigate(new Screen("settings-detail",path,settingsTitle(tab,title)),true);return;}
+        if(path.contains("explore.php")){navigate(new Screen("search","","Cari"),true);return;}
+        navigate(new Screen("module",path,title==null||title.isEmpty()?routeTitle(path):title),true);
     }
 
-    private void openPath(String raw,String title){String path=relative(raw);if(path.isEmpty())return;if(path.contains("index.php")){goRoot("home","","Beranda");return;}if(path.contains("messages.php")){int c=queryInt(path,"c");if(c>0)navigate(new Screen("chat",String.valueOf(c),title),true);else navigate(new Screen("messages","","Chat"),true);return;}if(path.contains("notifications.php")){navigate(new Screen("notifications","","Notifikasi"),true);return;}if(path.contains("profile.php")){navigate(new Screen("profile",path,"Profil"),true);return;}if(path.contains("post.php")){int id=queryInt(path,"id");if(id>0){navigate(new Screen("post",String.valueOf(id),"Postingan"),true);return;}}if(path.contains("shop.php")&&!path.contains("tab=")){navigate(new Screen("shop","","Toko & Dompet"),true);return;}if(path.contains("settings.php")&&!path.contains("tab=")){navigate(new Screen("settings","","Pengaturan"),true);return;}if(path.contains("explore.php")){navigate(new Screen("search","","Cari"),true);return;}navigate(new Screen("generic",path,title),true);}
+    private String shopTitle(String tab){switch(tab){case"wallet":return"Dompet";case"kirim":case"send":return"Kirim Koin";case"promo":return"Kode Promo";case"etalase":case"shop":return"Etalase";case"wishlist":return"Keinginan";case"pet":case"pets":return"Pet";case"virtual":return"Item Virtual";case"vip":return"VIP";case"gifts":return"Hadiah";case"theme":return"Tema";case"frame":return"Bingkai";case"bubble":return"Gelembung";case"sticker":return"Stiker";case"effect":return"Efek Nama";case"ticket":return"Tiket";case"bag":return"Tas Barang";case"koleksi":return"Koleksiku";case"level":return"Level";default:return"Toko & Koleksi";}}
+    private String settingsTitle(String tab,String fallback){switch(tab){case"profile":return fallback!=null&&!fallback.isEmpty()?fallback:"Profil";case"appearance":return"Mode Tampilan";case"experience":return"Pengalaman Aplikasi";case"language":return"Bahasa & Terjemahan";case"access":return"Aksesibilitas";case"notifications":return"Pengaturan Notifikasi";case"privacy":return"Privasi & Keamanan";case"ai":return"Pengaturan AI";case"characters":return"Karakter";case"premium":return"Premium";case"focus":return"Mode Fokus";case"blocked":return"Akun Diblokir";case"data":return"Data Akun";default:return fallback==null||fallback.isEmpty()?"Pengaturan":fallback;}}
+    private String routeTitle(String path){if(path.contains("reels"))return"Video Pendek";if(path.contains("live"))return"Live";if(path.contains("communit"))return"Komunitas";if(path.contains("bookmarks"))return"Tersimpan";if(path.contains("memories"))return"Memori";if(path.contains("games"))return"Games";if(path.contains("character"))return"Karakter";if(path.contains("ai.php")||path.contains("deapp-ai"))return"DeApp AI";if(path.contains("developer"))return"Developer";if(path.contains("ads"))return"Iklan";if(path.contains("help"))return"Bantuan";if(path.contains("privacy"))return"Privasi";if(path.contains("policy"))return"Kebijakan";return"DeApp";}
 
     private void logout(){runNet(()->client.get("/api/logout.php"),r->{client.clearSession();ownProfilePath="";showLogin();},e->{client.clearSession();showLogin();});}
 
@@ -577,7 +837,7 @@ public class MainActivity extends Activity {
     private String query(String path,String key){try{String q=new URI(client.absolute(path)).getRawQuery();if(q==null)return"";for(String pair:q.split("&")){String[]kv=pair.split("=",2);if(URLDecoder.decode(kv[0],"UTF-8").equals(key))return kv.length>1?URLDecoder.decode(kv[1],"UTF-8"):"";}}catch(Exception ignored){}return"";}
     private String relative(String raw){if(raw==null)return"";String s=raw.trim();if(s.isEmpty())return"";if(client==null)return s;if(s.startsWith(client.baseUrl())){s=s.substring(client.baseUrl().length());if(s.isEmpty())s="/index.php";}if(!s.startsWith("/")&&!s.startsWith("http"))s="/"+s;return s;}
 
-    private void handleShortcut(Intent intent){if(intent==null||intent.getData()==null)return;String d=intent.getData().toString();if(d.endsWith("/post"))navigate(new Screen("compose","","Postingan"),true);else if(d.endsWith("/chat"))goRoot("messages","","Chat");else if(d.endsWith("/video"))navigate(new Screen("generic","/reels.php","Video Pendek"),true);else if(d.endsWith("/story"))navigate(new Screen("generic","/story-create.php","Cerita"),true);}
+    private void handleShortcut(Intent intent){if(intent==null||intent.getData()==null)return;String d=intent.getData().toString();if(d.endsWith("/post"))navigate(new Screen("compose","","Postingan"),true);else if(d.endsWith("/chat"))goRoot("messages","","Chat");else if(d.endsWith("/video"))navigate(new Screen("module","/reels.php","Video Pendek"),true);else if(d.endsWith("/story"))navigate(new Screen("story-create","","Buat Cerita"),true);}
 
     private <T> void runNet(NetWork<T> work, NetDone<T> ok, NetDone<Exception> fail){io.execute(()->{try{T v=work.run();main.post(()->{if(!isFinishing())ok.done(v);});}catch(Exception e){main.post(()->{if(!isFinishing())fail.done(e);});}});}
 }

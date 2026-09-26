@@ -15,6 +15,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.UUID;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -78,6 +79,31 @@ public final class DeappClient {
     public Result postJson(String path, String json) throws Exception {
         return request("POST", absolute(path), (json == null ? "{}" : json).getBytes(StandardCharsets.UTF_8),
                 "application/json; charset=UTF-8", 0);
+    }
+
+    public Result postMultipart(String path, Map<String, String> fields, String fileField,
+                                String fileName, String mimeType, byte[] fileBytes) throws Exception {
+        String boundary = "----DeAppNative" + UUID.randomUUID().toString().replace("-", "");
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        byte[] crlf = "\r\n".getBytes(StandardCharsets.UTF_8);
+        if (fields != null) {
+            for (Map.Entry<String, String> e : fields.entrySet()) {
+                out.write(("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8));
+                out.write(("Content-Disposition: form-data; name=\"" + e.getKey() + "\"\r\n\r\n").getBytes(StandardCharsets.UTF_8));
+                out.write((e.getValue() == null ? "" : e.getValue()).getBytes(StandardCharsets.UTF_8));
+                out.write(crlf);
+            }
+        }
+        if (fileBytes != null && fileField != null && !fileField.isEmpty()) {
+            out.write(("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8));
+            out.write(("Content-Disposition: form-data; name=\"" + fileField + "\"; filename=\""
+                    + (fileName == null ? "upload.jpg" : fileName) + "\"\r\n").getBytes(StandardCharsets.UTF_8));
+            out.write(("Content-Type: " + (mimeType == null ? "application/octet-stream" : mimeType) + "\r\n\r\n").getBytes(StandardCharsets.UTF_8));
+            out.write(fileBytes);
+            out.write(crlf);
+        }
+        out.write(("--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
+        return request("POST", absolute(path), out.toByteArray(), "multipart/form-data; boundary=" + boundary, 0);
     }
 
     public byte[] getBytes(String path) throws Exception {
@@ -163,7 +189,7 @@ public final class DeappClient {
         c.setUseCaches(false);
         c.setRequestProperty("Accept", "application/json,text/html,application/xhtml+xml;q=0.9,*/*;q=0.8");
         c.setRequestProperty("Accept-Language", "id-ID,id;q=0.9,en;q=0.6");
-        c.setRequestProperty("User-Agent", "DeApp-Android/2.0 NativeAndroid");
+        c.setRequestProperty("User-Agent", "DeApp-Android/2.1 NativeJava");
         String cookie = cookieHeader();
         if (!cookie.isEmpty()) c.setRequestProperty("Cookie", cookie);
     }
