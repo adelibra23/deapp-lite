@@ -195,3 +195,22 @@ Versi: **1.9.15-lite · Build 25 · NativeMobile/9.15**.
 - Web section header berfungsi sebagai controller tersembunyi agar action/back backend tidak berubah.
 - Generic web-like pages dirapikan ke mobile native shell.
 - Primary edit save dapat dipromosikan ke action kanan toolbar.
+
+## v1.9.30 — Login-first & registration onboarding
+- Cold start via login.php dengan redirect otomatis bila sesi valid.
+- Wizard daftar 3 langkah: nama+email, password, username.
+- Native Welcome to DeApp setelah registrasi sukses.
+
+
+## v1.9.31 — Native notice, living feature menu & compact shop
+- Toast HTML diteruskan ke notice Android native tunggal di tengah layar.
+- Sheet Semua Fitur memakai tile berlabel kategori dan subteks.
+- Toko & Koleksi hanya menampilkan empat pintasan utama.
+- Menu lainnya membuka bottom sheet Android native dengan seluruh koleksi menu tambahan.
+
+## v1.9.32
+
+- Toko & Dompet dipisah menjadi dashboard + halaman detail mandiri.
+- Menu lainnya menjadi halaman mandiri dan bukan sheet.
+- Back detail Toko kembali ke dashboard Toko.
+- Rail Beranda `Disarankan untuk Anda` dihapus.
