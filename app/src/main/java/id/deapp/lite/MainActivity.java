@@ -115,6 +115,10 @@ public class MainActivity extends Activity {
     private boolean postDetailPage = false;
     private boolean reelsPage = false;
     private String pageChromeType = "";
+    private String nativeHeaderTitle = "";
+    private String nativeHeaderActionIcon = "";
+    private String nativeHeaderActionLabel = "";
+    private boolean nativeHeaderBack = false;
     private boolean composerOpen = false;
     private boolean webSheetOpen = false;
     private boolean uiScrolling = false;
@@ -517,12 +521,14 @@ public class MainActivity extends Activity {
             } else if (postDetailPage) {
                 // Detail postingan adalah subhalaman feed: Back header selalu kembali ke Beranda.
                 loadRelative("index.php");
+            } else if (isNativeHeaderManagedPage()) {
+                clickWebSectionControl(".deapp-section-left");
             } else {
                 loadRelative("explore.php");
             }
         });
 
-        toolbarTitle = text("Deapp", 20, cText);
+        toolbarTitle = text("Deapp", 17.5f, cText);
         toolbarTitle.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         toolbarTitle.setLetterSpacing(-0.015f);
         toolbarTitle.setGravity(Gravity.CENTER);
@@ -541,6 +547,9 @@ public class MainActivity extends Activity {
             haptic(v);
             if (composerOpen) publishComposer();
             else if (postDetailPage) return;
+            else if (isNativeHeaderManagedPage() && nativeHeaderActionIcon != null && !nativeHeaderActionIcon.isEmpty()) {
+                clickWebSectionControl(".deapp-section-action");
+            }
             else if (profilePage) openProfileOptions();
             else showFeatureMenuSheet();
         });
@@ -605,6 +614,8 @@ public class MainActivity extends Activity {
 
     private void buildWebContent() {
         FrameLayout content = new FrameLayout(this);
+        content.setClipChildren(false);
+        content.setClipToPadding(false);
         LinearLayout.LayoutParams contentLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
         shell.addView(content, contentLp);
@@ -656,8 +667,8 @@ public class MainActivity extends Activity {
                         (webView != null && webView.canScrollVertically(-1)));
 
         refreshIndicator = buildRefreshIndicator();
-        FrameLayout.LayoutParams refreshLp = new FrameLayout.LayoutParams(dp(46), dp(46), Gravity.TOP | Gravity.CENTER_HORIZONTAL);
-        refreshLp.topMargin = dp(10);
+        FrameLayout.LayoutParams refreshLp = new FrameLayout.LayoutParams(dp(48), dp(48), Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        refreshLp.topMargin = dp(12);
         content.addView(refreshIndicator, refreshLp);
 
         loadingOverlay = buildLoadingOverlay();
@@ -754,8 +765,10 @@ public class MainActivity extends Activity {
 
     private FrameLayout buildRefreshIndicator() {
         FrameLayout holder = new FrameLayout(this);
-        holder.setBackgroundColor(Color.TRANSPARENT);
-        holder.setElevation(dp(12));
+        // v1.9.28: refresh harus benar-benar terbaca di atas feed seperti Threads.
+        // Satu surface bulat tipis, tanpa spinner bawaan SwipeRefreshLayout.
+        holder.setBackground(bordered(cSurface, cBorder, 99));
+        holder.setElevation(dp(18));
         holder.setVisibility(View.GONE);
         holder.setAlpha(0f);
         holder.setScaleX(.82f);
@@ -769,9 +782,9 @@ public class MainActivity extends Activity {
         refreshIcon.setImageResource(R.drawable.ic_native_refresh);
         refreshIcon.setColorFilter(cText);
         refreshIcon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        refreshIcon.setPadding(dp(9), dp(9), dp(9), dp(9));
+        refreshIcon.setPadding(dp(6), dp(6), dp(6), dp(6));
         refreshIcon.setContentDescription("Memperbarui halaman");
-        holder.addView(refreshIcon, new FrameLayout.LayoutParams(dp(42), dp(42), Gravity.CENTER));
+        holder.addView(refreshIcon, new FrameLayout.LayoutParams(dp(32), dp(32), Gravity.CENTER));
         return holder;
     }
 
@@ -815,12 +828,13 @@ public class MainActivity extends Activity {
         refreshIcon.animate().cancel();
         refreshIndicator.bringToFront();
         refreshIndicator.setVisibility(View.VISIBLE);
-        refreshIndicator.setAlpha(Math.min(1f, .18f + progress * .82f));
-        float scale = .78f + .22f * progress;
+        // Mulai cukup kontras sejak tarikan kecil agar indikator tidak terasa hilang.
+        refreshIndicator.setAlpha(Math.min(1f, .52f + progress * .48f));
+        float scale = .88f + .12f * progress;
         refreshIndicator.setScaleX(scale);
         refreshIndicator.setScaleY(scale);
-        refreshIndicator.setTranslationY(-dp(10) + dp(18) * progress);
-        refreshIcon.setRotation(220f * progress);
+        refreshIndicator.setTranslationY(-dp(4) + dp(16) * progress);
+        refreshIcon.setRotation(250f * progress);
     }
 
     private void hideRefreshPreview() {
@@ -847,20 +861,41 @@ public class MainActivity extends Activity {
 
     private void preparePageReveal(boolean refreshing) {
         if (webView == null || refreshing) return;
-        // Transisi ala Threads: sangat halus, tidak membuat halaman terasa seperti WebView reload.
         webView.animate().cancel();
-        webView.setAlpha(.70f);
-        webView.setTranslationY(dp(7));
-        webView.setScaleX(.995f);
-        webView.setScaleY(.995f);
+        if (isLoggedIn) {
+            // v1.9.28: setelah login, jangan memudarkan/menutup halaman lama saat request baru dimulai.
+            // WebView mempertahankan frame lama sampai halaman baru commit, sehingga perpindahan terasa instan.
+            webView.setAlpha(1f);
+            webView.setTranslationY(0f);
+            webView.setScaleX(1f);
+            webView.setScaleY(1f);
+            return;
+        }
+        webView.setAlpha(.86f);
+        webView.setTranslationY(dp(4));
+        webView.setScaleX(.998f);
+        webView.setScaleY(.998f);
     }
 
     private void playPageReveal() {
         if (webView == null) return;
         webView.animate().cancel();
+        if (isLoggedIn) {
+            // Micro reveal ala Threads hanya setelah konten baru sudah visible. Tidak ada halaman loading.
+            webView.setAlpha(.965f);
+            webView.setTranslationY(dp(2));
+            webView.setScaleX(.999f);
+            webView.setScaleY(.999f);
+            webView.animate()
+                    .alpha(1f).translationY(0f).scaleX(1f).scaleY(1f)
+                    .setDuration(145)
+                    .setInterpolator(new DecelerateInterpolator(1.8f))
+                    .start();
+            return;
+        }
         webView.animate()
                 .alpha(1f).translationY(0f).scaleX(1f).scaleY(1f)
-                .setDuration(235)
+                .setDuration(190)
                 .setInterpolator(new DecelerateInterpolator(1.65f))
                 .start();
     }
@@ -1241,7 +1276,7 @@ public class MainActivity extends Activity {
     private boolean isAuthUrl(String url) {
         if (url == null) return false;
         String low = url.toLowerCase(Locale.US);
-        return low.contains("/login.php") || low.contains("/register.php") || low.contains("/forgot-password.php");
+        return low.contains("/login.php") || low.contains("/register.php") || low.contains("/forgot-password.php") || low.contains("/reset-password.php");
     }
 
     private void updateChromeVisibility() {
@@ -1259,7 +1294,7 @@ public class MainActivity extends Activity {
         boolean homePage = isHomeUrl(currentUrl);
         if (refreshIndicator != null && refreshIndicator.getLayoutParams() instanceof FrameLayout.LayoutParams) {
             FrameLayout.LayoutParams rlp = (FrameLayout.LayoutParams) refreshIndicator.getLayoutParams();
-            int wantedTop = (isSpecialWebChromeType(pageChromeType) || isSpecialSectionUrl(currentUrl)) ? dp(62) : dp(10);
+            int wantedTop = dp(10); // WebView sudah berada di bawah toolbar Android native.
             if (rlp.topMargin != wantedTop) {
                 rlp.topMargin = wantedTop;
                 refreshIndicator.setLayoutParams(rlp);
@@ -1268,7 +1303,8 @@ public class MainActivity extends Activity {
 
         // Reels serta section khusus v1.9.6+ menggambar header/footer kontekstual di dalam WebView.
         // Chrome Android generik disembunyikan supaya tidak ada dua toolbar/nav yang bertumpuk.
-        boolean showTop = isLoggedIn && !fullscreen && !authPage && !shortVideoPage && !specialWebChrome;
+        boolean storyPage = "story".equalsIgnoreCase(pageChromeType);
+        boolean showTop = isLoggedIn && !fullscreen && !authPage && !shortVideoPage && !storyPage && !messageThread;
         if (topContainer != null) topContainer.setVisibility(showTop ? View.VISIBLE : View.GONE);
         updateTopBarMode();
 
@@ -1296,7 +1332,6 @@ public class MainActivity extends Activity {
 
         if (root != null) {
             WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(getWindow(), root);
-            boolean storyPage = "story".equalsIgnoreCase(pageChromeType);
             boolean immersiveDark = shortVideoPage || storyPage;
             controller.setAppearanceLightStatusBars(!dark && !immersiveDark);
             controller.setAppearanceLightNavigationBars(!dark && !immersiveDark);
@@ -1339,7 +1374,7 @@ public class MainActivity extends Activity {
             swipeRefresh.setColorSchemeColors(Color.TRANSPARENT);
             swipeRefresh.setProgressBackgroundColorSchemeColor(Color.TRANSPARENT);
         }
-        if (refreshIndicator != null) refreshIndicator.setBackgroundColor(Color.TRANSPARENT);
+        if (refreshIndicator != null) refreshIndicator.setBackground(bordered(cSurface, cBorder, 99));
         if (refreshIcon != null) refreshIcon.setColorFilter(cText);
         if (navHome != null) navHome.refreshTheme();
         if (navMessage != null) navMessage.refreshTheme();
@@ -1389,6 +1424,23 @@ public class MainActivity extends Activity {
             featureMenuButton.setVisibility(View.INVISIBLE);
             return;
         }
+        if (isNativeHeaderManagedPage()) {
+            toolbarLogo.setImageResource(R.drawable.ic_native_back);
+            toolbarLogo.setColorFilter(cText);
+            toolbarLogo.setPadding(dp(8), dp(8), dp(8), dp(8));
+            toolbarLogo.setContentDescription("Kembali");
+            String title = nativeHeaderTitle == null ? "" : nativeHeaderTitle.trim();
+            toolbarTitle.setText(title.isEmpty() ? "DeApp" : title);
+            if (nativeHeaderActionIcon == null || nativeHeaderActionIcon.isEmpty()) {
+                featureMenuButton.setVisibility(View.INVISIBLE);
+            } else {
+                featureMenuButton.setVisibility(View.VISIBLE);
+                featureMenuButton.setImageResource(nativeHeaderActionDrawable(nativeHeaderActionIcon));
+                featureMenuButton.setContentDescription(nativeHeaderActionLabel == null || nativeHeaderActionLabel.isEmpty() ? "Aksi" : nativeHeaderActionLabel);
+                featureMenuButton.setColorFilter(cText);
+            }
+            return;
+        }
         toolbarLogo.setImageResource(R.drawable.ic_native_search);
         toolbarLogo.setColorFilter(cText);
         toolbarLogo.setPadding(dp(8), dp(8), dp(8), dp(8));
@@ -1408,6 +1460,35 @@ public class MainActivity extends Activity {
         featureMenuButton.setColorFilter(cText);
     }
 
+
+    private boolean isNativeHeaderManagedPage() {
+        String t = pageChromeType == null ? "" : pageChromeType.trim().toLowerCase(Locale.US);
+        if ("native".equals(t) || "messages".equals(t) || "notifications".equals(t) || "live".equals(t) ||
+                "ai".equals(t) || "shop".equals(t) || "settings".equals(t)) {
+            String low = currentUrl == null ? "" : currentUrl.toLowerCase(Locale.US);
+            // Percakapan aktif memakai header lawan bicara di dalam chat.
+            if ("messages".equals(t) && (low.contains("?c=") || low.contains("&c="))) return false;
+            return true;
+        }
+        return false;
+    }
+
+    private void clickWebSectionControl(String selector) {
+        if (webView == null) return;
+        String safe = selector == null ? "" : selector.replace("\\", "\\\\").replace("'", "\\'");
+        webView.evaluateJavascript("(function(){try{var b=document.querySelector('" + safe + "');if(b&&!b.disabled&&b.style.visibility!=='hidden'){b.click();return true;}return false;}catch(e){return false;}})()", null);
+    }
+
+    private int nativeHeaderActionDrawable(String icon) {
+        String k = icon == null ? "" : icon.trim().toLowerCase(Locale.US);
+        if ("save".equals(k)) return R.drawable.ic_native_save;
+        if ("plus".equals(k) || "add".equals(k)) return R.drawable.ic_native_add;
+        if ("settings".equals(k)) return R.drawable.ic_native_settings;
+        if ("send".equals(k)) return R.drawable.ic_native_send;
+        if ("bookmark".equals(k)) return R.drawable.ic_native_bookmark;
+        return R.drawable.ic_native_more_vertical;
+    }
+
     private void configureWebView() {
         WebSettings s = webView.getSettings();
         s.setJavaScriptEnabled(true);
@@ -1424,7 +1505,7 @@ public class MainActivity extends Activity {
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.27 NativeMobile/9.27");
+        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.29 NativeMobile/9.29");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) s.setSafeBrowsingEnabled(true);
 
         CookieManager cm = CookieManager.getInstance();
@@ -1450,14 +1531,20 @@ public class MainActivity extends Activity {
                 preparePageReveal(pullRefreshing);
                 showOffline(false);
                 if (loadingOverlay != null) {
-                    boolean alreadyShowing = loadingOverlay.getVisibility() == View.VISIBLE;
-                    if (!pullRefreshing && !alreadyShowing) {
-                        loadingOverlay.postDelayed(() -> {
-                            if (generation == loadingGeneration && loadingOverlay != null && webView != null && webView.getProgress() < 80 &&
-                                    (swipeRefresh == null || !swipeRefresh.isRefreshing())) {
-                                showLoading();
-                            }
-                        }, 360);
+                    // v1.9.28: sesudah sesi login diketahui, perpindahan antarhalaman tidak boleh
+                    // menampilkan overlay loading. Frame halaman lama dibiarkan sampai commit halaman baru.
+                    if (isLoggedIn && !isAuthUrl(url)) {
+                        hideLoading();
+                    } else {
+                        boolean alreadyShowing = loadingOverlay.getVisibility() == View.VISIBLE;
+                        if (!pullRefreshing && !alreadyShowing) {
+                            loadingOverlay.postDelayed(() -> {
+                                if (generation == loadingGeneration && loadingOverlay != null && webView != null && webView.getProgress() < 80 &&
+                                        !isLoggedIn && (swipeRefresh == null || !swipeRefresh.isRefreshing())) {
+                                    showLoading();
+                                }
+                            }, 420);
+                        }
                     }
                 }
                 currentUrl = url == null ? "" : url;
@@ -2039,12 +2126,30 @@ public class MainActivity extends Activity {
         public void syncPageChrome(String pageType, String title, boolean ownProfile) {
             runOnUiThread(() -> {
                 String type = pageType == null ? "" : pageType.trim().toLowerCase(Locale.US);
+                if (!("native".equals(type) || "messages".equals(type) || "notifications".equals(type) || "live".equals(type) ||
+                        "ai".equals(type) || "shop".equals(type) || "settings".equals(type))) {
+                    nativeHeaderTitle = "";
+                    nativeHeaderActionIcon = "";
+                    nativeHeaderActionLabel = "";
+                    nativeHeaderBack = false;
+                }
                 profilePage = "profile".equals(type) || isProfileUrl(currentUrl);
                 postDetailPage = "post".equals(type) || isPostUrl(currentUrl);
                 reelsPage = "reels".equals(type) || isReelsUrl(currentUrl);
                 pageChromeType = type;
                 ownProfilePage = profilePage && ownProfile;
                 profileDisplayName = title == null ? "" : title.trim();
+                updateChromeVisibility();
+            });
+        }
+
+        @JavascriptInterface
+        public void syncNativeHeader(String title, String actionIcon, String actionLabel, boolean canGoBack) {
+            runOnUiThread(() -> {
+                nativeHeaderTitle = title == null ? "" : title.trim();
+                nativeHeaderActionIcon = actionIcon == null ? "" : actionIcon.trim().toLowerCase(Locale.US);
+                nativeHeaderActionLabel = actionLabel == null ? "" : actionLabel.trim();
+                nativeHeaderBack = canGoBack;
                 updateChromeVisibility();
             });
         }
@@ -2118,7 +2223,7 @@ public class MainActivity extends Activity {
                 conn.setInstanceFollowRedirects(true);
                 String cookie = CookieManager.getInstance().getCookie(avatarUrl);
                 if (cookie != null && !cookie.isEmpty()) conn.setRequestProperty("Cookie", cookie);
-                conn.setRequestProperty("User-Agent", "DeappLite/1.9.27");
+                conn.setRequestProperty("User-Agent", "DeappLite/1.9.29");
                 try (InputStream in = conn.getInputStream()) {
                     Bitmap bitmap = BitmapFactory.decodeStream(in);
                     if (bitmap != null) runOnUiThread(() -> {
@@ -2355,7 +2460,7 @@ public class MainActivity extends Activity {
         name.setGravity(Gravity.CENTER);
         box.addView(name);
 
-        TextView version = text("Versi 1.9.27-lite · Build 37", 13, cMuted);
+        TextView version = text("Versi 1.9.29-lite · Build 39", 13, cMuted);
         version.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams versionLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);

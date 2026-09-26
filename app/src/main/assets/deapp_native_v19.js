@@ -31,7 +31,8 @@
   const isShopPage = /\/shop\.php$/.test(path);
   const isExplorePage = /\/explore\.php$/.test(path);
   const isSettingsPageFamily = /\/(settings|security|security-password|security-email|security-wallet-pin|security-2fa|security-sessions|help|privacy|policy|cookies|profile-edit)\.php$/.test(path);
-  const isAuthPage = /\/(login|register)\.php$/.test(path);
+  const isNativeAuditPage = /\/(ask|bookmarks|character|characters|community|connections|developer|games|hashtag|media|memories|tap|topup|topup_proof|ads|admin|inbox|post-activity|export_ads|export_data|export_wallet)\.php$/.test(path);
+  const isAuthPage = /\/(login|register|forgot-password|reset-password)\.php$/.test(path);
 
   root.classList.add('deapp-native-shell', 'deapp-native-v19');
   if (isProfilePage) root.classList.add('deapp-native-profile');
@@ -44,6 +45,8 @@
   if (isShopPage) root.classList.add('deapp-native-shop');
   if (isExplorePage) root.classList.add('deapp-native-explore');
   if (isSettingsPageFamily) root.classList.add('deapp-native-settings-family');
+  if (isNativeAuditPage) root.classList.add('deapp-native-generic-page');
+  root.classList.add('deapp-native-toolbar');
 
   const style = document.createElement('style');
   style.id = 'deapp-native-v19-style';
@@ -1632,6 +1635,111 @@
     html.deapp-native-settings-family .deapp-settings-save-in-header .deapp-original-settings-save{display:none!important}
     html.deapp-native-settings-family.deapp-settings-header-save .settings-body{padding-bottom:18px!important}
 
+
+
+    /* v1.9.28 — typography/link polish ala Threads. Hindari seluruh styling link bawaan browser. */
+    html,body{
+      font-family:Roboto,"Noto Sans",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif!important;
+      font-size:15px!important;line-height:1.45!important;letter-spacing:0!important;font-weight:400!important;
+      text-rendering:optimizeLegibility!important;-webkit-font-smoothing:antialiased!important
+    }
+    body,button,input,textarea,select,option,a,.btn,.tab,.chip,.card,.post-card,.dropdown,.modal-box,
+    .deapp-section-header,.deapp-section-footer,.deapp-reels-header,.deapp-reels-footer{
+      font-family:inherit!important;letter-spacing:0!important
+    }
+    button,input,textarea,select{font-size:15px!important;line-height:1.4!important}
+    .deapp-section-title b,.deapp-reels-title b,.page-title{font-size:16px!important;line-height:1.25!important;font-weight:600!important;letter-spacing:-.01em!important}
+    .post-card:not(.post-embedded) .post-name,.comment-author,.thread-top b,.chat-peer b{
+      font-size:14px!important;line-height:1.3!important;font-weight:600!important;letter-spacing:0!important
+    }
+    .post-card:not(.post-embedded) .post-sub,.comment-meta,.bubble-time,.thread-top small,.chat-peer small{
+      font-size:12px!important;line-height:1.35!important;font-weight:400!important;letter-spacing:0!important
+    }
+    .post-card:not(.post-embedded) .post-content,.deapp-native-post-detail .comment-bubble,
+    .deapp-native-profile .profile-bio,.deapp-home-reco-text{
+      font-size:15px!important;line-height:1.46!important;font-weight:400!important;letter-spacing:0!important
+    }
+    .post-action,.comment-action,.feed-tabs>.tab,.deapp-notification-tabs .tab,.deapp-notif-status-tabs a{
+      font-weight:600!important;letter-spacing:0!important
+    }
+
+    /* Semua anchor harus terasa native: tanpa underline saat normal, focus, visited, maupun ditekan. */
+    a,a:link,a:visited,a:hover,a:focus,a:focus-visible,a:active,
+    .post-card a,.comment-bubble a,.profile-bio a,.deapp-home-reco-card,.deapp-home-person-name{
+      text-decoration:none!important;-webkit-text-decoration:none!important;text-decoration-line:none!important;
+      text-decoration-color:transparent!important;-webkit-tap-highlight-color:transparent!important
+    }
+    /* Mention, hashtag, dan URL di konten mengikuti accent biru bersih ala Threads, bukan browser blue/purple. */
+    .post-content a[href],.deapp-post-preview a[href],.comment-bubble a[href],.profile-bio a[href],
+    a.mention,a.hashtag,a.mention-link,a.hashtag-link,.mention a,.hashtag a,
+    [data-mention] a,[data-hashtag] a{
+      color:#0095f6!important;text-decoration:none!important;font-weight:500!important;
+      background:transparent!important;box-shadow:none!important
+    }
+    html.is-dark .post-content a[href],html.is-dark .deapp-post-preview a[href],html.is-dark .comment-bubble a[href],
+    html.is-dark .profile-bio a[href],html.is-dark a.mention,html.is-dark a.hashtag,
+    html.is-dark a.mention-link,html.is-dark a.hashtag-link,html.is-dark .mention a,html.is-dark .hashtag a{
+      color:#4cb5f9!important
+    }
+    .post-content a[href]:active,.deapp-post-preview a[href]:active,.comment-bubble a[href]:active,.profile-bio a[href]:active{
+      opacity:.72!important;text-decoration:none!important
+    }
+
+    /* v1.9.29 — native-first shell audit.
+       Toolbar web tetap ada sebagai controller aksi, tetapi seluruh header yang terlihat berasal dari Android. */
+    html.deapp-native-toolbar .deapp-section-header{display:none!important}
+    html.deapp-native-toolbar.deapp-has-section-chrome body{padding-top:0!important}
+    html.deapp-native-toolbar.deapp-native-messages.deapp-chat-list body{padding-top:0!important}
+    html.deapp-native-toolbar.deapp-native-notifications body,
+    html.deapp-native-toolbar.deapp-native-live body,
+    html.deapp-native-toolbar.deapp-native-ai body,
+    html.deapp-native-toolbar.deapp-native-shop body,
+    html.deapp-native-toolbar.deapp-native-settings-family body{padding-top:0!important}
+    html.deapp-native-toolbar.deapp-native-generic-page.deapp-has-section-chrome body{padding-bottom:14px!important}
+    html.deapp-native-shell .site-footer{display:none!important}
+
+    /* Route yang sebelumnya paling terasa seperti website dibuat menjadi canvas aplikasi native:
+       page-head desktop, siderail, hero dekoratif dan lebar desktop tidak mengambil alih chrome aplikasi. */
+    html.deapp-native-generic-page .page-head{display:none!important}
+    html.deapp-native-generic-page .side-col,
+    html.deapp-native-generic-page .siderail{display:none!important}
+    html.deapp-native-generic-page .layout,
+    html.deapp-native-generic-page .wide-layout,
+    html.deapp-native-generic-page .main-col{
+      width:100%!important;max-width:760px!important;margin:0 auto!important;padding-left:0!important;padding-right:0!important
+    }
+    html.deapp-native-generic-page .card:not(.modal-box):not(.post-card){
+      border-left:0!important;border-right:0!important;box-shadow:none!important;
+      border-radius:0!important;background:var(--surface)!important
+    }
+    html.deapp-native-generic-page .card + .card{margin-top:8px!important}
+    html.deapp-native-generic-page .page-title,
+    html.deapp-native-generic-page h1{letter-spacing:-.02em!important}
+
+    /* Controls tidak boleh kembali ke tampilan browser/desktop. */
+    html.deapp-native-shell .field>input:not([type="checkbox"]):not([type="radio"]),
+    html.deapp-native-shell .field>textarea,
+    html.deapp-native-shell .field>select,
+    html.deapp-native-shell .nx-studio-field>input,
+    html.deapp-native-shell .nx-studio-field>textarea,
+    html.deapp-native-shell .nx-studio-field>select{
+      min-height:46px!important;border-radius:12px!important;border:1px solid var(--border)!important;
+      background:var(--surface)!important;color:var(--text)!important;box-shadow:none!important;
+      padding:11px 12px!important
+    }
+    html.deapp-native-shell textarea{resize:none!important}
+    html.deapp-native-shell input:focus,
+    html.deapp-native-shell textarea:focus,
+    html.deapp-native-shell select:focus{
+      outline:none!important;border-color:color-mix(in srgb,var(--text) 42%,var(--border))!important;
+      box-shadow:0 0 0 1px color-mix(in srgb,var(--text) 12%,transparent)!important
+    }
+
+    /* Jika aksi Simpan sudah dipindah ke toolbar Android, tombol bawah asli disembunyikan. */
+    html.deapp-native-shell .deapp-native-header-save-source{display:none!important}
+    html.deapp-native-shell .deapp-native-header-save-form{padding-bottom:14px!important}
+    html.deapp-native-settings-family.deapp-settings-header-save .deapp-section-action{display:block!important}
+
     @media(max-width:430px){
       html.deapp-native-notifications .deapp-notif-status-label{display:none!important}
       html.deapp-native-notifications .deapp-notif-filter-shell .deapp-notif-status-tabs:before{margin-right:auto!important}
@@ -1926,6 +2034,7 @@
     if (isAiPage) return 'ai';
     if (isShopPage) return 'shop';
     if (isSettingsPageFamily || isSettingsPage) return 'settings';
+    if (isNativeAuditPage) return 'native';
     if (isAuthPage) return 'auth';
     return 'default';
   }
@@ -2034,7 +2143,7 @@
       const row = document.createElement('button');
       row.type = 'button';
       row.className = 'snav deapp-native-about-row';
-      row.innerHTML = '<span class="deapp-settings-native-icon">ⓘ</span><span><b>Tentang aplikasi</b><small>Deapp Lite untuk Android</small></span><span class="deapp-version-pill">v1.9.27-lite</span>';
+      row.innerHTML = '<span class="deapp-settings-native-icon">ⓘ</span><span><b>Tentang aplikasi</b><small>Deapp Lite untuk Android</small></span><span class="deapp-version-pill">v1.9.29-lite</span>';
       row.addEventListener('click', function(){
         nativeTap();
         try { if (API && API.showAboutApp) API.showAboutApp(); } catch (_) {}
@@ -2490,13 +2599,15 @@
     h.innerHTML = '<button type="button" class="deapp-section-left" aria-label="Kembali">'+sectionIcon('back')+'</button>'+
       '<div class="deapp-section-title"><b></b><small></small></div>'+
       '<button type="button" class="deapp-section-action" aria-label="Aksi"></button>';
-    h.querySelector('.deapp-section-left').addEventListener('click', kind === 'settings' ? settingsBack : sectionBack);
+    h.querySelector('.deapp-section-left').addEventListener('click', kind === 'settings' ? settingsBack : (kind === 'native' ? genericNativeBack : sectionBack));
     h.querySelector('.deapp-section-title b').textContent = title || 'Deapp';
     const sub = h.querySelector('.deapp-section-title small');
     sub.textContent = subtitle || 'Deapp';
     const a = h.querySelector('.deapp-section-action');
-    if (!action) { a.style.visibility='hidden'; return h; }
+    if (!action) { a.style.visibility='hidden'; h.dataset.actionIcon=''; h.dataset.actionLabel=''; return h; }
     a.style.visibility='visible';
+    h.dataset.actionIcon=action.icon || 'more';
+    h.dataset.actionLabel=action.label || 'Aksi';
     a.innerHTML = sectionIcon(action.icon || 'more');
     a.setAttribute('aria-label', action.label || 'Aksi');
     if (action.disabled) { a.disabled = true; a.setAttribute('aria-disabled','true'); }
@@ -3066,13 +3177,108 @@
         if (isIndex) nav.querySelectorAll('.snav.active').forEach(function(n){ n.classList.remove('active'); });
       }
     }
-    const saveAction=(isSettingsPage && c.tab && headerSaveTabs[c.tab]) ? settingsSaveAction(c.tab) : null;
+    let saveAction=(isSettingsPage && c.tab && headerSaveTabs[c.tab]) ? settingsSaveAction(c.tab) : null;
+    if(!saveAction && !isIndex) saveAction=primaryHeaderSaveAction(document.querySelector('.settings-body')||document);
     root.classList.toggle('deapp-settings-header-save',!!saveAction);
     sectionHeader('settings',isIndex?'Pengaturan':c.title,'',saveAction);
   }
 
+
+  const genericNativeTitles={
+    'ask.php':'ASK','bookmarks.php':'Tersimpan','character.php':'Karakter AI','characters.php':'Karakter AI',
+    'community.php':'Komunitas','connections.php':'Koneksi','developer.php':'Developer','games.php':'Mini Game',
+    'hashtag.php':'Hashtag','media.php':'Media','memories.php':'Memori','tap.php':'DeApp Tap',
+    'topup.php':'Top Up Koin','topup_proof.php':'Bukti Top Up','ads.php':'DeApp Ads','admin.php':'Panel Admin',
+    'inbox.php':'Kotak Masuk','post-activity.php':'Aktivitas Postingan','export_ads.php':'Ekspor Iklan',
+    'export_data.php':'Ekspor Data','export_wallet.php':'Ekspor Dompet'
+  };
+
+  function genericNativeTitle(){
+    const file=(path.split('/').pop()||'').toLowerCase();
+    if(file==='hashtag.php'){
+      const h=document.querySelector('.page-title,h1');
+      const t=h?(h.textContent||'').trim():'';
+      if(t) return t.replace(/\s+/g,' ');
+    }
+    const h=document.querySelector('.page-title,h1');
+    const raw=h?(h.textContent||'').trim().replace(/\s+/g,' '):'';
+    return genericNativeTitles[file] || raw || 'DeApp';
+  }
+
+  function genericNativeBack(){
+    if (hasVisibleWebSheet()) { closeVisibleWebSheet(); return; }
+    const file=(path.split('/').pop()||'').toLowerCase();
+    if(file==='character.php') return goSection('characters.php');
+    if(file==='hashtag.php' || file==='media.php') return goSection('explore.php');
+    if(file==='topup.php' || file==='topup_proof.php') return goSection('shop.php?tab=wallet');
+    if(file==='developer.php' || /^export_/.test(file)) return goSection('settings.php');
+    if(file==='post-activity.php') return goSection('index.php');
+    return goSection('index.php');
+  }
+
+  function primaryHeaderSaveAction(scope){
+    const host=scope||document;
+    const candidates=[];
+    Array.from(host.querySelectorAll('form')).forEach(function(form){
+      if (!form || form.closest('.modal-overlay,.dropdown,.deapp-inline-action,.deapp-profile-settings-hidden,[hidden]')) return;
+      let suppressed=false, node=form;
+      while(node && node.nodeType===1){
+        const cs=getComputedStyle(node);
+        if(cs.display==='none' || cs.visibility==='hidden'){suppressed=true;break;}
+        node=node.parentElement;
+      }
+      if(suppressed) return;
+      const buttons=Array.from(form.querySelectorAll('button[type="submit"],input[type="submit"]')).filter(function(b){
+        if (!b || b.disabled || b.closest('.deapp-inline-action,.security-danger-action')) return false;
+        const txt=((b.textContent||b.value||'')+'').trim().replace(/\s+/g,' ').toLowerCase();
+        return /^(simpan|perbarui|update|ganti|terapkan)\b/.test(txt) || /\bsimpan\b/.test(txt);
+      });
+      if (buttons.length===1) candidates.push({form:form,submit:buttons[0]});
+    });
+    if(candidates.length!==1) return null;
+    const item=candidates[0], form=item.form, submit=item.submit;
+    form.classList.add('deapp-native-header-save-form');
+    submit.classList.add('deapp-native-header-save-source');
+    return {
+      icon:'save',label:'Simpan',disabled:!!submit.disabled,
+      run:function(){
+        if(submit.disabled) return;
+        nativeTap();
+        try {
+          if(form.requestSubmit) form.requestSubmit(submit);
+          else submit.click();
+        } catch (_) { try { submit.click(); } catch(__){} }
+      }
+    };
+  }
+
+  function wireGenericNativePage(){
+    if(!isNativeAuditPage || !document.body) return;
+    sectionOn('native');
+    const action=primaryHeaderSaveAction(document);
+    sectionHeader('native',genericNativeTitle(),'',action);
+    const oldFooter=document.querySelector('.deapp-section-footer[data-section="native"]');
+    if(oldFooter) oldFooter.remove();
+  }
+
+  function syncNativeToolbarState(){
+    try{
+      if(!API || !API.syncNativeHeader) return;
+      const h=document.querySelector('.deapp-section-header');
+      if(!h){
+        API.syncNativeHeader('','','',false);
+        return;
+      }
+      const title=((h.querySelector('.deapp-section-title b')||{}).textContent||'DeApp').trim();
+      const a=h.querySelector('.deapp-section-action');
+      const visible=!!(a && a.style.visibility!=='hidden' && !a.disabled && a.getAttribute('aria-disabled')!=='true');
+      API.syncNativeHeader(title,visible?(h.dataset.actionIcon||'more'):'',visible?(h.dataset.actionLabel||'Aksi'):'',true);
+    }catch(_){}
+  }
+
   function wireSectionChrome() {
     wireStoryChrome();
+    if (isNativeAuditPage) return wireGenericNativePage();
     if (storyViewerOpen() || isReelsPage || isPostDetailPage || isProfilePage || isAuthPage) {
       if (!isMessagesPage && !isNotificationsPage && !isLivePage && !isAiPage && !isShopPage && !isSettingsPageFamily && !isSettingsPage) removeSectionChrome();
       return;
@@ -3637,6 +3843,7 @@
     syncSession();
     syncTheme();
     syncPageChrome();
+    syncNativeToolbarState();
     syncComposer();
     syncWebSheetState();
     syncReelsOverlayState();

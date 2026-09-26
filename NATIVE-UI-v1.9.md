@@ -183,3 +183,15 @@ Versi: **1.9.15-lite · Build 25 · NativeMobile/9.15**.
 - Notifikasi memakai filter shell dua tingkat: kategori horizontal dan status baca terpisah.
 - Pengaturan Profil dipecah menjadi Foto profil & Sampul, Info Profil, dan Username.
 - Mode Tampilan, Pengalaman Aplikasi, Bahasa & Terjemahan, dan Aksesibilitas memakai aksi Simpan di header kanan atas.
+
+## v1.9.28
+- Instant logged-in navigation: loading overlay tidak dipakai pada perpindahan halaman setelah sesi login diketahui.
+- Old frame retention + micro reveal saat page commit.
+- Refresh indicator diperjelas dan tetap tunggal.
+- Tipografi serta link postingan dipoles ala Threads.
+
+## v1.9.29 — Native-first page audit
+- Toolbar Android menjadi header terlihat untuk section dan generic app routes.
+- Web section header berfungsi sebagai controller tersembunyi agar action/back backend tidak berubah.
+- Generic web-like pages dirapikan ke mobile native shell.
+- Primary edit save dapat dipromosikan ke action kanan toolbar.
