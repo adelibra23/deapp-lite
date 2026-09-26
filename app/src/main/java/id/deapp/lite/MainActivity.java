@@ -614,22 +614,12 @@ public class MainActivity extends Activity {
         startupSplashLogo.setImageResource(R.drawable.deapp_logo);
         startupSplashLogo.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         startupSplashLogo.setContentDescription("Deapp");
-        // v1.9.14: entrance ala Threads — logo muncul dari skala kecil, overshoot, lalu settle.
+        // v1.9.18: splash fokus pada logo Deapp saja — scale kecil, overshoot, settle, lalu breathing halus.
         startupSplashLogo.setScaleX(.52f);
         startupSplashLogo.setScaleY(.52f);
         startupSplashLogo.setRotation(-12f);
         startupSplashLogo.setAlpha(0f);
         center.addView(startupSplashLogo, new LinearLayout.LayoutParams(dp(100), dp(100)));
-
-        TextView brand = text("Welcome", 18, cText);
-        brand.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
-        brand.setGravity(Gravity.CENTER);
-        brand.setAlpha(0f);
-        brand.setTranslationY(dp(10));
-        LinearLayout.LayoutParams brandLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        brandLp.topMargin = dp(15);
-        center.addView(brand, brandLp);
 
         root.addView(layer, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -649,9 +639,6 @@ public class MainActivity extends Activity {
                             .withEndAction(this::startStartupLogoAnimation)
                             .start();
                 }).start();
-        brand.animate().alpha(1f).translationY(0f).setStartDelay(330).setDuration(480)
-                .setInterpolator(new DecelerateInterpolator()).start();
-
         // Total splash sekitar 5 detik: fade dimulai pada 4,7 dtk dan selesai tepat di sekitar 5 dtk.
         layer.postDelayed(() -> {
             if (startupSplashOverlay != layer || !startupSplashVisible) return;
@@ -1284,7 +1271,7 @@ public class MainActivity extends Activity {
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.17 NativeMobile/9.17");
+        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.18 NativeMobile/9.18");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) s.setSafeBrowsingEnabled(true);
 
         CookieManager cm = CookieManager.getInstance();
@@ -1964,7 +1951,7 @@ public class MainActivity extends Activity {
                 conn.setInstanceFollowRedirects(true);
                 String cookie = CookieManager.getInstance().getCookie(avatarUrl);
                 if (cookie != null && !cookie.isEmpty()) conn.setRequestProperty("Cookie", cookie);
-                conn.setRequestProperty("User-Agent", "DeappLite/1.9.17");
+                conn.setRequestProperty("User-Agent", "DeappLite/1.9.18");
                 try (InputStream in = conn.getInputStream()) {
                     Bitmap bitmap = BitmapFactory.decodeStream(in);
                     if (bitmap != null) runOnUiThread(() -> {
@@ -2190,7 +2177,7 @@ public class MainActivity extends Activity {
         name.setGravity(Gravity.CENTER);
         box.addView(name);
 
-        TextView version = text("Versi 1.9.17-lite · Build 27", 13, cMuted);
+        TextView version = text("Versi 1.9.18-lite · Build 28", 13, cMuted);
         version.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams versionLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);

@@ -1115,6 +1115,113 @@
       content:""!important;position:absolute!important;inset:0!important;pointer-events:none!important;background:rgba(0,0,0,.035)!important
     }
 
+
+
+    /* v1.9.18 — Telegram-style conversation body: tanpa body card, full-width canvas, composer ringan. */
+    html.deapp-native-messages.deapp-chat-open,
+    html.deapp-native-messages.deapp-chat-open body{
+      background:#dce6ee!important
+    }
+    html.is-dark.deapp-native-messages.deapp-chat-open,
+    html.is-dark.deapp-native-messages.deapp-chat-open body{
+      background:#0f1b24!important
+    }
+    html.deapp-native-messages.deapp-chat-open .layout,
+    html.deapp-native-messages.deapp-chat-open .wide-layout,
+    html.deapp-native-messages.deapp-chat-open .main-col,
+    html.deapp-native-messages.deapp-chat-open .messenger,
+    html.deapp-native-messages.deapp-chat-open .msg-chat{
+      width:100%!important;max-width:none!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;
+      background:transparent!important;box-shadow:none!important;outline:0!important
+    }
+    html.deapp-native-messages.deapp-chat-open .messenger{
+      display:block!important;height:100dvh!important;min-height:100dvh!important;overflow:hidden!important
+    }
+    html.deapp-native-messages.deapp-chat-open .msg-chat{
+      display:flex!important;flex-direction:column!important;height:100%!important;min-height:0!important;overflow:hidden!important
+    }
+    html.deapp-native-messages.deapp-chat-open .chat-scroll{
+      flex:1 1 auto!important;min-height:0!important;width:100%!important;margin:0!important;
+      padding:12px 8px 14px!important;gap:3px!important;background-color:#dce6ee!important;
+      background-image:
+        radial-gradient(circle at 20% 24%,rgba(72,116,145,.055) 0 1.1px,transparent 1.5px),
+        radial-gradient(circle at 76% 66%,rgba(72,116,145,.045) 0 1.1px,transparent 1.5px)!important;
+      background-size:34px 34px,42px 42px!important;box-shadow:none!important;border:0!important;overscroll-behavior-y:contain!important
+    }
+    html.is-dark.deapp-native-messages.deapp-chat-open .chat-scroll{
+      background-color:#0f1b24!important;
+      background-image:
+        radial-gradient(circle at 20% 24%,rgba(255,255,255,.025) 0 1px,transparent 1.4px),
+        radial-gradient(circle at 76% 66%,rgba(255,255,255,.02) 0 1px,transparent 1.4px)!important
+    }
+    html.deapp-native-messages.deapp-chat-open .bubble{
+      max-width:min(80%,540px)!important;margin-top:1px!important;padding:7px 10px 6px!important;border:0!important;border-radius:16px!important;
+      font-size:14.3px!important;line-height:1.42!important;box-shadow:0 1px 1px rgba(41,72,91,.12)!important;animation:none!important
+    }
+    html.deapp-native-messages.deapp-chat-open .bubble.them:not(.is-gift):not(.is-sticker){
+      background:#fff!important;color:#182533!important;border-radius:16px 16px 16px 6px!important
+    }
+    html.deapp-native-messages.deapp-chat-open .bubble.me:not(.is-gift):not(.is-sticker){
+      background:#d9efff!important;color:#182533!important;border-radius:16px 16px 6px 16px!important
+    }
+    html.is-dark.deapp-native-messages.deapp-chat-open .bubble.them:not(.is-gift):not(.is-sticker){
+      background:#182533!important;color:#f2f5f7!important
+    }
+    html.is-dark.deapp-native-messages.deapp-chat-open .bubble.me:not(.is-gift):not(.is-sticker){
+      background:#2b5278!important;color:#fff!important
+    }
+    html.deapp-native-messages.deapp-chat-open .bubble.me+.bubble.me{border-top-right-radius:7px!important}
+    html.deapp-native-messages.deapp-chat-open .bubble.them+.bubble.them{border-top-left-radius:7px!important}
+    html.deapp-native-messages.deapp-chat-open .bubble-time{
+      margin:2px 0 0 6px!important;font-size:9.3px!important;line-height:1!important;color:#7d909d!important;opacity:.9!important
+    }
+    html.is-dark.deapp-native-messages.deapp-chat-open .bubble-time{color:#9ab0bf!important}
+    html.deapp-native-messages.deapp-chat-open .bubble-img{border-radius:12px!important;margin:-3px -6px 5px!important}
+    html.deapp-native-messages.deapp-chat-open .chat-day{
+      margin:10px auto!important;padding:5px 10px!important;border:0!important;border-radius:12px!important;
+      background:rgba(255,255,255,.76)!important;color:#607d8b!important;box-shadow:0 1px 2px rgba(41,72,91,.08)!important;
+      font-size:10px!important;font-weight:700!important;backdrop-filter:blur(8px)!important;-webkit-backdrop-filter:blur(8px)!important
+    }
+    html.is-dark.deapp-native-messages.deapp-chat-open .chat-day{background:rgba(24,37,51,.84)!important;color:#9ab0bf!important}
+    html.deapp-native-messages.deapp-chat-open .chat-mood{
+      margin:0!important;padding:5px 10px!important;border:0!important;background:transparent!important;color:#607d8b!important;font-size:10.5px!important
+    }
+    html.is-dark.deapp-native-messages.deapp-chat-open .chat-mood{background:transparent!important;color:#9ab0bf!important}
+    html.deapp-native-messages.deapp-chat-open .chat-compose{
+      flex:0 0 auto!important;margin:0!important;padding:6px 7px calc(7px + env(safe-area-inset-bottom))!important;border:0!important;
+      background:transparent!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important
+    }
+    html.deapp-native-messages.deapp-chat-open .chat-quick{display:none!important}
+    html.deapp-native-messages.deapp-chat-open .chat-form{
+      display:flex!important;align-items:flex-end!important;gap:6px!important;width:100%!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important
+    }
+    html.deapp-native-messages.deapp-chat-open .chat-input-wrap{
+      flex:1 1 auto!important;min-width:0!important;min-height:46px!important;border:0!important;border-radius:24px!important;
+      background:#fff!important;box-shadow:0 1px 3px rgba(41,72,91,.14)!important;overflow:hidden!important
+    }
+    html.is-dark.deapp-native-messages.deapp-chat-open .chat-input-wrap{background:#182533!important;box-shadow:0 1px 3px rgba(0,0,0,.24)!important}
+    html.deapp-native-messages.deapp-chat-open .chat-input-wrap:focus-within{border:0!important;background:#fff!important;box-shadow:0 1px 4px rgba(51,144,236,.18)!important}
+    html.is-dark.deapp-native-messages.deapp-chat-open .chat-input-wrap:focus-within{background:#182533!important;box-shadow:0 1px 4px rgba(51,144,236,.18)!important}
+    html.deapp-native-messages.deapp-chat-open #chat-input{
+      min-height:46px!important;height:46px;max-height:132px!important;padding:11px 12px!important;border:0!important;background:transparent!important;
+      font-size:15px!important;line-height:1.42!important;box-shadow:none!important;resize:none!important
+    }
+    html.deapp-native-messages.deapp-chat-open .chat-form>.icon-btn,
+    html.deapp-native-messages.deapp-chat-open .chat-form>label.icon-btn{
+      flex:0 0 42px!important;width:42px!important;height:42px!important;margin:2px 0!important;border:0!important;border-radius:50%!important;
+      background:transparent!important;color:#6f8797!important;box-shadow:none!important
+    }
+    html.is-dark.deapp-native-messages.deapp-chat-open .chat-form>.icon-btn,
+    html.is-dark.deapp-native-messages.deapp-chat-open .chat-form>label.icon-btn{color:#9ab0bf!important}
+    html.deapp-native-messages.deapp-chat-open .chat-form>.icon-btn:active,
+    html.deapp-native-messages.deapp-chat-open .chat-form>label.icon-btn:active{background:rgba(51,144,236,.10)!important;color:#3390ec!important}
+    html.deapp-native-messages.deapp-chat-open .chat-form .btn-send.lg{
+      flex:0 0 44px!important;width:44px!important;height:44px!important;margin:1px 0!important;border:0!important;border-radius:50%!important;
+      background:#3390ec!important;color:#fff!important;box-shadow:0 2px 7px rgba(51,144,236,.28)!important
+    }
+    html.deapp-native-messages.deapp-chat-open .chat-form .btn-send.lg:active{transform:scale(.94)!important;background:#2c83d8!important}
+    html.deapp-native-messages.deapp-chat-open .chat-form .btn-send.lg svg{width:20px!important;height:20px!important}
+
     @media(max-width:560px){
       .deapp-section-header{grid-template-columns:44px minmax(0,1fr) 44px;padding-left:6px;padding-right:6px}
       .deapp-section-header .deapp-section-left,.deapp-section-header .deapp-section-action{width:40px;height:40px}
@@ -1521,7 +1628,7 @@
       const row = document.createElement('button');
       row.type = 'button';
       row.className = 'snav deapp-native-about-row';
-      row.innerHTML = '<span class="deapp-settings-native-icon">ⓘ</span><span><b>Tentang aplikasi</b><small>Deapp Lite untuk Android</small></span><span class="deapp-version-pill">v1.9.17-lite</span>';
+      row.innerHTML = '<span class="deapp-settings-native-icon">ⓘ</span><span><b>Tentang aplikasi</b><small>Deapp Lite untuk Android</small></span><span class="deapp-version-pill">v1.9.18-lite</span>';
       row.addEventListener('click', function(){
         nativeTap();
         try { if (API && API.showAboutApp) API.showAboutApp(); } catch (_) {}

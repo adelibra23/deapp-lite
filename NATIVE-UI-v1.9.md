@@ -106,3 +106,11 @@ Versi: **1.9.15-lite · Build 25 · NativeMobile/9.15**.
 - Story: tap kiri/kanan + press-hold pause/resume timer secara nyata.
 - Story composer: visual lebih dekat Instagram Stories.
 - Versi: **1.9.17-lite · Build 27 · NativeMobile/9.17**.
+
+## v1.9.18 — Telegram Chat Body + Clean Splash
+
+- Percakapan aktif full-width tanpa body card.
+- Bubble/chat canvas dan composer bawah dipoles bergaya Telegram.
+- Quick reaction composer disembunyikan untuk UI yang lebih bersih.
+- Splash screen hanya menampilkan logo DeApp; label Welcome dihapus.
+- Versi: **1.9.18-lite · Build 28 · NativeMobile/9.18**.
