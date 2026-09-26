@@ -1103,8 +1103,10 @@ public class MainActivity extends Activity {
         boolean specialWebChrome = isSpecialWebChromeType(pageChromeType) || isSpecialSectionUrl(currentUrl);
         boolean notificationPage = "notifications".equalsIgnoreCase(pageChromeType) || isNotificationsUrl(currentUrl);
         boolean messagesPage = "messages".equalsIgnoreCase(pageChromeType) || (currentUrl != null && currentUrl.toLowerCase(Locale.US).contains("/messages.php"));
-        // v1.9.14: Notifikasi dan Chat tetap memakai header web khusus, tetapi footer memakai
-        // bottom navigation umum Android. Profil memang sejak awal memakai chrome native umum.
+        String lowCurrentUrl = currentUrl == null ? "" : currentUrl.toLowerCase(Locale.US);
+        boolean messageThread = messagesPage && (lowCurrentUrl.contains("?c=") || lowCurrentUrl.contains("&c="));
+        // v1.9.19: daftar Chat tetap memakai bottom navigation umum. Saat percakapan aktif,
+        // bottom navigation diganti oleh composer pesan di dalam WebView seperti Telegram.
         boolean specialWebOwnsBottom = specialWebChrome && !(notificationPage || messagesPage);
         boolean homePage = isHomeUrl(currentUrl);
         if (refreshIndicator != null && refreshIndicator.getLayoutParams() instanceof FrameLayout.LayoutParams) {
@@ -1123,7 +1125,7 @@ public class MainActivity extends Activity {
         updateTopBarMode();
 
         boolean sheetActive = activeSheetOverlay != null || webSheetOpen;
-        boolean showBottom = isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage && !postDetailPage && !shortVideoPage && !specialWebOwnsBottom && !sheetActive;
+        boolean showBottom = isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage && !postDetailPage && !shortVideoPage && !specialWebOwnsBottom && !messageThread && !sheetActive;
         if (bottomContainer != null) bottomContainer.setVisibility(showBottom ? View.VISIBLE : View.GONE);
         // v1.9.16: bottom navigation umum selalu mempertahankan lima slot:
         // Beranda · Chat · + Postingan · Notifikasi · Profil.
@@ -1271,7 +1273,7 @@ public class MainActivity extends Activity {
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.18 NativeMobile/9.18");
+        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.19 NativeMobile/9.19");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) s.setSafeBrowsingEnabled(true);
 
         CookieManager cm = CookieManager.getInstance();
@@ -1951,7 +1953,7 @@ public class MainActivity extends Activity {
                 conn.setInstanceFollowRedirects(true);
                 String cookie = CookieManager.getInstance().getCookie(avatarUrl);
                 if (cookie != null && !cookie.isEmpty()) conn.setRequestProperty("Cookie", cookie);
-                conn.setRequestProperty("User-Agent", "DeappLite/1.9.18");
+                conn.setRequestProperty("User-Agent", "DeappLite/1.9.19");
                 try (InputStream in = conn.getInputStream()) {
                     Bitmap bitmap = BitmapFactory.decodeStream(in);
                     if (bitmap != null) runOnUiThread(() -> {
@@ -2177,7 +2179,7 @@ public class MainActivity extends Activity {
         name.setGravity(Gravity.CENTER);
         box.addView(name);
 
-        TextView version = text("Versi 1.9.18-lite · Build 28", 13, cMuted);
+        TextView version = text("Versi 1.9.19-lite · Build 29", 13, cMuted);
         version.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams versionLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);

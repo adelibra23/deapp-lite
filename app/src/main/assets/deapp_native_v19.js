@@ -1222,6 +1222,83 @@
     html.deapp-native-messages.deapp-chat-open .chat-form .btn-send.lg:active{transform:scale(.94)!important;background:#2c83d8!important}
     html.deapp-native-messages.deapp-chat-open .chat-form .btn-send.lg svg{width:20px!important;height:20px!important}
 
+
+    /* v1.9.19 — Telegram composer adaptif, notification filter ringkas, bio tanpa terjemahan. */
+    html.deapp-native-messages.deapp-chat-open body{padding-bottom:0!important}
+    html.deapp-native-messages.deapp-chat-open .chat-scroll{
+      padding-bottom:calc(74px + env(safe-area-inset-bottom))!important;
+      scroll-padding-bottom:calc(74px + env(safe-area-inset-bottom))!important
+    }
+    html.deapp-native-messages.deapp-chat-open .chat-compose{
+      position:fixed!important;left:0!important;right:0!important;bottom:0!important;z-index:1180!important;
+      padding:5px 7px calc(6px + env(safe-area-inset-bottom))!important;
+      background:linear-gradient(to top,rgba(220,230,238,.98),rgba(220,230,238,.94),rgba(220,230,238,0))!important
+    }
+    html.is-dark.deapp-native-messages.deapp-chat-open .chat-compose{
+      background:linear-gradient(to top,rgba(15,27,36,.99),rgba(15,27,36,.96),rgba(15,27,36,0))!important
+    }
+    html.deapp-native-messages.deapp-chat-open .chat-form{
+      min-height:46px!important;gap:4px!important;transition:gap .16s ease!important
+    }
+    html.deapp-native-messages.deapp-chat-open .chat-form>.icon-btn,
+    html.deapp-native-messages.deapp-chat-open .chat-form>label.icon-btn{
+      flex:0 0 38px!important;width:38px!important;height:38px!important;margin:4px 0!important;
+      transition:opacity .14s ease,transform .14s ease,width .14s ease,margin .14s ease!important
+    }
+    html.deapp-native-messages.deapp-chat-open .chat-input-wrap{
+      min-height:46px!important;border-radius:23px!important;display:flex!important;align-items:flex-end!important;
+      transition:border-radius .14s ease,box-shadow .14s ease!important
+    }
+    html.deapp-native-messages.deapp-chat-open #chat-input{
+      box-sizing:border-box!important;min-height:46px!important;height:46px;max-height:138px!important;
+      overflow-y:auto!important;padding:11px 13px 10px!important;line-height:1.42!important;transition:height .08s ease!important
+    }
+    html.deapp-native-messages.deapp-chat-open.deapp-chat-typing .chat-form>.icon-btn,
+    html.deapp-native-messages.deapp-chat-open.deapp-chat-typing .chat-form>label.icon-btn{
+      opacity:0!important;transform:scale(.72)!important;pointer-events:none!important;
+      flex-basis:0!important;width:0!important;height:38px!important;margin-left:-4px!important;margin-right:-4px!important;padding:0!important;overflow:hidden!important
+    }
+    html.deapp-native-messages.deapp-chat-open.deapp-chat-typing .chat-form{gap:6px!important}
+    html.deapp-native-messages.deapp-chat-open.deapp-chat-multiline .chat-input-wrap{border-radius:20px!important}
+    html.deapp-native-messages.deapp-chat-open .chat-form .btn-send.lg{
+      flex:0 0 44px!important;align-self:flex-end!important;margin:1px 0!important
+    }
+    html.deapp-native-messages.deapp-chat-open .voice-recorder:not([hidden]){position:relative!important;z-index:3!important}
+
+    /* Notifikasi: pencarian dibuang; filter status dibuat compact dan jelas. */
+    html.deapp-native-notifications .nx-filter{
+      display:flex!important;align-items:flex-end!important;gap:8px!important;padding:7px 12px 9px!important;
+      background:var(--surface)!important;border:0!important;border-bottom:1px solid color-mix(in srgb,var(--border) 68%,transparent)!important
+    }
+    html.deapp-native-notifications .nx-filter>label:first-of-type{display:none!important}
+    html.deapp-native-notifications .nx-filter>label:not(:first-of-type){
+      flex:1 1 auto!important;display:flex!important;align-items:center!important;gap:8px!important;margin:0!important;
+      font-size:11px!important;font-weight:720!important;color:var(--text-muted)!important
+    }
+    html.deapp-native-notifications .nx-filter select{
+      flex:1 1 auto!important;min-height:36px!important;margin:0!important;padding:7px 34px 7px 12px!important;
+      border:1px solid color-mix(in srgb,var(--border) 85%,transparent)!important;border-radius:999px!important;
+      background:var(--surface-2)!important;color:var(--text)!important;font-size:12.5px!important;font-weight:650!important;box-shadow:none!important
+    }
+    html.deapp-native-notifications .nx-filter .btn{
+      min-height:36px!important;padding:7px 11px!important;border-radius:999px!important;font-size:11.5px!important;font-weight:720!important
+    }
+    html.deapp-native-notifications .notif-item .deapp-notif-read-state{
+      flex:0 0 auto!important;margin-left:auto!important;padding:3px 7px!important;border-radius:999px!important;
+      font-size:9.5px!important;font-weight:760!important;line-height:1.2!important;color:var(--text-muted)!important;
+      background:var(--surface-2)!important;border:1px solid color-mix(in srgb,var(--border) 70%,transparent)!important
+    }
+    html.deapp-native-notifications .notif-item.unread .deapp-notif-read-state{
+      color:color-mix(in srgb,var(--acc) 82%,#0a6)!important;background:color-mix(in srgb,var(--acc) 9%,var(--surface))!important;
+      border-color:color-mix(in srgb,var(--acc) 24%,var(--border))!important
+    }
+    html.deapp-native-notifications .unread-dot{display:none!important}
+
+    /* Profil Lite: bio asli tetap tampil, seluruh UI terjemahan bio disembunyikan/dibuang. */
+    html.deapp-native-profile .bio-translation,
+    html.deapp-native-profile [data-translation-surface="bio"],
+    html.deapp-native-profile .js-translate-bio{display:none!important}
+
     @media(max-width:560px){
       .deapp-section-header{grid-template-columns:44px minmax(0,1fr) 44px;padding-left:6px;padding-right:6px}
       .deapp-section-header .deapp-section-left,.deapp-section-header .deapp-section-action{width:40px;height:40px}
@@ -1628,7 +1705,7 @@
       const row = document.createElement('button');
       row.type = 'button';
       row.className = 'snav deapp-native-about-row';
-      row.innerHTML = '<span class="deapp-settings-native-icon">ⓘ</span><span><b>Tentang aplikasi</b><small>Deapp Lite untuk Android</small></span><span class="deapp-version-pill">v1.9.18-lite</span>';
+      row.innerHTML = '<span class="deapp-settings-native-icon">ⓘ</span><span><b>Tentang aplikasi</b><small>Deapp Lite untuk Android</small></span><span class="deapp-version-pill">v1.9.19-lite</span>';
       row.addEventListener('click', function(){
         nativeTap();
         try { if (API && API.showAboutApp) API.showAboutApp(); } catch (_) {}
@@ -2064,6 +2141,80 @@
     }
   }
 
+
+  function wireTelegramChatComposer() {
+    if (!isMessagesPage || !document.body) return;
+    const input = document.getElementById('chat-input');
+    const form = document.getElementById('chat-form');
+    if (!input || !form) {
+      root.classList.remove('deapp-chat-typing','deapp-chat-multiline');
+      return;
+    }
+    if (input.dataset.deappTelegramComposer !== '1') {
+      input.dataset.deappTelegramComposer = '1';
+      const sync = function(){
+        const hasText = (input.value || '').trim().length > 0;
+        root.classList.toggle('deapp-chat-typing', hasText);
+        input.style.height = 'auto';
+        const h = Math.min(138, Math.max(46, input.scrollHeight || 46));
+        input.style.height = h + 'px';
+        root.classList.toggle('deapp-chat-multiline', h > 54);
+      };
+      input.addEventListener('input', sync, {passive:true});
+      input.addEventListener('change', sync, {passive:true});
+      input.addEventListener('focus', sync, {passive:true});
+      input.addEventListener('blur', sync, {passive:true});
+      form.addEventListener('reset', function(){ setTimeout(sync,0); });
+      form.addEventListener('submit', function(){
+        let tries=0;
+        const waitClear=function(){
+          tries++;
+          sync();
+          if ((input.value||'').length && tries < 14) setTimeout(waitClear,120);
+        };
+        setTimeout(waitClear,70);
+      });
+      sync();
+    } else {
+      const hasText=(input.value||'').trim().length>0;
+      root.classList.toggle('deapp-chat-typing',hasText);
+      const h=Math.min(138,Math.max(46,input.scrollHeight||46));
+      if (Math.abs((parseFloat(input.style.height)||0)-h)>2) input.style.height=h+'px';
+      root.classList.toggle('deapp-chat-multiline',h>54);
+    }
+  }
+
+  function polishNotificationStatus() {
+    if (!isNotificationsPage) return;
+    const filter = document.querySelector('.nx-filter');
+    if (filter) {
+      const labels = filter.querySelectorAll('label');
+      if (labels[0]) labels[0].style.display='none';
+      if (labels[1] && labels[1].dataset.deappStatusLabel !== '1') {
+        labels[1].dataset.deappStatusLabel='1';
+        const select=labels[1].querySelector('select[name="unread"]');
+        if (select) select.setAttribute('aria-label','Status notifikasi');
+      }
+    }
+    document.querySelectorAll('.notif-item').forEach(function(item){
+      let state=item.querySelector('.deapp-notif-read-state');
+      if (!state) {
+        state=document.createElement('span');
+        state.className='deapp-notif-read-state';
+        item.appendChild(state);
+      }
+      state.textContent=item.classList.contains('unread')?'Belum dibaca':'Dibaca';
+    });
+  }
+
+  function removeProfileBioTranslation() {
+    if (!isProfilePage) return;
+    document.querySelectorAll('.bio-translation,[data-translation-surface="bio"],.js-translate-bio').forEach(function(el){
+      const box=el.closest('.bio-translation,[data-translation-surface="bio"]');
+      if (box) box.remove(); else el.remove();
+    });
+  }
+
   function wireMessagesChrome() {
     if (!isMessagesPage || !document.body) return;
     const active = !!document.querySelector('.messenger.has-chat,.page-messages.chat-open,.chat-head');
@@ -2071,8 +2222,10 @@
     root.classList.toggle('deapp-chat-list', !active);
     if (active) {
       removeSectionChrome();
+      wireTelegramChatComposer();
       return;
     }
+    root.classList.remove('deapp-chat-typing','deapp-chat-multiline');
     sectionOn('messages');
     sectionHeader('messages','Chat','',{icon:'plus',label:'Mulai chat',href:'explore.php?tab=people'});
     const oldFooter=document.querySelector('.deapp-section-footer[data-section="messages"]'); if(oldFooter) oldFooter.remove();
@@ -2715,6 +2868,9 @@
     installReactionHaptics();
     installStoryPressPause();
     wirePostActionCounts();
+    wireTelegramChatComposer();
+    polishNotificationStatus();
+    removeProfileBioTranslation();
     optimizeMediaLoading();
     removePostTranslationUI();
     installPostPublishedHook();

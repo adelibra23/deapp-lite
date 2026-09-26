@@ -1,14 +1,14 @@
-# DeApp Lite Android v1.9.18 — Telegram Chat Body & Clean Splash
+# DeApp Lite Android v1.9.19 — Telegram Composer, Notification Status & Clean Profile Bio
 
-Patch ini melanjutkan seluruh perbaikan DeApp Lite v1.9.17.
+**Versi:** 1.9.19-lite (Build 29)
 
-## Perubahan utama
+## Pembaruan
 
-- Body percakapan Chat dibuat full-width tanpa card pembungkus.
-- Visual percakapan diarahkan ke gaya Telegram: kanvas biru-abu, bubble pesan ringan, timestamp lebih halus, dan dark mode Telegram-style.
-- Kolom ketikan bawah dibuat seperti composer Telegram: pill input, attachment minimal, dan tombol kirim bulat biru.
-- Quick reaction row di area composer disembunyikan agar chat lebih bersih.
-- Label `Welcome` pada splash screen dihapus; splash hanya menampilkan animasi logo DeApp.
-- Fitur pesan asli DeApp seperti media, voice note, reply, sticker, gift, multiline, dan kirim tetap menggunakan handler yang sudah ada.
-
-**Versi:** 1.9.18-lite (Build 28)
+- Percakapan aktif tidak lagi menampilkan bottom navigation Android; area bawah digantikan composer Chat.
+- Composer Chat dipoles seperti Telegram: input pill, tombol opsi compact, send bulat, dan textarea auto-grow hingga beberapa baris.
+- Saat pengguna mulai mengetik, tombol media/stiker/emoji/voice note/gift menghilang agar kolom pesan melebar. Tombol muncul kembali saat teks kosong.
+- Daftar Chat tetap memakai bottom navigation umum 5 menu.
+- Halaman Notifikasi tidak lagi menampilkan kolom pencarian. Filter status dibuat compact.
+- Tiap notifikasi menampilkan status kecil `Belum dibaca` atau `Dibaca`; unread tetap memakai aksen ringan.
+- Profil tidak lagi menampilkan fitur/hasil terjemahan bio. Bio asli tetap tampil.
+- Seluruh perbaikan v1.9.18 dan versi sebelumnya tetap dipertahankan.

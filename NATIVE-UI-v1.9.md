@@ -114,3 +114,11 @@ Versi: **1.9.15-lite · Build 25 · NativeMobile/9.15**.
 - Quick reaction composer disembunyikan untuk UI yang lebih bersih.
 - Splash screen hanya menampilkan logo DeApp; label Welcome dihapus.
 - Versi: **1.9.18-lite · Build 28 · NativeMobile/9.18**.
+
+## v1.9.19 — Telegram Composer, Notification Status & Clean Bio
+
+- Percakapan aktif menyembunyikan bottom navigation Android; composer chat menjadi kontrol bawah utama.
+- Composer Telegram adaptif: opsi media/stiker/emoji/voice/gift disembunyikan saat ada teks, textarea auto-grow 46–138 px.
+- Kolom pencarian Notifikasi disembunyikan; filter status dipertahankan dan tiap item diberi label Dibaca/Belum dibaca.
+- UI terjemahan bio pada Profil dihapus dari DeApp Lite, sementara bio asli tetap tampil.
+- Versi: **1.9.19-lite · Build 29 · NativeMobile/9.19**.
