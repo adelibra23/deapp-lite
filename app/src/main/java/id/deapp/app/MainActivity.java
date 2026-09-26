@@ -467,7 +467,7 @@ public class MainActivity extends Activity {
         LinearLayout composer=rowCard();TextView avatar=bold("+",22);avatar.setGravity(Gravity.CENTER);avatar.setBackground(rounded(surface2,99));composer.addView(avatar,new LinearLayout.LayoutParams(dp(42),dp(42)));TextView ask=tv("Apa yang baru?",15,muted);ask.setGravity(Gravity.CENTER_VERTICAL);LinearLayout.LayoutParams ap=new LinearLayout.LayoutParams(0,dp(42),1);ap.leftMargin=dp(12);composer.addView(ask,ap);composer.setOnClickListener(v->navigate(new Screen("compose","","Postingan"),true));feed.addView(composer,cardMargin());
         TextView loading=tv("Memuat kiriman…",13,muted);loading.setGravity(Gravity.CENTER);loading.setPadding(0,dp(24),0,dp(24));feed.addView(loading);
         Runnable load=()->runNet(()->client.get("/api/feed.php?scope=feed&offset=0"),r->{refresh.setRefreshing(false);renderFeed(feed,r.body,r.url);},e->{refresh.setRefreshing(false);renderInlineError(feed,"Feed belum dapat dimuat.",()->showHome());});
-        refresh.setOnRefreshListener(load);load.run();
+        refresh.setOnRefreshListener(() -> load.run());load.run();
     }
 
     private void renderFeed(LinearLayout feed,String html,String url){

@@ -1,3 +1,7 @@
+# DeApp Android v2.0.1
+
+Native Android build hotfix for GitHub Actions compile failure.
+
 # DeApp Android 2.0
 
 DeApp Android 2.0 is the native rebuild of the previous Android wrapper. The app name and version no longer use **Lite**.
