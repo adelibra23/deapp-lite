@@ -429,8 +429,9 @@
     html.deapp-bottom-sheet-active .deapp-reels-header,
     html.deapp-bottom-sheet-active .story-topbar,
     html.deapp-bottom-sheet-active .chat-head{
-      filter:brightness(.88) saturate(.96)!important;-webkit-filter:brightness(.88) saturate(.96)!important;
-      pointer-events:none!important;transition:filter .15s ease!important
+      filter:brightness(.76) saturate(.92)!important;-webkit-filter:brightness(.76) saturate(.92)!important;
+      box-shadow:inset 0 0 0 999px rgba(0,0,0,.08)!important;
+      pointer-events:none!important;transition:filter .15s ease,box-shadow .15s ease!important
     }
 
     /* v1.9.6 — chrome khusus per bagian: chat, notifikasi, live, Deapp AI, toko/dompet, pengaturan, dan Story. */
@@ -1391,6 +1392,119 @@
     html.is-dark.deapp-native-messages.deapp-chat-open .chat-input-wrap:focus-within{background:#242f3d!important;border-color:#2d3b48!important}
     html.is-dark #emoji-pop.deapp-chat-emoji-panel{background:#17212b!important;border-top-color:#263442!important;box-shadow:0 -8px 30px rgba(0,0,0,.24)!important}
 
+
+    /* v1.9.23 — tipografi sistem ala Threads, notifikasi dua tingkat, dompet/toko terpisah,
+       Top Up yang lebih bersih, dan motion item virtual yang lebih hidup. */
+    html,body,button,input,textarea,select,option,a,.btn,.tab,.chip,.card,.post-card,.dropdown,.modal-box,
+    .deapp-section-header,.deapp-section-footer,.deapp-reels-header,.deapp-reels-footer{
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif!important;
+      font-synthesis:none!important;text-rendering:optimizeLegibility!important
+    }
+    body{letter-spacing:-.004em!important}
+    h1,h2,h3,h4,h5,h6,.page-title,.post-name,.deapp-section-title b,strong,b{letter-spacing:-.018em!important}
+
+    /* Scrim header harus konsisten dengan halaman di belakang sheet, termasuk header web. */
+    html.deapp-bottom-sheet-active .deapp-section-header,
+    html.deapp-bottom-sheet-active .deapp-reels-header,
+    html.deapp-bottom-sheet-active .story-topbar,
+    html.deapp-bottom-sheet-active .chat-head{
+      filter:brightness(.70) saturate(.88)!important;-webkit-filter:brightness(.70) saturate(.88)!important;
+      box-shadow:inset 0 0 0 999px rgba(0,0,0,.22)!important
+    }
+
+    /* Notifikasi: kategori di baris pertama, status baca di baris kedua. */
+    html.deapp-native-notifications .nx-filter{display:none!important}
+    html.deapp-native-notifications .deapp-notification-tabs{
+      position:relative!important;top:auto!important;z-index:3!important;display:flex!important;gap:5px!important;
+      width:100%!important;margin:0!important;padding:8px 10px 7px!important;overflow-x:auto!important;scrollbar-width:none!important;
+      background:var(--surface)!important;border:0!important;border-bottom:1px solid color-mix(in srgb,var(--border) 62%,transparent)!important
+    }
+    html.deapp-native-notifications .deapp-notification-tabs::-webkit-scrollbar{display:none!important}
+    html.deapp-native-notifications .deapp-notification-tabs .tab{
+      flex:0 0 auto!important;min-height:35px!important;padding:7px 12px!important;border:0!important;border-radius:999px!important;
+      background:transparent!important;color:var(--text-muted)!important;font-size:12px!important;font-weight:700!important;white-space:nowrap!important
+    }
+    html.deapp-native-notifications .deapp-notification-tabs .tab.active{
+      background:var(--text)!important;color:var(--surface)!important
+    }
+    html.deapp-native-notifications .deapp-notif-status-tabs{
+      display:flex!important;align-items:center!important;gap:4px!important;margin:0!important;padding:7px 10px 8px!important;
+      background:var(--surface)!important;border-bottom:1px solid color-mix(in srgb,var(--border) 58%,transparent)!important
+    }
+    html.deapp-native-notifications .deapp-notif-status-tabs a{
+      display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:31px!important;padding:6px 11px!important;
+      border-radius:999px!important;text-decoration:none!important;color:var(--text-muted)!important;background:var(--surface-2)!important;
+      border:1px solid transparent!important;font-size:11px!important;font-weight:720!important
+    }
+    html.deapp-native-notifications .deapp-notif-status-tabs a.is-active{
+      color:var(--text)!important;border-color:color-mix(in srgb,var(--text) 18%,var(--border))!important;background:var(--surface)!important
+    }
+    html.deapp-native-notifications .deapp-notif-status-label{margin-left:auto!important;font-size:10px!important;color:var(--text-faint)!important;font-weight:650!important}
+    html.deapp-native-notifications .notif-item .deapp-notif-read-state{
+      margin-left:6px!important;margin-top:0!important;align-self:center!important;padding:2px 0!important;border:0!important;border-radius:0!important;
+      background:transparent!important;font-size:9px!important;font-weight:700!important;color:var(--text-faint)!important
+    }
+    html.deapp-native-notifications .notif-item.unread .deapp-notif-read-state{background:transparent!important;border:0!important;color:var(--acc)!important}
+
+    /* Shop Lite: kelompok transaksi dompet dipisah dari katalog dan koleksi. */
+    html.deapp-native-shop .shop-menu-grid.deapp-shop-organized{display:block!important;margin:4px 10px 14px!important;padding:0!important}
+    html.deapp-native-shop .deapp-shop-menu-section{margin:0 0 16px!important;padding:0!important}
+    html.deapp-native-shop .deapp-shop-menu-head{display:flex!important;align-items:flex-end!important;justify-content:space-between!important;gap:10px!important;padding:0 2px 8px!important}
+    html.deapp-native-shop .deapp-shop-menu-head b{font-size:14px!important;font-weight:800!important;color:var(--text)!important}
+    html.deapp-native-shop .deapp-shop-menu-head small{font-size:9.5px!important;color:var(--text-faint)!important;text-align:right!important}
+    html.deapp-native-shop .deapp-shop-menu-items{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:7px!important}
+    html.deapp-native-shop .deapp-shop-menu-items .smi{
+      min-width:0!important;min-height:88px!important;padding:11px 5px 8px!important;border:1px solid color-mix(in srgb,var(--border) 74%,transparent)!important;
+      border-radius:18px!important;background:var(--surface)!important;box-shadow:none!important;transform:none!important
+    }
+    html.deapp-native-shop .deapp-shop-menu-items .smi.active{border-color:color-mix(in srgb,var(--acc) 42%,var(--border))!important;background:color-mix(in srgb,var(--acc) 5%,var(--surface))!important}
+    html.deapp-native-shop .deapp-shop-menu-items .smi-icon{width:42px!important;height:42px!important;border-radius:14px!important}
+    html.deapp-native-shop .deapp-shop-menu-items .smi-label{font-size:10px!important;line-height:1.2!important;font-weight:720!important;text-align:center!important}
+
+    /* Top Up Koin: satu kolom mobile, pilihan paket lebih mudah dipindai, tanpa kartu raksasa. */
+    html.deapp-native-settings-family .topup-page{display:grid!important;gap:12px!important;padding:0 2px 18px!important}
+    html.deapp-native-settings-family .topup-hero{
+      min-height:0!important;padding:18px!important;border-radius:20px!important;align-items:center!important;
+      background:linear-gradient(145deg,color-mix(in srgb,var(--acc) 7%,var(--surface)),var(--surface))!important;box-shadow:none!important
+    }
+    html.deapp-native-settings-family .topup-hero h1{font-size:25px!important;margin:3px 0 5px!important}
+    html.deapp-native-settings-family .topup-hero p{font-size:12px!important;line-height:1.5!important}
+    html.deapp-native-settings-family .topup-balance{margin-top:12px!important;padding:8px 11px!important;border-radius:13px!important;background:var(--surface)!important}
+    html.deapp-native-settings-family .topup-coin-orbit{width:88px!important;height:88px!important}
+    html.deapp-native-settings-family .topup-coin-orbit>span{width:58px!important;height:58px!important;border-radius:19px!important;font-size:31px!important;animation:deappCoinFloat 2.9s ease-in-out infinite!important}
+    html.deapp-native-settings-family .topup-layout{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:12px!important}
+    html.deapp-native-settings-family .topup-builder,html.deapp-native-settings-family .topup-side-card,
+    html.deapp-native-settings-family .topup-order-focus,html.deapp-native-settings-family .topup-history{
+      padding:16px!important;border-radius:19px!important;box-shadow:none!important
+    }
+    html.deapp-native-settings-family .topup-side{position:static!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important}
+    html.deapp-native-settings-family .topup-pack-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+    html.deapp-native-settings-family .topup-pack>span{min-height:125px!important;padding:13px!important;border-radius:16px!important;background:var(--surface)!important}
+    html.deapp-native-settings-family .topup-pack input:checked+span{transform:none!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--acc) 20%,transparent)!important}
+    html.deapp-native-settings-family .topup-method-grid{grid-template-columns:1fr 1fr!important;gap:8px!important}
+    html.deapp-native-settings-family .topup-method>span{min-height:68px!important;border-radius:15px!important;background:var(--surface)!important}
+    html.deapp-native-settings-family .topup-history-row{border-radius:0!important;border:0!important;border-bottom:1px solid color-mix(in srgb,var(--border) 62%,transparent)!important;box-shadow:none!important}
+
+    /* Motion karakter: pet berbeda punya ritme berbeda; stiker/item virtual bergerak halus. */
+    @keyframes deappPetCat{0%,100%{transform:translateY(0) rotate(0)}35%{transform:translateY(-5px) rotate(-2deg)}65%{transform:translateY(-2px) rotate(2deg)}}
+    @keyframes deappPetDog{0%,100%{transform:translateY(0) scale(1)}20%{transform:translateY(-4px) scale(1.03)}40%{transform:translateY(0) rotate(-3deg)}60%{transform:rotate(3deg)}}
+    @keyframes deappPetBird{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-7px) rotate(-5deg)}50%{transform:translateY(-3px) rotate(5deg)}75%{transform:translateY(-7px) rotate(-3deg)}}
+    @keyframes deappPetPanda{0%,100%{transform:scale(1)}50%{transform:scale(1.045) translateY(-2px)}}
+    @keyframes deappPetFox{0%,100%{transform:translateX(0) rotate(0)}35%{transform:translateX(-2px) rotate(-3deg)}70%{transform:translateX(2px) rotate(3deg)}}
+    @keyframes deappPetDragon{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-8px) rotate(2deg)}}
+    @keyframes deappStickerWiggle{0%,100%{transform:translateY(0) rotate(0) scale(1)}35%{transform:translateY(-3px) rotate(-4deg) scale(1.04)}70%{transform:translateY(-1px) rotate(3deg)}}
+    @keyframes deappVirtualFloat{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-5px) rotate(2deg)}}
+    @keyframes deappCoinFloat{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-6px) rotate(3deg)}}
+    .deapp-pet-motion{display:inline-block!important;transform-origin:50% 85%!important;will-change:transform}
+    .deapp-pet-cat{animation:deappPetCat 2.6s ease-in-out infinite!important}.deapp-pet-dog{animation:deappPetDog 2.2s ease-in-out infinite!important}
+    .deapp-pet-bird{animation:deappPetBird 2s ease-in-out infinite!important}.deapp-pet-panda{animation:deappPetPanda 3.2s ease-in-out infinite!important}
+    .deapp-pet-fox{animation:deappPetFox 2.8s ease-in-out infinite!important}.deapp-pet-dragon{animation:deappPetDragon 2.5s ease-in-out infinite!important}
+    .deapp-pet-generic{animation:deappVirtualFloat 2.8s ease-in-out infinite!important}
+    .deapp-sticker-motion{display:inline-block!important;animation:deappStickerWiggle 2.9s ease-in-out infinite!important;will-change:transform}
+    .deapp-virtual-motion{display:inline-block!important;animation:deappVirtualFloat 3s ease-in-out infinite!important;will-change:transform}
+    @media(prefers-reduced-motion:reduce){.deapp-pet-motion,.deapp-sticker-motion,.deapp-virtual-motion,.topup-coin-orbit>span{animation:none!important;transform:none!important}}
+    body.exp-visual-saver .deapp-pet-motion,body.exp-visual-saver .deapp-sticker-motion,body.exp-visual-saver .deapp-virtual-motion{animation:none!important;transform:none!important}
+
     @media(max-width:560px){
       .deapp-section-header{grid-template-columns:44px minmax(0,1fr) 44px;padding-left:6px;padding-right:6px}
       .deapp-section-header .deapp-section-left,.deapp-section-header .deapp-section-action{width:40px;height:40px}
@@ -1398,6 +1512,9 @@
       html.deapp-native-ai .deapp-ai-hero{display:none!important}
       html.deapp-native-ai .deapp-ai-shell{height:calc(100dvh - 62px - env(safe-area-inset-top))!important;min-height:0!important;border:0!important;border-radius:0!important}
       html.deapp-native-shop .shop-menu-grid{margin-top:4px!important}
+      html.deapp-native-settings-family .topup-side{grid-template-columns:1fr!important}
+      html.deapp-native-settings-family .topup-order-grid,html.deapp-native-settings-family .topup-proof-form{grid-template-columns:1fr!important}
+      html.deapp-native-settings-family .topup-form-actions{grid-column:1!important}
     }
   `;
   document.head.appendChild(style);
@@ -1797,7 +1914,7 @@
       const row = document.createElement('button');
       row.type = 'button';
       row.className = 'snav deapp-native-about-row';
-      row.innerHTML = '<span class="deapp-settings-native-icon">ⓘ</span><span><b>Tentang aplikasi</b><small>Deapp Lite untuk Android</small></span><span class="deapp-version-pill">v1.9.21-lite</span>';
+      row.innerHTML = '<span class="deapp-settings-native-icon">ⓘ</span><span><b>Tentang aplikasi</b><small>Deapp Lite untuk Android</small></span><span class="deapp-version-pill">v1.9.22-lite</span>';
       row.addEventListener('click', function(){
         nativeTap();
         try { if (API && API.showAboutApp) API.showAboutApp(); } catch (_) {}
@@ -2204,25 +2321,29 @@
 
   function sectionBack() {
     if (hasVisibleWebSheet()) { closeVisibleWebSheet(); return; }
-    // v1.9.20 — kembali ke parent section lebih dulu agar tombol Back tidak
-    // memutar ulang tab/filter yang baru saja dipilih. Setelah berada di parent,
-    // history normal kembali dipakai.
+    // v1.9.23 — Back header bersifat route-aware, bukan history-aware.
+    // Halaman utama section selalu kembali ke Beranda; subhalaman kembali ke parent section.
     let u;
     try { u = new URL(location.href); } catch (_) { u = null; }
     const file = (path.split('/').pop() || '').toLowerCase();
-    if (u && file === 'notifications.php') {
-      const f = u.searchParams.get('f');
-      if (f && f !== 'all') return goSection('notifications.php');
+    if (u && file === 'messages.php') {
+      if (u.searchParams.get('c')) return goSection('messages.php');
+      return goSection('index.php');
     }
+    if (file === 'notifications.php') return goSection('index.php');
     if (u && file === 'live.php') {
       const tab = u.searchParams.get('tab');
       if (u.searchParams.has('id') || u.searchParams.has('studio') || (tab && tab !== 'discover')) return goSection('live.php');
+      return goSection('index.php');
     }
     if (u && file === 'shop.php') {
-      const tab = u.searchParams.get('tab');
-      if (tab && tab !== 'wallet') return goSection('shop.php');
+      const tab = u.searchParams.get('tab') || 'wallet';
+      if (tab !== 'wallet') return goSection('shop.php?tab=wallet');
+      return goSection('index.php');
     }
-    if (history.length > 1) history.back(); else goSection('index.php');
+    if (file === 'ai.php') return goSection('index.php');
+    if (file === 'reels.php') return goSection('index.php');
+    return goSection('index.php');
   }
 
   function removeSectionChrome() {
@@ -2338,25 +2459,35 @@
   function polishNotificationStatus() {
     if (!isNotificationsPage) return;
     const filter = document.querySelector('.nx-filter');
-    if (filter) {
-      const labels = filter.querySelectorAll('label');
-      if (labels[0]) labels[0].style.display='none';
-      if (labels[1] && labels[1].dataset.deappStatusLabel !== '1') {
-        labels[1].dataset.deappStatusLabel='1';
-        const select=labels[1].querySelector('select[name="unread"]');
-        if (select) select.setAttribute('aria-label','Status notifikasi');
-      }
+    if (filter) filter.hidden = true;
+
+    let tabs = document.querySelector('.deapp-notification-tabs') || document.querySelector('.tabs.sticky-tabs');
+    let status = document.querySelector('.deapp-notif-status-tabs');
+    if (!status) {
+      status = document.createElement('nav');
+      status.className = 'deapp-notif-status-tabs';
+      status.setAttribute('aria-label','Status notifikasi');
+      const u = new URL(location.href);
+      const make = function(label, unread, active){
+        const a=document.createElement('a');
+        const x=new URL(u.href); x.searchParams.set('unread', unread ? '1' : '0'); x.searchParams.delete('q');
+        a.href=x.href; a.textContent=label; a.className=active?'is-active':''; return a;
+      };
+      const unread = u.searchParams.get('unread') === '1';
+      status.appendChild(make('Semua',false,!unread));
+      status.appendChild(make('Belum dibaca',true,unread));
+      const label=document.createElement('span'); label.className='deapp-notif-status-label'; label.textContent=unread?'Menampilkan yang belum dibaca':'Semua status';
+      status.appendChild(label);
+      if (tabs && tabs.parentNode) tabs.parentNode.insertBefore(status, tabs.nextSibling);
+      else if (filter && filter.parentNode) filter.parentNode.insertBefore(status, filter);
     }
     document.querySelectorAll('.notif-item').forEach(function(item){
       let state=item.querySelector('.deapp-notif-read-state');
-      if (!state) {
-        state=document.createElement('span');
-        state.className='deapp-notif-read-state';
-        item.appendChild(state);
-      }
+      if (!state) { state=document.createElement('span'); state.className='deapp-notif-read-state'; item.appendChild(state); }
       state.textContent=item.classList.contains('unread')?'Belum dibaca':'Dibaca';
     });
   }
+
 
   function removeProfileBioTranslation() {
     if (!isProfilePage) return;
@@ -2373,6 +2504,14 @@
     root.classList.toggle('deapp-chat-list', !active);
     if (active) {
       removeSectionChrome();
+      const chatBack=document.querySelector('.chat-head .only-mobile.icon-btn[aria-label="Kembali"],.chat-head a[href="messages.php"]');
+      if(chatBack && chatBack.dataset.deappStableBack!=='1'){
+        chatBack.dataset.deappStableBack='1';
+        chatBack.addEventListener('click',function(e){
+          if(hasVisibleWebSheet()){e.preventDefault();closeVisibleWebSheet();return;}
+          e.preventDefault();goSection('messages.php');
+        },true);
+      }
       wireTelegramChatComposer();
       return;
     }
@@ -2508,10 +2647,54 @@
     if(chatTab && !chatTab.classList.contains('active')) chatTab.click();
   }
 
+  function organizeShopMenu() {
+    if (!isShopPage) return;
+    const nav=document.querySelector('.shop-menu-grid');
+    if (!nav || nav.classList.contains('deapp-shop-organized')) return;
+    const items=Array.from(nav.querySelectorAll(':scope > a.smi'));
+    if (!items.length) return;
+    nav.classList.add('deapp-shop-organized');
+    const makeGroup=function(title,desc,klass){
+      const sec=document.createElement('section'); sec.className='deapp-shop-menu-section '+klass;
+      sec.innerHTML='<div class="deapp-shop-menu-head"><b>'+title+'</b><small>'+desc+'</small></div><div class="deapp-shop-menu-items"></div>';
+      nav.appendChild(sec); return sec.querySelector('.deapp-shop-menu-items');
+    };
+    const wallet=makeGroup('Dompet & Koin','Saldo dan transaksi','deapp-wallet-group');
+    const store=makeGroup('Toko & Koleksi','Pet, item dan kosmetik','deapp-store-group');
+    items.forEach(function(a){
+      const href=(a.getAttribute('href')||'').toLowerCase();
+      const walletItem=href.indexOf('tab=wallet')>=0 || href.indexOf('tab=topup')>=0 || href.indexOf('tab=kirim')>=0 || href.indexOf('tab=promo')>=0;
+      (walletItem?wallet:store).appendChild(a);
+    });
+  }
+
+  function wireVirtualAnimations() {
+    const petClass=function(txt){
+      if (txt.indexOf('🐱')>=0) return 'deapp-pet-cat';
+      if (txt.indexOf('🐶')>=0) return 'deapp-pet-dog';
+      if (txt.indexOf('🐦')>=0) return 'deapp-pet-bird';
+      if (txt.indexOf('🐼')>=0) return 'deapp-pet-panda';
+      if (txt.indexOf('🦊')>=0) return 'deapp-pet-fox';
+      if (txt.indexOf('🐲')>=0 || txt.indexOf('🐉')>=0) return 'deapp-pet-dragon';
+      return 'deapp-pet-generic';
+    };
+    document.querySelectorAll('.pet-stage-emoji,.pet-mini-emoji,.pet-shop-emoji,.pet-hero-main-emoji,.virtual-pet-avatar').forEach(function(el){
+      if (el.dataset.deappMotion==='1') return; el.dataset.deappMotion='1'; el.classList.add('deapp-pet-motion',petClass(el.textContent||''));
+    });
+    document.querySelectorAll('.pack-preview i').forEach(function(el,i){
+      if (el.dataset.deappMotion==='1') return; el.dataset.deappMotion='1'; el.classList.add('deapp-sticker-motion'); el.style.animationDelay=((i%6)*-.19)+'s';
+    });
+    document.querySelectorAll('.virtual-card-emoji,.virtual-owned-emoji,.virtual-hero-art>span,.virtual-menu-card .vmc-icon,.ticket-emoji').forEach(function(el,i){
+      if (el.dataset.deappMotion==='1') return; el.dataset.deappMotion='1'; el.classList.add('deapp-virtual-motion'); el.style.animationDelay=((i%8)*-.15)+'s';
+    });
+  }
+
   const shopTitles={wallet:'Dompet',kirim:'Kirim koin',promo:'Kode promo',etalase:'Etalase',wishlist:'Keinginan',pet:'Pet',virtual:'Item Virtual',vip:'VIP',gifts:'Hadiah',theme:'Tema',frame:'Bingkai',bubble:'Gelembung',sticker:'Stiker',effect:'Efek nama',ticket:'Tiket',bag:'Tas barang',koleksi:'Koleksiku',level:'Level'};
   function wireShopChrome() {
     if (!isShopPage || !document.body) return;
     const q=new URL(location.href).searchParams, tab=q.get('tab')||'wallet';
+    organizeShopMenu();
+    wireVirtualAnimations();
     sectionOn('shop');
     sectionHeader('shop',shopTitles[tab]||'Toko & Dompet','',{icon:'plus',label:'Top Up',href:'settings.php?tab=topup'});
     const oldFooter=document.querySelector('.deapp-section-footer[data-section="shop"]'); if(oldFooter) oldFooter.remove();
@@ -2530,7 +2713,8 @@
     if (file==='help.php') return goSection('settings.php');
     if (file==='settings.php' && params.get('tab')==='notifications') return goSection('notifications.php');
     if (file==='settings.php' && params.has('tab')) return goSection('settings.php');
-    if (history.length > 1) history.back(); else goSection('index.php');
+    if (file==='settings.php') return goSection('index.php');
+    return goSection('settings.php');
   }
 
   function settingsContext() {
@@ -2625,8 +2809,8 @@
         '<div class="deapp-reels-title"><b>Video Pendek</b><small>DeApp</small></div>'+
         '<button type="button" class="deapp-reels-header-create" aria-label="Buat video">'+reelIcon('plus')+'</button>';
       header.querySelector('.deapp-reels-back').addEventListener('click', function(){
-        if (history.length > 1) history.back();
-        else location.href = new URL('index.php', location.href).href;
+        if (hasVisibleWebSheet()) { closeVisibleWebSheet(); return; }
+        goSection('index.php');
       });
       header.querySelector('.deapp-reels-header-create').addEventListener('click', reelsCreate);
       document.body.appendChild(header);
@@ -3121,6 +3305,8 @@
     installSinglePopupToastGate();
     installNoSelectionCallout();
     polishNotificationStatus();
+    organizeShopMenu();
+    wireVirtualAnimations();
     removeProfileBioTranslation();
     optimizeMediaLoading();
     removePostTranslationUI();

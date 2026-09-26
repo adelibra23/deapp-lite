@@ -114,6 +114,7 @@ public class MainActivity extends Activity {
     private boolean composerOpen = false;
     private boolean webSheetOpen = false;
     private boolean uiScrolling = false;
+    private boolean pageReadyForChrome = false;
     private int scrollUiGeneration = 0;
     private View activeSheetOverlay;
     private View activeSheetPanel;
@@ -217,6 +218,7 @@ public class MainActivity extends Activity {
         t.setText(value);
         t.setTextSize(sp);
         t.setTextColor(color);
+        t.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
         t.setIncludeFontPadding(false);
         return t;
     }
@@ -489,19 +491,25 @@ public class MainActivity extends Activity {
         toolbar.addView(toolbarLogo, leftLp);
         toolbarLogo.setOnClickListener(v -> {
             haptic(v);
+            // v1.9.22: header Back/Search tidak boleh melewati sheet aktif.
+            // Jika ada modal/sheet, konsumsi aksi ini untuk menutupnya dan tetap di halaman yang sama.
+            if (activeSheetOverlay != null || webSheetOpen) {
+                handleBack();
+                return;
+            }
             if (composerOpen) {
                 closeComposer();
             } else if (postDetailPage) {
-                if (webView != null && webView.canGoBack()) webView.goBack();
-                else loadRelative("index.php");
+                // Detail postingan adalah subhalaman feed: Back header selalu kembali ke Beranda.
+                loadRelative("index.php");
             } else {
                 loadRelative("explore.php");
             }
         });
 
         toolbarTitle = text("Deapp", 20, cText);
-        toolbarTitle.setTypeface(Typeface.create("sans-serif-black", Typeface.BOLD));
-        toolbarTitle.setLetterSpacing(-0.02f);
+        toolbarTitle.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        toolbarTitle.setLetterSpacing(-0.015f);
         toolbarTitle.setGravity(Gravity.CENTER);
         toolbarTitle.setMaxLines(1);
         toolbarTitle.setEllipsize(android.text.TextUtils.TruncateAt.END);
@@ -654,6 +662,8 @@ public class MainActivity extends Activity {
                     startupSplashLogo = null;
                 }
                 startupSplashVisible = false;
+                // FAB/navigation baru boleh muncul setelah splash benar-benar selesai.
+                updateChromeVisibility();
             }).start();
         }, 4700);
     }
@@ -1144,7 +1154,7 @@ public class MainActivity extends Activity {
         // Beranda · Chat · + Postingan · Notifikasi · Profil.
         // Pembatasan hanya berlaku untuk FAB mengambang, bukan tombol + di nav tengah.
         if (navCompose != null) navCompose.root.setVisibility(showBottom ? View.VISIBLE : View.GONE);
-        boolean showFloatingCompose = homePage && isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage && !postDetailPage && !shortVideoPage && !specialWebChrome && !sheetActive && !uiScrolling;
+        boolean showFloatingCompose = homePage && pageReadyForChrome && !startupSplashVisible && isLoggedIn && !imeVisible && !fullscreen && !composerOpen && !authPage && !postDetailPage && !shortVideoPage && !specialWebChrome && !sheetActive && !uiScrolling;
         if (composeFab != null) {
             composeFab.setVisibility(showFloatingCompose ? View.VISIBLE : View.GONE);
             composeFab.setContentDescription("Buat postingan");
@@ -1153,7 +1163,8 @@ public class MainActivity extends Activity {
         // Web bottom sheets berada di dalam WebView sehingga tidak otomatis meredupkan
         // toolbar Android. Tambahkan lapisan gelap tipis agar konsisten seperti Threads.
         if (topContainer != null) {
-            topContainer.setForeground(webSheetOpen ? new ColorDrawable(Color.parseColor("#24000000")) : null);
+            // v1.9.22: native maupun web bottom sheet meredupkan header Android juga.
+            topContainer.setForeground(sheetActive ? new ColorDrawable(Color.parseColor("#4D000000")) : null);
         }
 
         if (root != null) {
@@ -1286,7 +1297,7 @@ public class MainActivity extends Activity {
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.21 NativeMobile/9.21");
+        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.22 NativeMobile/9.22");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) s.setSafeBrowsingEnabled(true);
 
         CookieManager cm = CookieManager.getInstance();
@@ -1322,6 +1333,7 @@ public class MainActivity extends Activity {
                     }
                 }
                 currentUrl = url == null ? "" : url;
+                pageReadyForChrome = false;
                 profilePage = isProfileUrl(currentUrl);
                 postDetailPage = isPostUrl(currentUrl);
                 reelsPage = isReelsUrl(currentUrl);
@@ -1338,9 +1350,11 @@ public class MainActivity extends Activity {
             public void onPageCommitVisible(WebView view, String url) {
                 super.onPageCommitVisible(view, url);
                 loadingGeneration++;
+                pageReadyForChrome = true;
                 injectNativeShell();
                 view.postDelayed(MainActivity.this::recoverWebScroll, 80);
                 if (loadingOverlay != null) hideLoading();
+                updateChromeVisibility();
             }
 
             @Override
@@ -1353,6 +1367,7 @@ public class MainActivity extends Activity {
                 showRefreshIndicator(false);
                 hideLoading();
                 currentUrl = url == null ? "" : url;
+                pageReadyForChrome = true;
                 profilePage = isProfileUrl(currentUrl);
                 postDetailPage = isPostUrl(currentUrl);
                 reelsPage = isReelsUrl(currentUrl);
@@ -1966,7 +1981,7 @@ public class MainActivity extends Activity {
                 conn.setInstanceFollowRedirects(true);
                 String cookie = CookieManager.getInstance().getCookie(avatarUrl);
                 if (cookie != null && !cookie.isEmpty()) conn.setRequestProperty("Cookie", cookie);
-                conn.setRequestProperty("User-Agent", "DeappLite/1.9.21");
+                conn.setRequestProperty("User-Agent", "DeappLite/1.9.22");
                 try (InputStream in = conn.getInputStream()) {
                     Bitmap bitmap = BitmapFactory.decodeStream(in);
                     if (bitmap != null) runOnUiThread(() -> {
@@ -2192,7 +2207,7 @@ public class MainActivity extends Activity {
         name.setGravity(Gravity.CENTER);
         box.addView(name);
 
-        TextView version = text("Versi 1.9.21-lite · Build 31", 13, cMuted);
+        TextView version = text("Versi 1.9.22-lite · Build 32", 13, cMuted);
         version.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams versionLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);

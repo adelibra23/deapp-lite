@@ -1,14 +1,18 @@
-# DeApp Lite Android v1.9.21 — Modal Back Guard, Single Alert & Telegram Chat Polish
+# DeApp Lite Android v1.9.23 — Threads Typography, Stable Back, Wallet & Virtual Polish
 
-**Versi:** 1.9.21-lite (Build 31)
+**Versi:** 1.9.23-lite (Build 33)
 
-Patch ini memperbaiki aksi Back ketika bottom sheet/modal aktif, membatasi alert popup tengah menjadi satu kartu, merapikan Chat Telegram dengan background putih dan composer media/emoji/voice note, memindahkan picker emoji ke panel bawah seperti Telegram, serta menonaktifkan long-press selection/copy callout pada tampilan aplikasi.
+Patch ini merapikan tipografi global, navigasi Back, halaman Notifikasi, Toko & Dompet, Top Up Koin, serta motion Pet/Stiker/Item Virtual.
 
 ## Perubahan utama
 
-- Back saat bottom sheet/modal aktif hanya menutup modal; halaman tidak pindah ke history sebelumnya.
-- Alert/notifikasi popup di tengah layar dibuat single-instance sehingga tap berulang tidak menumpuk banyak popup.
-- Body Chat light mode putih dengan bubble ringan.
-- Composer Chat: media, emoji, voice note, input multiline, dan tombol kirim tertata rapi.
-- Picker emoji Chat tampil sebagai panel keyboard di bawah composer; composer otomatis naik.
-- Long-press menu salin/select pada konten WebView dinonaktifkan; input tetap dapat digunakan normal dan Story hold-to-pause tetap bekerja.
+- Font web dan chrome native memakai stack font sistem modern yang konsisten dan lebih dekat dengan nuansa Threads.
+- Back pada header tidak lagi mengikuti history acak. Top-level section kembali ke Beranda; detail/subhalaman kembali ke induknya.
+- Header native dan header web sama-sama redup secara konsisten ketika bottom sheet/modal aktif.
+- Notifikasi memisahkan tab kategori dengan filter status `Semua / Belum dibaca`, sehingga tidak saling tertimpa.
+- Menu transaksi **Dompet & Koin** dipisahkan dari **Toko & Koleksi**.
+- Tampilan Top Up Koin dibuat lebih ringkas dan profesional untuk mobile.
+- Pet, Stiker, dan Item Virtual memperoleh motion halus. Jenis pet memiliki pola gerak berbeda berdasarkan karakternya.
+- Semua perbaikan v1.9.22 dan versi sebelumnya tetap dipertahankan.
+
+Lihat `AUDIT-v1.9.23.md` untuk detail perubahan.

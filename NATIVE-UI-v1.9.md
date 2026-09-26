@@ -141,3 +141,12 @@ Versi: **1.9.15-lite · Build 25 · NativeMobile/9.15**.
 - Body chat light mode putih; composer Telegram dirapikan menjadi media + emoji + voice note + input + kirim.
 - Picker emoji chat tampil sebagai panel keyboard di bawah composer.
 - Long-press callout/selection copy pada konten aplikasi dinonaktifkan.
+
+
+## v1.9.22 — Stable Header Back, Full Sheet Dim & Page-ready FAB
+
+- Build **32**, versi **1.9.22-lite**, UA `NativeMobile/9.22`.
+- Header Back tidak melewati bottom sheet/modal aktif.
+- Chat detail dan section tertentu memakai parent-aware back agar tidak memutar history tab/filter.
+- Header Android dan header web ikut redup ketika sheet aktif.
+- FAB plus Beranda hanya muncul setelah `onPageCommitVisible`/`onPageFinished` dan splash startup selesai.
