@@ -1299,6 +1299,98 @@
     html.deapp-native-profile [data-translation-surface="bio"],
     html.deapp-native-profile .js-translate-bio{display:none!important}
 
+    /* v1.9.20 — status Notifikasi berada pada bar terpisah di bawah tab agar tidak
+       bertumpuk dengan kategori sticky. */
+    html.deapp-native-notifications .deapp-notification-tabs{z-index:4432!important}
+    html.deapp-native-notifications .nx-filter{
+      position:relative!important;top:auto!important;left:auto!important;right:auto!important;bottom:auto!important;z-index:2!important;
+      width:100%!important;min-height:48px!important;margin:0!important;padding:6px 12px 8px!important;overflow:visible!important;
+      display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:8px!important;
+      background:var(--surface)!important;border-bottom:1px solid color-mix(in srgb,var(--border) 66%,transparent)!important;box-shadow:none!important
+    }
+    html.deapp-native-notifications .nx-filter>label:not(:first-of-type){
+      flex:0 1 min(100%,290px)!important;min-width:0!important;max-width:290px!important;display:flex!important;align-items:center!important;gap:7px!important;
+      white-space:nowrap!important;font-size:10.5px!important;color:var(--text-muted)!important
+    }
+    html.deapp-native-notifications .nx-filter select{min-width:0!important;width:auto!important;max-width:190px!important;height:34px!important;min-height:34px!important;padding-top:5px!important;padding-bottom:5px!important}
+    html.deapp-native-notifications .nx-filter .btn{height:34px!important;min-height:34px!important;flex:0 0 auto!important}
+    html.deapp-native-notifications .notif-item .deapp-notif-read-state{align-self:flex-start!important;margin-top:3px!important}
+
+    /* v1.9.21 — modal Back guard, single centered alert, Telegram chat white canvas,
+       emoji keyboard panel, dan long-press tanpa selection/copy callout. */
+    html,body,*{-webkit-tap-highlight-color:transparent}
+    body,body *:not(input):not(textarea):not([contenteditable="true"]){
+      -webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important
+    }
+    input,textarea,[contenteditable="true"]{-webkit-touch-callout:none!important}
+
+    /* Alert pusat: hanya satu kartu terlihat walau aksi ditap berulang kali. */
+    .nx-pop-toasts{display:grid!important;place-items:center!important;pointer-events:none!important;gap:0!important}
+    .nx-pop-toasts>.nx-pop-toast:not(:last-child){display:none!important}
+    .nx-pop-toast{
+      pointer-events:auto!important;width:min(330px,calc(100vw - 36px))!important;min-height:56px!important;
+      grid-template-columns:34px minmax(0,1fr) 28px!important;padding:12px 13px!important;border:1px solid color-mix(in srgb,var(--border) 78%,transparent)!important;
+      border-radius:20px!important;background:color-mix(in srgb,var(--surface) 97%,transparent)!important;
+      box-shadow:0 20px 65px rgba(0,0,0,.22)!important;backdrop-filter:blur(24px) saturate(145%)!important;-webkit-backdrop-filter:blur(24px) saturate(145%)!important
+    }
+    #toast.toast{width:auto!important;min-width:min(260px,calc(100vw - 44px))!important;max-width:min(340px,calc(100vw - 36px))!important;border-radius:20px!important}
+
+    /* Chat Telegram Lite: canvas putih, composer solid, hanya media + emoji + voice note. */
+    html.deapp-native-messages.deapp-chat-open,
+    html.deapp-native-messages.deapp-chat-open body,
+    html.deapp-native-messages.deapp-chat-open .chat-scroll{
+      background:#fff!important;background-image:none!important
+    }
+    html.deapp-native-messages.deapp-chat-open .chat-scroll{padding-left:9px!important;padding-right:9px!important}
+    html.deapp-native-messages.deapp-chat-open .bubble.them:not(.is-gift):not(.is-sticker){background:#f1f3f5!important;color:#17212b!important}
+    html.deapp-native-messages.deapp-chat-open .bubble.me:not(.is-gift):not(.is-sticker){background:#dff0ff!important;color:#17212b!important}
+    html.deapp-native-messages.deapp-chat-open .chat-compose{
+      background:#fff!important;border-top:1px solid #eceff2!important;box-shadow:0 -2px 12px rgba(25,45,60,.035)!important;
+      padding:6px 8px calc(7px + env(safe-area-inset-bottom))!important
+    }
+    html.deapp-native-messages.deapp-chat-open .chat-form{gap:4px!important;align-items:flex-end!important}
+    html.deapp-native-messages.deapp-chat-open .chat-form .js-sticker-trigger,
+    html.deapp-native-messages.deapp-chat-open .chat-form .js-gift-open{display:none!important}
+    html.deapp-native-messages.deapp-chat-open .chat-form>label.icon-btn,
+    html.deapp-native-messages.deapp-chat-open .chat-form>.js-emoji-trigger,
+    html.deapp-native-messages.deapp-chat-open .chat-form>.js-voice-note-start{
+      display:grid!important;place-items:center!important;flex:0 0 38px!important;width:38px!important;height:38px!important;margin:4px 0!important;
+      border-radius:50%!important;color:#6f8493!important;background:transparent!important
+    }
+    html.deapp-native-messages.deapp-chat-open .chat-input-wrap{
+      min-height:46px!important;border-radius:23px!important;background:#f4f6f8!important;box-shadow:none!important;border:1px solid #edf0f2!important
+    }
+    html.deapp-native-messages.deapp-chat-open .chat-input-wrap:focus-within{background:#f4f6f8!important;border-color:#dce4ea!important;box-shadow:none!important}
+    html.deapp-native-messages.deapp-chat-open #chat-input{color:#17212b!important;caret-color:#3390ec!important}
+    html.deapp-native-messages.deapp-chat-open .chat-form .btn-send.lg{box-shadow:none!important}
+
+    /* Picker emoji menjadi panel keyboard di bawah composer seperti Telegram. */
+    #emoji-pop.deapp-chat-emoji-panel{
+      position:fixed!important;left:0!important;right:0!important;top:auto!important;bottom:0!important;z-index:1178!important;
+      width:100%!important;max-width:none!important;max-height:280px!important;min-height:220px!important;margin:0!important;
+      padding:12px 10px calc(12px + env(safe-area-inset-bottom))!important;border:0!important;border-top:1px solid #e8edf0!important;
+      border-radius:0!important;background:#fff!important;box-shadow:0 -8px 30px rgba(26,48,66,.10)!important;
+      grid-template-columns:repeat(8,minmax(0,1fr))!important;gap:4px!important;overflow-y:auto!important
+    }
+    #emoji-pop.deapp-chat-emoji-panel button{font-size:24px!important;min-height:40px!important;border-radius:10px!important}
+    html.deapp-native-messages.deapp-chat-open.deapp-chat-emoji-open .chat-compose{
+      bottom:var(--deapp-chat-emoji-h,250px)!important;box-shadow:0 -1px 0 #edf0f2!important
+    }
+    html.deapp-native-messages.deapp-chat-open.deapp-chat-emoji-open .chat-scroll{
+      padding-bottom:calc(82px + var(--deapp-chat-emoji-h,250px) + env(safe-area-inset-bottom))!important;
+      scroll-padding-bottom:calc(82px + var(--deapp-chat-emoji-h,250px) + env(safe-area-inset-bottom))!important
+    }
+    html.deapp-native-messages.deapp-chat-open.deapp-chat-emoji-open .chat-form>.icon-btn,
+    html.deapp-native-messages.deapp-chat-open.deapp-chat-emoji-open .chat-form>label.icon-btn{opacity:1!important;transform:none!important}
+
+    html.is-dark.deapp-native-messages.deapp-chat-open,
+    html.is-dark.deapp-native-messages.deapp-chat-open body,
+    html.is-dark.deapp-native-messages.deapp-chat-open .chat-scroll{background:#0e1621!important;background-image:none!important}
+    html.is-dark.deapp-native-messages.deapp-chat-open .chat-compose{background:#17212b!important;border-top-color:#22303b!important}
+    html.is-dark.deapp-native-messages.deapp-chat-open .chat-input-wrap,
+    html.is-dark.deapp-native-messages.deapp-chat-open .chat-input-wrap:focus-within{background:#242f3d!important;border-color:#2d3b48!important}
+    html.is-dark #emoji-pop.deapp-chat-emoji-panel{background:#17212b!important;border-top-color:#263442!important;box-shadow:0 -8px 30px rgba(0,0,0,.24)!important}
+
     @media(max-width:560px){
       .deapp-section-header{grid-template-columns:44px minmax(0,1fr) 44px;padding-left:6px;padding-right:6px}
       .deapp-section-header .deapp-section-left,.deapp-section-header .deapp-section-action{width:40px;height:40px}
@@ -1705,7 +1797,7 @@
       const row = document.createElement('button');
       row.type = 'button';
       row.className = 'snav deapp-native-about-row';
-      row.innerHTML = '<span class="deapp-settings-native-icon">ⓘ</span><span><b>Tentang aplikasi</b><small>Deapp Lite untuk Android</small></span><span class="deapp-version-pill">v1.9.19-lite</span>';
+      row.innerHTML = '<span class="deapp-settings-native-icon">ⓘ</span><span><b>Tentang aplikasi</b><small>Deapp Lite untuk Android</small></span><span class="deapp-version-pill">v1.9.21-lite</span>';
       row.addEventListener('click', function(){
         nativeTap();
         try { if (API && API.showAboutApp) API.showAboutApp(); } catch (_) {}
@@ -1796,6 +1888,46 @@
 
   function hasVisibleWebSheet() {
     return visibleWebSheets().length > 0;
+  }
+
+  function closeVisibleWebSheet() {
+    const sheets = visibleWebSheets();
+    if (!sheets.length) return false;
+    const node = sheets[sheets.length - 1];
+    try {
+      const profile = node.closest && node.closest('.deapp-native-profile-options-sheet');
+      if (profile) { closeProfileOptions(); setTimeout(syncWebSheetState, 0); return true; }
+      const postMenu = node.closest && node.closest('.post-card .menu-wrap.open>.dropdown');
+      if (postMenu) { closePostMenu(postMenu); setTimeout(syncWebSheetState, 0); return true; }
+      const storySheet = (node.id === 'story-sheet' ? node : (node.closest && node.closest('#story-sheet')));
+      if (storySheet) {
+        const b = storySheet.querySelector('[aria-label="Tutup"],.story-sheet-close,.js-close-story-sheet,[data-close]');
+        if (b) b.click(); else storySheet.hidden = true;
+        setTimeout(syncWebSheetState, 0); return true;
+      }
+      const reelSheet = node.closest && node.closest('.reel-sheet');
+      if (reelSheet) {
+        const b = reelSheet.querySelector('[aria-label="Tutup"],.reel-sheet-close,.js-close-sheet,[data-close]');
+        if (b) b.click(); else reelSheet.hidden = true;
+        setTimeout(syncWebSheetState, 0); return true;
+      }
+      const cookie = node.closest && node.closest('.deapp-cookie-modal');
+      if (cookie) {
+        const b = cookie.querySelector('[aria-label="Tutup"],.cookie-close,[data-cookie-close],[data-close-modal]');
+        if (b) b.click(); else cookie.hidden = true;
+        setTimeout(syncWebSheetState, 0); return true;
+      }
+      const dlg = (node.matches && node.matches('dialog')) ? node : (node.closest && node.closest('dialog'));
+      if (dlg && dlg.open && dlg.close) { dlg.close(); setTimeout(syncWebSheetState, 0); return true; }
+      const box = node.matches && node.matches('.modal-box,.c-modal-box') ? node : (node.querySelector && node.querySelector('.modal-box,.c-modal-box')) || node;
+      closeSheet(box);
+      setTimeout(syncWebSheetState, 0);
+      return true;
+    } catch (_) {
+      // Back tetap dikonsumsi: lebih aman membiarkan halaman diam daripada menavigasi history.
+      setTimeout(syncWebSheetState, 0);
+      return true;
+    }
   }
 
   function unlockBackgroundScroll(restorePosition) {
@@ -2071,6 +2203,25 @@
   }
 
   function sectionBack() {
+    if (hasVisibleWebSheet()) { closeVisibleWebSheet(); return; }
+    // v1.9.20 — kembali ke parent section lebih dulu agar tombol Back tidak
+    // memutar ulang tab/filter yang baru saja dipilih. Setelah berada di parent,
+    // history normal kembali dipakai.
+    let u;
+    try { u = new URL(location.href); } catch (_) { u = null; }
+    const file = (path.split('/').pop() || '').toLowerCase();
+    if (u && file === 'notifications.php') {
+      const f = u.searchParams.get('f');
+      if (f && f !== 'all') return goSection('notifications.php');
+    }
+    if (u && file === 'live.php') {
+      const tab = u.searchParams.get('tab');
+      if (u.searchParams.has('id') || u.searchParams.has('studio') || (tab && tab !== 'discover')) return goSection('live.php');
+    }
+    if (u && file === 'shop.php') {
+      const tab = u.searchParams.get('tab');
+      if (tab && tab !== 'wallet') return goSection('shop.php');
+    }
     if (history.length > 1) history.back(); else goSection('index.php');
   }
 
@@ -2368,6 +2519,7 @@
 
   const settingNames={profile:'Profil',appearance:'Tampilan',experience:'Pengalaman aplikasi',language:'Bahasa',ai:'Deapp AI',characters:'Karakter AI',access:'Aksesibilitas',premium:'Premium & mood',topup:'Top Up Koin',focus:'Ruang Fokus',notifications:'Notifikasi',privacy:'Privasi',words:'Kata dibisukan',blocked:'Diblokir & dibisukan',notes:'Catatan pribadi',away:'Arsip & mode rehat',security:'Keamanan',sessions:'Perangkat & sesi',verify:'Verifikasi',data:'Data saya',account:'Akun'};
   function settingsBack() {
+    if (hasVisibleWebSheet()) { closeVisibleWebSheet(); return; }
     const file=(path.split('/').pop()||'').toLowerCase();
     const params=new URL(location.href).searchParams;
     const childSecurity=['security-password.php','security-email.php','security-wallet-pin.php','security-2fa.php','security-sessions.php'];
@@ -2376,6 +2528,7 @@
     if (file==='profile-edit.php') return goSection('settings.php?tab=profile');
     if (file==='privacy.php' || file==='policy.php' || file==='cookies.php') return goSection('settings.php?tab=privacy');
     if (file==='help.php') return goSection('settings.php');
+    if (file==='settings.php' && params.get('tab')==='notifications') return goSection('notifications.php');
     if (file==='settings.php' && params.has('tab')) return goSection('settings.php');
     if (history.length > 1) history.back(); else goSection('index.php');
   }
@@ -2564,6 +2717,36 @@
         if (API && typeof API.reactionFeedback === 'function') API.reactionFeedback();
         else if (API && typeof API.tap === 'function') API.tap();
       } catch (_) {}
+    }, true);
+  }
+
+  // v1.9.20 — tombol komentar pada feed membuka detail postingan langsung.
+  let postCommentNavigationInstalled = false;
+  function installPostCommentNavigation() {
+    if (postCommentNavigationInstalled || isPostDetailPage) return;
+    postCommentNavigationInstalled = true;
+    document.addEventListener('click', function(e){
+      const btn = e.target && e.target.closest ? e.target.closest('.post-card:not(.post-embedded) .post-actions .js-toggle-comments') : null;
+      if (!btn) return;
+      const card = btn.closest('.post-card:not(.post-embedded)');
+      if (!card) return;
+      let href = '';
+      const stat = card.querySelector('.post-stats a.js-toggle-comments[href],a[href*="post.php?id="],a[href*="/post.php?id="]');
+      if (stat && stat.href) href = stat.href;
+      if (!href) {
+        const dataUrl = card.getAttribute('data-url') || card.dataset.url || '';
+        if (/post\.php(?:\?|$)/i.test(dataUrl)) href = dataUrl;
+      }
+      if (!href) {
+        const idNode = card.querySelector('[data-post-id]');
+        const postId = card.getAttribute('data-post-id') || (idNode && idNode.getAttribute('data-post-id')) || '';
+        if (postId) href = 'post.php?id=' + encodeURIComponent(postId);
+      }
+      if (!href) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+      goSection(href);
     }, true);
   }
 
@@ -2857,6 +3040,70 @@
     },true);
   }
 
+  let toastGateObserver = null;
+  function enforceSinglePopupToast() {
+    document.querySelectorAll('.nx-pop-toasts').forEach(function(host){
+      const items = Array.from(host.querySelectorAll(':scope > .nx-pop-toast'));
+      if (items.length <= 1) return;
+      items.slice(0, -1).forEach(function(t){ try { t.remove(); } catch (_) {} });
+    });
+  }
+  function installSinglePopupToastGate() {
+    enforceSinglePopupToast();
+    if (toastGateObserver) return;
+    toastGateObserver = new MutationObserver(function(){ enforceSinglePopupToast(); });
+    toastGateObserver.observe(document.body,{subtree:true,childList:true});
+  }
+
+  let chatEmojiTriggerWired = false;
+  function syncTelegramEmojiPanel() {
+    const pop = document.getElementById('emoji-pop');
+    const activeChat = isMessagesPage && root.classList.contains('deapp-chat-open');
+    const chatPanel = !!(activeChat && pop && pop.dataset.deappChatEmoji === '1' && !pop.hidden);
+    root.classList.toggle('deapp-chat-emoji-open', chatPanel);
+    if (pop) pop.classList.toggle('deapp-chat-emoji-panel', chatPanel);
+    if (chatPanel && pop) {
+      requestAnimationFrame(function(){
+        const h = Math.max(220, Math.min(300, Math.round(pop.getBoundingClientRect().height || 250)));
+        root.style.setProperty('--deapp-chat-emoji-h', h + 'px');
+      });
+    } else {
+      root.style.removeProperty('--deapp-chat-emoji-h');
+    }
+  }
+  function installTelegramEmojiPanel() {
+    if (!chatEmojiTriggerWired) {
+      chatEmojiTriggerWired = true;
+      document.addEventListener('click', function(e){
+        const trig = e.target && e.target.closest ? e.target.closest('.deapp-chat-open .js-emoji-trigger[data-target="chat-input"]') : null;
+        if (trig) {
+          const pop = document.getElementById('emoji-pop');
+          if (pop) pop.dataset.deappChatEmoji = '1';
+          setTimeout(syncTelegramEmojiPanel, 0);
+          setTimeout(syncTelegramEmojiPanel, 40);
+          return;
+        }
+        const pop = document.getElementById('emoji-pop');
+        if (pop && pop.hidden) {
+          delete pop.dataset.deappChatEmoji;
+          syncTelegramEmojiPanel();
+        }
+      }, true);
+    }
+    syncTelegramEmojiPanel();
+  }
+
+  function installNoSelectionCallout() {
+    if (document.documentElement.dataset.deappNoSelection === '1') return;
+    document.documentElement.dataset.deappNoSelection = '1';
+    document.addEventListener('contextmenu', function(e){ e.preventDefault(); }, true);
+    document.addEventListener('selectstart', function(e){
+      const t=e.target;
+      if (t && t.closest && t.closest('input,textarea,[contenteditable="true"]')) return;
+      e.preventDefault();
+    }, true);
+  }
+
   function scan() {
     document.querySelectorAll('.modal-overlay:not(#composer-modal) .modal-box,.deapp-cookie-modal .cookie-modal-card,dialog[open] .c-modal-box,.post-card .menu-wrap.open>.dropdown,.deapp-native-profile-options-sheet,#story-sheet:not([hidden]),.reel-sheet:not([hidden]) .reel-sheet-panel,.reel-sheet:not([hidden]) .reel-more-panel').forEach(wireSheet);
     document.querySelectorAll('.tabs,.story-tabs,.nx-studio-nav,[role="tablist"],.feed-tabs,.reels-tabs,.community-tabs,.settings-nav').forEach(wireHorizontalTabs);
@@ -2866,9 +3113,13 @@
     wireReelsChrome();
     enhancePostDetailComments();
     installReactionHaptics();
+    installPostCommentNavigation();
     installStoryPressPause();
     wirePostActionCounts();
     wireTelegramChatComposer();
+    installTelegramEmojiPanel();
+    installSinglePopupToastGate();
+    installNoSelectionCallout();
     polishNotificationStatus();
     removeProfileBioTranslation();
     optimizeMediaLoading();
@@ -2920,6 +3171,7 @@
     closeComposer: closeComposer,
     submitComposer: submitComposer,
     openProfileOptions: openProfileOptions,
+    closeVisibleSheet: closeVisibleWebSheet,
     setExternalSheetOpen: setExternalSheetOpen
   };
   return true;

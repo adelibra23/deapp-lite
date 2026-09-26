@@ -122,3 +122,22 @@ Versi: **1.9.15-lite · Build 25 · NativeMobile/9.15**.
 - Kolom pencarian Notifikasi disembunyikan; filter status dipertahankan dan tiap item diberi label Dibaca/Belum dibaca.
 - UI terjemahan bio pada Profil dihapus dari DeApp Lite, sementara bio asli tetap tampil.
 - Versi: **1.9.19-lite · Build 29 · NativeMobile/9.19**.
+
+
+## v1.9.20 — Navigation, Notification Status, Refresh & Comment Routing
+
+- Build **30**, versi **1.9.20-lite**, UA `NativeMobile/9.20`.
+- Back route section dibuat parent-aware agar tab/filter tidak membingungkan.
+- Pengaturan Notifikasi kembali ke `notifications.php`.
+- Status Dibaca/Belum dibaca dipisahkan dari kategori Notifikasi.
+- Pull-to-refresh menggunakan satu logo DeApp sebagai indikator unik.
+- Ikon komentar pada feed membuka detail postingan langsung.
+
+## v1.9.21 — Back Guard, Single Alert, Telegram Emoji Panel & No Selection Callout
+
+- Build **31**, versi **1.9.21-lite**, UA `NativeMobile/9.21`.
+- Back menutup bottom sheet/modal terlebih dahulu tanpa berpindah ke history sebelumnya.
+- Alert tengah dibatasi satu instance agar tap berulang tidak menumpuk toast.
+- Body chat light mode putih; composer Telegram dirapikan menjadi media + emoji + voice note + input + kirim.
+- Picker emoji chat tampil sebagai panel keyboard di bawah composer.
+- Long-press callout/selection copy pada konten aplikasi dinonaktifkan.

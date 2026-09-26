@@ -1,14 +1,14 @@
-# DeApp Lite Android v1.9.19 — Telegram Composer, Notification Status & Clean Profile Bio
+# DeApp Lite Android v1.9.21 — Modal Back Guard, Single Alert & Telegram Chat Polish
 
-**Versi:** 1.9.19-lite (Build 29)
+**Versi:** 1.9.21-lite (Build 31)
 
-## Pembaruan
+Patch ini memperbaiki aksi Back ketika bottom sheet/modal aktif, membatasi alert popup tengah menjadi satu kartu, merapikan Chat Telegram dengan background putih dan composer media/emoji/voice note, memindahkan picker emoji ke panel bawah seperti Telegram, serta menonaktifkan long-press selection/copy callout pada tampilan aplikasi.
 
-- Percakapan aktif tidak lagi menampilkan bottom navigation Android; area bawah digantikan composer Chat.
-- Composer Chat dipoles seperti Telegram: input pill, tombol opsi compact, send bulat, dan textarea auto-grow hingga beberapa baris.
-- Saat pengguna mulai mengetik, tombol media/stiker/emoji/voice note/gift menghilang agar kolom pesan melebar. Tombol muncul kembali saat teks kosong.
-- Daftar Chat tetap memakai bottom navigation umum 5 menu.
-- Halaman Notifikasi tidak lagi menampilkan kolom pencarian. Filter status dibuat compact.
-- Tiap notifikasi menampilkan status kecil `Belum dibaca` atau `Dibaca`; unread tetap memakai aksen ringan.
-- Profil tidak lagi menampilkan fitur/hasil terjemahan bio. Bio asli tetap tampil.
-- Seluruh perbaikan v1.9.18 dan versi sebelumnya tetap dipertahankan.
+## Perubahan utama
+
+- Back saat bottom sheet/modal aktif hanya menutup modal; halaman tidak pindah ke history sebelumnya.
+- Alert/notifikasi popup di tengah layar dibuat single-instance sehingga tap berulang tidak menumpuk banyak popup.
+- Body Chat light mode putih dengan bubble ringan.
+- Composer Chat: media, emoji, voice note, input multiline, dan tombol kirim tertata rapi.
+- Picker emoji Chat tampil sebagai panel keyboard di bawah composer; composer otomatis naik.
+- Long-press menu salin/select pada konten WebView dinonaktifkan; input tetap dapat digunakan normal dan Story hold-to-pause tetap bekerja.

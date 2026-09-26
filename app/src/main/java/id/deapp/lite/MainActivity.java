@@ -554,6 +554,11 @@ public class MainActivity extends Activity {
         webView.setVerticalScrollBarEnabled(false);
         webView.setHorizontalScrollBarEnabled(false);
         webView.setScrollbarFadingEnabled(true);
+        // v1.9.21: konsumsi long-press bawaan WebView agar selection/copy callout tidak
+        // muncul di UI aplikasi. Gesture pointer di halaman (mis. tahan Story untuk pause)
+        // tetap diteruskan ke JavaScript.
+        webView.setHapticFeedbackEnabled(false);
+        webView.setOnLongClickListener(v -> true);
         webView.addJavascriptInterface(new NativeBridge(), "DeappNative");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             webView.setOnScrollChangeListener((v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
@@ -683,8 +688,8 @@ public class MainActivity extends Activity {
         holder.setFocusable(false);
 
         refreshIcon = new ImageView(this);
-        refreshIcon.setImageResource(R.drawable.ic_native_refresh);
-        refreshIcon.setColorFilter(cText);
+        refreshIcon.setImageResource(R.drawable.deapp_logo);
+        refreshIcon.clearColorFilter();
         refreshIcon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         refreshIcon.setPadding(dp(11), dp(11), dp(11), dp(11));
         refreshIcon.setContentDescription("Memperbarui halaman");
@@ -713,8 +718,16 @@ public class MainActivity extends Activity {
     private void startRefreshIconAnimation() {
         if (!refreshIconAnimating || refreshIcon == null || refreshIndicator == null || refreshIndicator.getVisibility() != View.VISIBLE) return;
         refreshIcon.animate().cancel();
-        refreshIcon.animate().rotationBy(360f).setDuration(620).setInterpolator(new LinearInterpolator())
-                .withEndAction(this::startRefreshIconAnimation).start();
+        refreshIcon.animate()
+                .rotationBy(360f).scaleX(1.08f).scaleY(1.08f)
+                .setDuration(720).setInterpolator(new LinearInterpolator())
+                .withEndAction(() -> {
+                    if (refreshIcon != null) {
+                        refreshIcon.setScaleX(1f);
+                        refreshIcon.setScaleY(1f);
+                    }
+                    startRefreshIconAnimation();
+                }).start();
     }
 
     private void refreshCurrentPage() {
@@ -1189,7 +1202,7 @@ public class MainActivity extends Activity {
             swipeRefresh.setProgressBackgroundColorSchemeColor(Color.TRANSPARENT);
         }
         if (refreshIndicator != null) refreshIndicator.setBackground(bordered(cSurface, cBorder, 99));
-        if (refreshIcon != null) refreshIcon.setColorFilter(cText);
+        if (refreshIcon != null) refreshIcon.clearColorFilter();
         if (navHome != null) navHome.refreshTheme();
         if (navMessage != null) navMessage.refreshTheme();
         if (navCompose != null) navCompose.refreshTheme();
@@ -1273,7 +1286,7 @@ public class MainActivity extends Activity {
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.19 NativeMobile/9.19");
+        s.setUserAgentString(s.getUserAgentString() + " DeappLite/1.9.21 NativeMobile/9.21");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) s.setSafeBrowsingEnabled(true);
 
         CookieManager cm = CookieManager.getInstance();
@@ -1953,7 +1966,7 @@ public class MainActivity extends Activity {
                 conn.setInstanceFollowRedirects(true);
                 String cookie = CookieManager.getInstance().getCookie(avatarUrl);
                 if (cookie != null && !cookie.isEmpty()) conn.setRequestProperty("Cookie", cookie);
-                conn.setRequestProperty("User-Agent", "DeappLite/1.9.19");
+                conn.setRequestProperty("User-Agent", "DeappLite/1.9.21");
                 try (InputStream in = conn.getInputStream()) {
                     Bitmap bitmap = BitmapFactory.decodeStream(in);
                     if (bitmap != null) runOnUiThread(() -> {
@@ -2179,7 +2192,7 @@ public class MainActivity extends Activity {
         name.setGravity(Gravity.CENTER);
         box.addView(name);
 
-        TextView version = text("Versi 1.9.19-lite · Build 29", 13, cMuted);
+        TextView version = text("Versi 1.9.21-lite · Build 31", 13, cMuted);
         version.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams versionLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -2353,9 +2366,30 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void dismissVisibleWebSheetFromBack() {
+        if (webView == null) return;
+        webView.evaluateJavascript(
+                "(function(){try{return !!(window.__DEAPP_NATIVE_V19__&&window.__DEAPP_NATIVE_V19__.closeVisibleSheet&&window.__DEAPP_NATIVE_V19__.closeVisibleSheet());}catch(e){return false;}})()",
+                value -> {
+                    // Jika status bridge sempat stale, pulihkan tanpa melakukan navigasi.
+                    if (!"true".equals(value)) {
+                        webSheetOpen = false;
+                        updateChromeVisibility();
+                        updateRefreshAvailability();
+                        webView.postDelayed(this::recoverWebScroll, 60);
+                    }
+                });
+    }
+
     private void handleBack() {
         if (activeSheetOverlay != null) {
             dismissBottomSheet(true);
+            return;
+        }
+        // v1.9.21: Back saat bottom sheet/modal web aktif hanya menutup sheet.
+        // Jangan pernah goBack() pada history di gesture Back yang sama.
+        if (webSheetOpen) {
+            dismissVisibleWebSheetFromBack();
             return;
         }
         if (customView != null) {
