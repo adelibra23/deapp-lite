@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- HTTP diizinkan agar Deapp Lite dapat terhubung ke XAMPP melalui Wi-Fi/LAN.
-         Untuk produksi, gunakan HTTPS. -->
+    <!-- Mendukung HTTPS produksi dan HTTP untuk XAMPP/LAN milik pengguna. -->
     <base-config cleartextTrafficPermitted="true" />
 </network-security-config>

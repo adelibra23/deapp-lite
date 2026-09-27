@@ -117,13 +117,13 @@ public class MainActivity extends Activity {
         super.onCreate(state);
         readPalette();
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
-        baseUrl = normalizeBase(prefs.getString(KEY_SERVER, ""));
+        baseUrl = normalizeServerInput(prefs.getString(KEY_SERVER, ""));
         tone = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 30);
         if (Build.VERSION.SDK_INT >= 33) {
             getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
                     android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::handleBack);
         }
-        if (baseUrl.isEmpty()) showServerSetup();
+        if (baseUrl.isEmpty()) showServerSetup(false);
         else {
             client = new DeappClient(baseUrl, prefs);
             buildShell();
@@ -212,6 +212,62 @@ public class MainActivity extends Activity {
         return s;
     }
 
+    private String normalizeServerInput(String raw) {
+        String s = normalizeBase(raw);
+        if (s.isEmpty()) return "";
+        if (!s.startsWith("http://") && !s.startsWith("https://")) {
+            boolean local = s.matches("^(localhost|127\\.0\\.0\\.1|10\\..*|192\\.168\\..*|172\\.(1[6-9]|2[0-9]|3[0-1])\\..*|[0-9a-fA-F:]+)([:/].*)?$");
+            s = (local ? "http://" : "https://") + s;
+        }
+        return normalizeBase(s);
+    }
+
+    private String connectionHint() {
+        return baseUrl.isEmpty() ? "Server belum diatur" : baseUrl;
+    }
+
+    private String probeServer(String raw) throws Exception {
+        String normalized = normalizeServerInput(raw);
+        if (normalized.isEmpty()) throw new IllegalArgumentException("Alamat server DeApp belum diisi.");
+        ArrayList<String> candidates = new ArrayList<>();
+        candidates.add(normalized);
+        try {
+            URI u = new URI(normalized);
+            String path = u.getPath();
+            if ((path == null || path.isEmpty() || "/".equals(path)) && !normalized.endsWith("/deapp")) {
+                candidates.add(normalized + "/deapp");
+            }
+        } catch (Exception ignored) {}
+        Exception last = null;
+        for (String candidate : candidates) {
+            try {
+                SharedPreferences probePrefs = getSharedPreferences("deapp_probe", MODE_PRIVATE); probePrefs.edit().clear().apply();
+                DeappClient test = new DeappClient(candidate, probePrefs);
+                DeappClient.Result r = test.get("/login.php");
+                if (r.code >= 200 && r.code < 400 && r.body != null && !r.body.trim().isEmpty()) {
+                    Document d = Jsoup.parse(r.body, r.url);
+                    String title = d.title() == null ? "" : d.title().toLowerCase(Locale.ROOT);
+                    boolean deappPage = d.selectFirst("form.auth-form, input[name=identifier], a[href*=login.php], .topbar, .drawer-user") != null
+                            || title.contains("deapp") || d.text().toLowerCase(Locale.ROOT).contains("deapp");
+                    if (deappPage) return candidate;
+                }
+                last = new IllegalStateException("Server merespons HTTP " + r.code + ".");
+            } catch (Exception e) {
+                last = e;
+                if (candidate.startsWith("https://") && !raw.trim().startsWith("http://") && !raw.trim().startsWith("https://")) {
+                    String httpCandidate = "http://" + candidate.substring("https://".length());
+                    try {
+                        SharedPreferences probePrefs = getSharedPreferences("deapp_probe", MODE_PRIVATE); probePrefs.edit().clear().apply();
+                        DeappClient test = new DeappClient(httpCandidate, probePrefs);
+                        DeappClient.Result r = test.get("/login.php");
+                        if (r.code >= 200 && r.code < 400 && r.body != null && !r.body.trim().isEmpty()) return httpCandidate;
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+        throw new IllegalStateException(last == null ? "Server DeApp tidak dapat dijangkau." : last.getMessage());
+    }
+
     private int dp(int n) { return Math.round(n * getResources().getDisplayMetrics().density); }
 
     private GradientDrawable rounded(int color, int radius) {
@@ -257,6 +313,15 @@ public class MainActivity extends Activity {
         b.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
         b.setBackground(rounded(accent, 14));
         b.setMinHeight(dp(50));
+        return b;
+    }
+
+    private Button secondaryButton(String label) {
+        Button b = new Button(this);
+        b.setText(label); b.setTextColor(text); b.setTextSize(14.5f); b.setAllCaps(false);
+        b.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
+        b.setBackground(outlined(surface, border, 14));
+        b.setMinHeight(dp(48));
         return b;
     }
 
@@ -338,16 +403,19 @@ public class MainActivity extends Activity {
     }
 
     private void validateSession() {
-        View boot = centeredMessage("DeApp", "Menyiapkan sesi…");
-        configureChrome("DeApp", false, 0, "", null); showBottom(false); swap(boot);
+        configureChrome("DeApp", false, 0, "", null); showBottom(false); swap(nativeSkeleton("Menghubungkan ke DeApp", 4));
         runNet(() -> client.get("/index.php"), r -> {
+            if (r.code >= 500 || r.body == null || r.body.trim().isEmpty()) {
+                showNetworkError("Server merespons tetapi tidak mengirim halaman DeApp.\n" + connectionHint(), this::validateSession);
+                return;
+            }
             if (looksLoggedOut(r)) showLogin();
             else {
                 discoverOwnProfile(r.body, r.url);
                 goRoot("home", "", "Beranda");
                 handleShortcut(getIntent());
             }
-        }, e -> showNetworkError("Tidak dapat terhubung ke server DeApp.", this::validateSession));
+        }, e -> showNetworkError("Tidak dapat terhubung ke server DeApp.\n" + connectionHint() + "\n" + safeMessage(e, ""), this::validateSession));
     }
 
     private boolean looksLoggedOut(DeappClient.Result r) {
@@ -365,28 +433,165 @@ public class MainActivity extends Activity {
         if (a != null) ownProfilePath = relative(a.absUrl("href"));
     }
 
-    private void showServerSetup() {
+    private void showServerSetup(boolean changing) {
         root = new FrameLayout(this); root.setBackgroundColor(bg);
         ScrollView sc = new ScrollView(this); LinearLayout box = column();
-        box.setPadding(dp(24), dp(48), dp(24), dp(28)); sc.addView(box);
+        box.setPadding(dp(24), dp(42), dp(24), dp(28)); sc.addView(box);
         TextView logo = bold("DeApp", 32); box.addView(logo);
-        TextView sub = tv("Hubungkan aplikasi native ke server DeApp milikmu.", 15, muted);
+        TextView head = bold(changing ? "Server DeApp" : "Hubungkan ke Server DeApp", 23);
+        LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(-1, -2); hp.topMargin = dp(22); box.addView(head, hp);
+        TextView sub = tv(changing
+                ? "Ganti alamat backend PHP/MySQL yang digunakan aplikasi native."
+                : "Aplikasi native membutuhkan alamat backend DeApp agar Beranda, Chat, Notifikasi, Profil, dan fitur lainnya dapat memuat data.", 14, muted);
         LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, -2); sp.topMargin = dp(8); box.addView(sub, sp);
-        EditText server = field("https://domain.com/deapp");
+
+        EditText server = field("https://domain.com/deapp atau 192.168.1.10/deapp");
         server.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
-        LinearLayout.LayoutParams fp = new LinearLayout.LayoutParams(-1, dp(54)); fp.topMargin = dp(28); box.addView(server, fp);
-        Button save = primary("Hubungkan"); LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-1, dp(52)); bp.topMargin = dp(14); box.addView(save, bp);
-        TextView note = tv("DeApp Android 2.1 menggunakan UI native Java. Server PHP/MySQL tetap menjadi backend DeApp.", 13, muted);
-        LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(-1, -2); np.topMargin = dp(16); box.addView(note, np);
-        save.setOnClickListener(v -> {
-            String value = normalizeBase(server.getText().toString());
-            if (!(value.startsWith("http://") || value.startsWith("https://"))) {
-                server.setError("Masukkan alamat server lengkap."); return;
-            }
-            prefs.edit().putString(KEY_SERVER, value).apply(); baseUrl = value;
-            client = new DeappClient(baseUrl, prefs); buildShell(); validateSession();
+        server.setSingleLine(true); server.setImeOptions(EditorInfo.IME_ACTION_GO);
+        if (!baseUrl.isEmpty()) server.setText(baseUrl);
+        LinearLayout.LayoutParams fp = new LinearLayout.LayoutParams(-1, dp(54)); fp.topMargin = dp(24); box.addView(server, fp);
+
+        TextView status = tv("Alamat akan diuji sebelum disimpan.", 12.5f, muted);
+        LinearLayout.LayoutParams stp = new LinearLayout.LayoutParams(-1, -2); stp.topMargin = dp(9); box.addView(status, stp);
+
+        Button save = primary("Hubungkan"); LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-1, dp(52)); bp.topMargin = dp(16); box.addView(save, bp);
+
+        if (changing && client != null) {
+            Button cancel = secondaryButton("Batal");
+            LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-1, dp(50)); cp.topMargin = dp(9); box.addView(cancel, cp);
+            cancel.setOnClickListener(v -> {
+                buildShell();
+                Screen back = current == null || "boot".equals(current.key) ? new Screen("settings", "", "Pengaturan") : current;
+                navigate(back, false);
+            });
+        }
+
+        TextView note = tv("Tidak ada halaman website yang ditampilkan. Server hanya menyediakan data; seluruh tampilan dirender sebagai komponen Android native.", 12.5f, muted);
+        LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(-1, -2); np.topMargin = dp(18); box.addView(note, np);
+
+        Runnable connect = () -> {
+            final String typed = server.getText().toString().trim();
+            if (typed.isEmpty()) { server.setError("Masukkan alamat server DeApp."); return; }
+            save.setEnabled(false); save.setText("Menguji koneksi…"); status.setText("Menghubungkan ke server…"); status.setTextColor(muted);
+            runNet(() -> probeServer(typed), resolved -> {
+                save.setEnabled(true); save.setText("Hubungkan");
+                boolean serverChanged = !resolved.equals(baseUrl);
+                baseUrl = resolved;
+                SharedPreferences.Editor edit = prefs.edit().putString(KEY_SERVER, resolved);
+                if (serverChanged) edit.remove("native_cookies");
+                edit.apply();
+                if (serverChanged) ownProfilePath = "";
+                client = new DeappClient(baseUrl, prefs);
+                status.setText("Terhubung · " + resolved); status.setTextColor(success);
+                main.postDelayed(() -> { buildShell(); validateSession(); }, 220);
+            }, e -> {
+                save.setEnabled(true); save.setText("Hubungkan");
+                status.setText("Tidak terhubung · " + safeMessage(e, "Periksa alamat server, Wi-Fi, XAMPP, atau hosting."));
+                status.setTextColor(danger);
+            });
+        };
+        save.setOnClickListener(v -> connect.run());
+        server.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_GO) { connect.run(); return true; }
+            return false;
         });
         root.addView(sc, new FrameLayout.LayoutParams(-1, -1)); setContentView(root);
+    }
+
+    private View nativeSkeleton(String title, int rows) {
+        ScrollView sc = new ScrollView(this);
+        LinearLayout box = column(); box.setPadding(dp(14), dp(14), dp(14), dp(24)); sc.addView(box);
+        TextView h = bold(title == null || title.isEmpty() ? "DeApp" : title, 16);
+        h.setTextColor(muted); box.addView(h);
+        for (int i = 0; i < Math.max(2, rows); i++) {
+            LinearLayout card = column(); card.setPadding(dp(14), dp(14), dp(14), dp(14)); card.setBackground(outlined(surface, border, 16));
+            View a = new View(this); a.setBackground(rounded(surface2, 8)); card.addView(a, new LinearLayout.LayoutParams(i % 2 == 0 ? dp(156) : dp(118), dp(14)));
+            View b = new View(this); b.setBackground(rounded(surface2, 8)); LinearLayout.LayoutParams bl = new LinearLayout.LayoutParams(-1, dp(11)); bl.topMargin = dp(12); card.addView(b, bl);
+            View c = new View(this); c.setBackground(rounded(surface2, 8)); LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(i % 2 == 0 ? -1 : dp(220), dp(11)); cl.topMargin = dp(8); card.addView(c, cl);
+            LinearLayout.LayoutParams cp = cardMargin(); cp.topMargin = dp(10); box.addView(card, cp);
+        }
+        return sc;
+    }
+
+    private String safeMessage(Exception e, String fallback) {
+        if (e == null) return fallback == null ? "" : fallback;
+        String m = e.getMessage();
+        return m == null || m.trim().isEmpty() ? (fallback == null ? "" : fallback) : m.trim();
+    }
+
+    private String responseHtml(String body) {
+        if (body == null) return "";
+        String trimmed = body.trim();
+        if (!trimmed.startsWith("{")) return body;
+        try {
+            JSONObject o = new JSONObject(trimmed);
+            String html = o.optString("html", "");
+            if (!html.isEmpty()) return html;
+            JSONObject data = o.optJSONObject("data");
+            if (data != null && !data.optString("html", "").isEmpty()) return data.optString("html", "");
+        } catch (Exception ignored) {}
+        return body;
+    }
+
+    private String responseError(String body, String fallback) {
+        if (body != null) {
+            try {
+                JSONObject o = new JSONObject(body);
+                Object err = o.opt("error");
+                if (err instanceof String && !((String) err).isEmpty()) return (String) err;
+                if (err instanceof JSONObject) {
+                    String msg = ((JSONObject) err).optString("message", "");
+                    if (!msg.isEmpty()) return msg;
+                }
+                String msg = o.optString("message", "");
+                if (!msg.isEmpty()) return msg;
+            } catch (Exception ignored) {}
+        }
+        return fallback;
+    }
+
+    private boolean renderJsonNative(LinearLayout box, String body) {
+        if (body == null || !body.trim().startsWith("{")) return false;
+        try {
+            JSONObject rootJson = new JSONObject(body);
+            Object data = rootJson.opt("data");
+            if (data == null || data == JSONObject.NULL) data = rootJson.opt("items");
+            if (data == null || data == JSONObject.NULL) return false;
+            if (data instanceof JSONObject) {
+                addJsonObjectCard(box, (JSONObject) data, "Data");
+                return true;
+            }
+            if (data instanceof JSONArray) {
+                JSONArray arr = (JSONArray) data;
+                if (arr.length() == 0) { box.addView(emptyState("Belum ada data", "Server terhubung dan mengembalikan daftar kosong.")); return true; }
+                int max = Math.min(arr.length(), 40);
+                for (int i = 0; i < max; i++) {
+                    Object item = arr.opt(i);
+                    if (item instanceof JSONObject) addJsonObjectCard(box, (JSONObject) item, "Item " + (i + 1));
+                    else if (item != null && item != JSONObject.NULL) addNativeLinkRow(box, String.valueOf(item), "");
+                }
+                return true;
+            }
+        } catch (Exception ignored) {}
+        return false;
+    }
+
+    private void addJsonObjectCard(LinearLayout box, JSONObject obj, String fallbackTitle) {
+        LinearLayout card = column(); card.setPadding(dp(15), dp(14), dp(15), dp(14)); card.setBackground(outlined(surface, border, 18));
+        String heading = obj.optString("name", obj.optString("title", obj.optString("username", fallbackTitle)));
+        if (!heading.isEmpty()) card.addView(bold(heading, 15.5f));
+        int shown = 0;
+        java.util.Iterator<String> keys = obj.keys();
+        while (keys.hasNext() && shown < 8) {
+            String key = keys.next();
+            if ("name".equals(key) || "title".equals(key) || "username".equals(key) || "html".equals(key)) continue;
+            Object value = obj.opt(key);
+            if (value == null || value == JSONObject.NULL || value instanceof JSONObject || value instanceof JSONArray) continue;
+            String v = String.valueOf(value).trim(); if (v.isEmpty()) continue;
+            TextView row = tv(key.replace('_',' ') + "  ·  " + v, 12.8f, "id".equals(key) ? muted : text);
+            LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(-1,-2); rp.topMargin = dp(7); card.addView(row, rp); shown++;
+        }
+        box.addView(card, cardMargin());
     }
 
     private View centeredMessage(String title, String body) {
@@ -521,25 +726,41 @@ public class MainActivity extends Activity {
         ScrollView sc=new ScrollView(this);LinearLayout feed=column();feed.setPadding(0,dp(8),0,dp(18));sc.addView(feed);refresh.addView(sc);swap(refresh);
         LinearLayout composer=rowCard();TextView avatar=bold("+",22);avatar.setGravity(Gravity.CENTER);avatar.setBackground(rounded(surface2,99));composer.addView(avatar,new LinearLayout.LayoutParams(dp(42),dp(42)));TextView ask=tv("Apa yang baru?",15,muted);ask.setGravity(Gravity.CENTER_VERTICAL);LinearLayout.LayoutParams ap=new LinearLayout.LayoutParams(0,dp(42),1);ap.leftMargin=dp(12);composer.addView(ask,ap);composer.setOnClickListener(v->navigate(new Screen("compose","","Postingan"),true));feed.addView(composer,cardMargin());
         LinearLayout discovery=column();feed.addView(discovery);
-        TextView loading=tv("Memuat kiriman…",13,muted);loading.setGravity(Gravity.CENTER);loading.setPadding(0,dp(24),0,dp(24));feed.addView(loading);
+        LinearLayout loading=column();loading.setPadding(dp(12),dp(10),dp(12),dp(18));for(int i=0;i<3;i++){LinearLayout ph=rowCard();View dot=new View(this);dot.setBackground(rounded(surface2,99));ph.addView(dot,new LinearLayout.LayoutParams(dp(42),dp(42)));LinearLayout lines=column();lines.setBackgroundColor(Color.TRANSPARENT);View l1=new View(this);l1.setBackground(rounded(surface2,8));lines.addView(l1,new LinearLayout.LayoutParams(dp(126),dp(12)));View l2=new View(this);l2.setBackground(rounded(surface2,8));LinearLayout.LayoutParams l2p=new LinearLayout.LayoutParams(-1,dp(10));l2p.topMargin=dp(9);lines.addView(l2,l2p);LinearLayout.LayoutParams lip=new LinearLayout.LayoutParams(0,-2,1);lip.leftMargin=dp(12);ph.addView(lines,lip);loading.addView(ph,cardMargin());}feed.addView(loading);
         Runnable load=()->{
-            runNet(()->client.get("/api/feed.php?scope=feed&offset=0"),r->{refresh.setRefreshing(false);renderFeed(feed,r.body,r.url);},e->{refresh.setRefreshing(false);renderInlineError(feed,"Feed belum dapat dimuat.",()->showHome());});
+            runNet(()->client.get("/api/feed.php?scope=feed&offset=0"),r->{refresh.setRefreshing(false);if(looksLoggedOut(r)){showLogin();return;}if(!r.ok()){renderFeedError(feed,responseError(r.body,"Feed belum dapat dimuat."));return;}renderFeed(feed,r.body,r.url);},e->{refresh.setRefreshing(false);renderFeedError(feed,"Feed belum dapat dimuat · "+safeMessage(e,"periksa koneksi server."));});
             loadHomeDiscovery(discovery);
         };
         refresh.setOnRefreshListener(load::run);load.run();
     }
 
-    private void renderFeed(LinearLayout feed,String html,String url){
+    private void renderFeed(LinearLayout feed,String body,String url){
         while(feed.getChildCount()>2)feed.removeViewAt(2);
+        String html=responseHtml(body);
         Document d=Jsoup.parse(html,url);Elements cards=d.select("article.post-card");
-        if(cards.isEmpty()){TextView empty=tv("Belum ada kiriman untuk ditampilkan.",14,muted);empty.setGravity(Gravity.CENTER);empty.setPadding(dp(20),dp(34),dp(20),dp(34));feed.addView(empty);return;}
+        if(cards.isEmpty()){
+            String message="Belum ada kiriman untuk ditampilkan.";
+            try{JSONObject o=new JSONObject(body);if(!o.optBoolean("success",true))message=o.optString("error",message);}catch(Exception ignored){}
+            TextView empty=tv(message,14,muted);empty.setGravity(Gravity.CENTER);empty.setPadding(dp(20),dp(34),dp(20),dp(34));feed.addView(empty);return;
+        }
         int count=0;for(Element e:cards){if(count++>=30)break;Post p=parsePost(e);feed.addView(postCard(p),cardMargin());}
+    }
+
+    private void renderFeedError(LinearLayout feed,String message){
+        while(feed.getChildCount()>2)feed.removeViewAt(2);
+        LinearLayout card=column();card.setPadding(dp(18),dp(22),dp(18),dp(22));card.setGravity(Gravity.CENTER);card.setBackground(outlined(surface,border,18));
+        TextView h=bold("Beranda belum tersambung",16);h.setGravity(Gravity.CENTER);card.addView(h);
+        TextView m=tv(message+"\n"+connectionHint(),13,muted);m.setGravity(Gravity.CENTER);LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(-1,-2);mp.topMargin=dp(8);card.addView(m,mp);
+        Button retry=primary("Coba lagi");LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,dp(48));rp.topMargin=dp(16);card.addView(retry,rp);retry.setOnClickListener(v->showHome());
+        Button server=secondaryButton("Atur server DeApp");LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,dp(46));sp.topMargin=dp(8);card.addView(server,sp);server.setOnClickListener(v->showServerSetup(true));
+        feed.addView(card,cardMargin());
     }
 
     private void loadHomeDiscovery(LinearLayout host){
         runNet(()->client.get("/index.php"),r->{
+            if(looksLoggedOut(r)) return;
             host.removeAllViews();
-            Document d=Jsoup.parse(r.body,r.url);
+            Document d=Jsoup.parse(responseHtml(r.body),r.url);
             Elements people=d.select(".suggest-item");
             if(!people.isEmpty()) addPeopleRail(host,people);
             Elements ads=d.select(".deapp-ad-card");
@@ -597,11 +818,11 @@ public class MainActivity extends Activity {
         topAction.setOnClickListener(v->{String textBody=caption.getText().toString().trim();if(textBody.isEmpty()&&pendingStoryImage==null){showNativeNotice("Cerita kosong","Tulis teks atau pilih foto dulu.",danger);return;}topAction.setEnabled(false);runNet(()->{LinkedHashMap<String,String> fields=new LinkedHashMap<>();fields.put("csrf",client.ensureCsrf());fields.put("caption",textBody);fields.put("bg_style","g1");fields.put("allow_comments",comments.isChecked()?"1":"0");return client.postMultipart("/api/story_create.php",fields,pendingStoryImage==null?null:"image","story.jpg",pendingStoryMime,pendingStoryImage);},r->{topAction.setEnabled(true);if(r.ok()){pendingStoryImage=null;showNativeNotice("Cerita diterbitkan","Ceritamu tayang selama 24 jam.",success);goRoot("home","","Beranda");}else showNativeNotice("Belum terbit",jsonError(r.body,"Cerita gagal diterbitkan."),danger);},e->{topAction.setEnabled(true);showNativeNotice("Gagal",e.getMessage(),danger);});});
     }
 
-    private void showPost(int id){configureChrome("Postingan",true,0,"",null);showBottom(false);LinearLayout host=column();ScrollView sc=new ScrollView(this);sc.addView(host);swap(sc);runNet(()->client.get("/post.php?id="+id),r->{host.removeAllViews();Document d=Jsoup.parse(r.body,r.url);Element card=d.selectFirst("article.post-card");if(card!=null)host.addView(postCard(parsePost(card)),cardMargin());loadComments(host,id);},e->renderInlineError(host,"Postingan tidak dapat dibuka.",()->showPost(id)));}
-    private void loadComments(LinearLayout host,int id){runNet(()->client.get("/api/post_comments.php?post_id="+id),r->{try{JSONObject o=new JSONObject(r.body);JSONArray a=o.optJSONArray("comments");TextView h=bold("Komentar",16);h.setPadding(dp(16),dp(20),dp(16),dp(8));host.addView(h);if(a!=null)for(int i=0;i<a.length();i++){JSONObject c=a.optJSONObject(i);LinearLayout row=column();row.setPadding(dp(16),dp(10),dp(16),dp(10));String name=c.optString("name",c.optString("username","Pengguna"));row.addView(bold(name,13.5f));row.addView(tv(c.optString("body",c.optString("comment","")),14.5f,text));host.addView(row);}}catch(Exception ignored){}},e->{});}
+    private void showPost(int id){configureChrome("Postingan",true,0,"",null);showBottom(false);LinearLayout host=column();ScrollView sc=new ScrollView(this);sc.addView(host);swap(nativeSkeleton("Memuat postingan",3));runNet(()->client.get("/post.php?id="+id),r->{if(looksLoggedOut(r)){showLogin();return;}swap(sc);host.removeAllViews();Document d=Jsoup.parse(responseHtml(r.body),r.url);Element card=d.selectFirst("article.post-card");if(card!=null)host.addView(postCard(parsePost(card)),cardMargin());else host.addView(emptyState("Postingan belum tersedia","Server terhubung, tetapi data postingan tidak ditemukan."));loadComments(host,id);},e->{swap(sc);renderInlineError(host,"Postingan tidak dapat dibuka.",()->showPost(id));});}
+    private void loadComments(LinearLayout host,int id){runNet(()->client.get("/api/post_comments.php?post_id="+id),r->{try{JSONObject o=new JSONObject(r.body);JSONArray a=o.optJSONArray("comments");TextView h=bold("Komentar",16);h.setPadding(dp(16),dp(20),dp(16),dp(8));host.addView(h);if(a!=null)for(int i=0;i<a.length();i++){JSONObject c=a.optJSONObject(i);LinearLayout row=column();row.setPadding(dp(16),dp(10),dp(16),dp(10));String name=c.optString("name",c.optString("username","Pengguna"));row.addView(bold(name,13.5f));row.addView(tv(c.optString("text",c.optString("body",c.optString("comment",""))),14.5f,text));host.addView(row);}}catch(Exception ignored){}},e->{});}
 
     private void showMessages(){
-        configureChrome("Chat",false,R.drawable.ic_native_search,"Cari orang",v->navigate(new Screen("search","","Cari"),true));showBottom(true);LinearLayout list=column();ScrollView sc=new ScrollView(this);sc.addView(list);swap(sc);runNet(()->client.get("/messages.php"),r->{list.removeAllViews();Document d=Jsoup.parse(r.body,r.url);Elements threads=d.select("a.thread");if(threads.isEmpty()){list.addView(emptyState("Belum ada percakapan","Mulai percakapan dari profil seseorang."));return;}for(Element e:threads){String href=relative(e.absUrl("href"));int cid=queryInt(href,"c");String name=textOf(e,".thread-top b","Percakapan");String prev=textOf(e,".thread-preview","");String time=textOf(e,".thread-time","");String av="";Element im=e.selectFirst(".thread-avatar img");if(im!=null)av=im.absUrl("src");String finalAv=av;LinearLayout row=rowCard();ImageView iv=avatarView(48);loadImage(iv,finalAv);row.addView(iv);LinearLayout meta=column();meta.setBackgroundColor(Color.TRANSPARENT);LinearLayout nameRow=new LinearLayout(this);TextView n=bold(name,14.5f);TextView tm=tv(time,11.5f,muted);nameRow.addView(n,new LinearLayout.LayoutParams(0,-2,1));nameRow.addView(tm);meta.addView(nameRow);meta.addView(tv(prev,13.5f,muted));LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(0,-2,1);mp.leftMargin=dp(12);row.addView(meta,mp);row.setOnClickListener(v->navigate(new Screen("chat",String.valueOf(cid),name),true));list.addView(row,cardMargin());}},e->renderInlineError(list,"Daftar chat belum dapat dimuat.",this::showMessages));
+        configureChrome("Chat",false,R.drawable.ic_native_search,"Cari orang",v->navigate(new Screen("search","","Cari"),true));showBottom(true);LinearLayout list=column();ScrollView sc=new ScrollView(this);sc.addView(list);swap(nativeSkeleton("Memuat percakapan",4));runNet(()->client.get("/messages.php"),r->{if(looksLoggedOut(r)){showLogin();return;}swap(sc);list.removeAllViews();Document d=Jsoup.parse(responseHtml(r.body),r.url);Elements threads=d.select("a.thread");if(threads.isEmpty()){list.addView(emptyState("Belum ada percakapan","Mulai percakapan dari profil seseorang."));return;}for(Element e:threads){String href=relative(e.absUrl("href"));int cid=queryInt(href,"c");String name=textOf(e,".thread-top b","Percakapan");String prev=textOf(e,".thread-preview","");String time=textOf(e,".thread-time","");String av="";Element im=e.selectFirst(".thread-avatar img");if(im!=null)av=im.absUrl("src");String finalAv=av;LinearLayout row=rowCard();ImageView iv=avatarView(48);loadImage(iv,finalAv);row.addView(iv);LinearLayout meta=column();meta.setBackgroundColor(Color.TRANSPARENT);LinearLayout nameRow=new LinearLayout(this);TextView n=bold(name,14.5f);TextView tm=tv(time,11.5f,muted);nameRow.addView(n,new LinearLayout.LayoutParams(0,-2,1));nameRow.addView(tm);meta.addView(nameRow);meta.addView(tv(prev,13.5f,muted));LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(0,-2,1);mp.leftMargin=dp(12);row.addView(meta,mp);row.setOnClickListener(v->navigate(new Screen("chat",String.valueOf(cid),name),true));list.addView(row,cardMargin());}},e->{swap(sc);renderInlineError(list,"Daftar chat belum dapat dimuat.",this::showMessages);});
     }
 
     private void showChat(int convoId){
@@ -614,9 +835,9 @@ public class MainActivity extends Activity {
 
     private void renderMessages(LinearLayout msgs,String body){msgs.removeAllViews();try{JSONObject o=new JSONObject(body);JSONObject partner=o.optJSONObject("partner");if(partner!=null&&!partner.optString("name").isEmpty())topTitle.setText(partner.optString("name"));JSONArray a=o.optJSONArray("messages");if(a==null)return;for(int i=0;i<a.length();i++){JSONObject m=a.optJSONObject(i);boolean mine=m.optBoolean("mine");TextView b=tv(m.optString("body",m.optString("sticker","")),14.5f,text);b.setPadding(dp(12),dp(9),dp(12),dp(9));b.setBackground(rounded(mine?(dark?Color.parseColor("#214667"):Color.parseColor("#DFF2FF")):surface2,16));LinearLayout line=new LinearLayout(this);line.setGravity(mine?Gravity.RIGHT:Gravity.LEFT);line.addView(b,new LinearLayout.LayoutParams(-2,-2));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.topMargin=dp(5);msgs.addView(line,lp);TextView tm=tv(m.optString("time",""),10.5f,muted);tm.setGravity(mine?Gravity.RIGHT:Gravity.LEFT);msgs.addView(tm);}}catch(Exception e){msgs.addView(tv("Pesan belum dapat ditampilkan.",13,muted));}}
 
-    private void showNotifications(){configureChrome("Notifikasi",true,R.drawable.ic_native_settings,"Pengaturan notifikasi",v->navigate(new Screen("settings-detail","/settings.php?tab=notifications","Pengaturan Notifikasi"),true));showBottom(true);LinearLayout list=column();ScrollView sc=new ScrollView(this);sc.addView(list);swap(sc);runNet(()->client.get("/api/notif_panel.php"),r->{list.removeAllViews();try{JSONObject o=new JSONObject(r.body);JSONArray a=o.optJSONArray("items");if(a==null||a.length()==0){list.addView(emptyState("Belum ada notifikasi","Aktivitas baru akan muncul di sini."));return;}for(int i=0;i<a.length();i++){JSONObject n=a.optJSONObject(i);LinearLayout row=rowCard();String av=n.optString("avatar");ImageView iv=avatarView(44);if(!av.isEmpty())loadImage(iv,av);else iv.setImageResource(R.drawable.ic_native_bell);row.addView(iv);LinearLayout meta=column();meta.setBackgroundColor(Color.TRANSPARENT);TextView msg=tv(n.optString("message","Notifikasi"),14.5f,text);TextView tm=tv((n.optBoolean("unread")?"Belum dibaca · ":"")+n.optString("time",""),11.5f,n.optBoolean("unread")?accent:muted);meta.addView(msg);meta.addView(tm);LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(0,-2,1);mp.leftMargin=dp(12);row.addView(meta,mp);String link=n.optString("link","");row.setOnClickListener(v->openPath(link,"Notifikasi"));list.addView(row,cardMargin());}}catch(Exception x){renderInlineError(list,"Notifikasi belum dapat dibaca.",this::showNotifications);}},e->renderInlineError(list,"Notifikasi belum dapat dimuat.",this::showNotifications));}
+    private void showNotifications(){configureChrome("Notifikasi",true,R.drawable.ic_native_settings,"Pengaturan notifikasi",v->navigate(new Screen("settings-detail","/settings.php?tab=notifications","Pengaturan Notifikasi"),true));showBottom(true);LinearLayout list=column();ScrollView sc=new ScrollView(this);sc.addView(list);swap(nativeSkeleton("Memuat notifikasi",5));runNet(()->client.get("/api/notif_panel.php"),r->{if(looksLoggedOut(r)){showLogin();return;}swap(sc);list.removeAllViews();try{JSONObject o=new JSONObject(r.body);JSONArray a=o.optJSONArray("items");if(a==null||a.length()==0){list.addView(emptyState("Belum ada notifikasi","Aktivitas baru akan muncul di sini."));return;}for(int i=0;i<a.length();i++){JSONObject n=a.optJSONObject(i);LinearLayout row=rowCard();String av=n.optString("avatar");ImageView iv=avatarView(44);if(!av.isEmpty())loadImage(iv,av);else iv.setImageResource(R.drawable.ic_native_bell);row.addView(iv);LinearLayout meta=column();meta.setBackgroundColor(Color.TRANSPARENT);TextView msg=tv(n.optString("message","Notifikasi"),14.5f,text);TextView tm=tv((n.optBoolean("unread")?"Belum dibaca · ":"")+n.optString("time",""),11.5f,n.optBoolean("unread")?accent:muted);meta.addView(msg);meta.addView(tm);LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(0,-2,1);mp.leftMargin=dp(12);row.addView(meta,mp);String link=n.optString("link","");row.setOnClickListener(v->openPath(link,"Notifikasi"));list.addView(row,cardMargin());}}catch(Exception x){renderInlineError(list,"Notifikasi belum dapat dibaca.",this::showNotifications);}},e->{swap(sc);renderInlineError(list,"Notifikasi belum dapat dimuat.",this::showNotifications);});}
 
-    private void showProfile(String path){configureChrome("Profil",false,R.drawable.ic_native_settings,"Pengaturan profil",v->navigate(new Screen("profile-settings","","Pengaturan Profil"),true));showBottom(true);LinearLayout host=column();ScrollView sc=new ScrollView(this);sc.addView(host);swap(sc);String target=path;if(target==null||target.isEmpty()){runNet(()->client.get("/index.php"),r->{discoverOwnProfile(r.body,r.url);showProfile(ownProfilePath);},e->renderInlineError(host,"Profil belum dapat dibuka.",()->showProfile("")));return;}runNet(()->client.get(target),r->{host.removeAllViews();Document d=Jsoup.parse(r.body,r.url);Element cover=d.selectFirst(".profile-cover");if(cover!=null){ImageView cv=new ImageView(this);cv.setScaleType(ImageView.ScaleType.CENTER_CROP);Element cimg=cover.selectFirst("img");if(cimg!=null)loadImage(cv,cimg.absUrl("src"));else cv.setBackgroundColor(surface2);host.addView(cv,new LinearLayout.LayoutParams(-1,dp(150)));}LinearLayout info=column();info.setPadding(dp(16),dp(12),dp(16),dp(18));Element av=d.selectFirst("img.profile-avatar");ImageView ava=avatarView(86);if(av!=null)loadImage(ava,av.absUrl("src"));info.addView(ava);String name=textOf(d,".profile-name","Profil");info.addView(bold(name,22));String un=textOf(d,".profile-username","");info.addView(tv(un,14,muted));String bio=textOf(d,".profile-bio","");if(!bio.isEmpty()){TextView bv=tv(bio,14.5f,text);LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,-2);bp.topMargin=dp(12);info.addView(bv,bp);}Element stats=d.selectFirst(".profile-stats");if(stats!=null){TextView sv=tv(stats.text(),13,muted);LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,-2);sp.topMargin=dp(14);info.addView(sv,sp);}host.addView(info);Elements posts=d.select("article.post-card");for(Element e:posts)host.addView(postCard(parsePost(e)),cardMargin());},e->renderInlineError(host,"Profil belum dapat dimuat.",()->showProfile(target)));}
+    private void showProfile(String path){configureChrome("Profil",false,R.drawable.ic_native_settings,"Pengaturan profil",v->navigate(new Screen("profile-settings","","Pengaturan Profil"),true));showBottom(true);LinearLayout host=column();ScrollView sc=new ScrollView(this);sc.addView(host);swap(nativeSkeleton("Memuat profil",4));String target=path;if(target==null||target.isEmpty()){runNet(()->client.get("/index.php"),r->{if(looksLoggedOut(r)){showLogin();return;}discoverOwnProfile(r.body,r.url);if(ownProfilePath==null||ownProfilePath.isEmpty()){swap(sc);host.removeAllViews();host.addView(emptyState("Profil belum ditemukan","Server terhubung, tetapi tautan profil akun belum tersedia."));}else showProfile(ownProfilePath);},e->{swap(sc);renderInlineError(host,"Profil belum dapat dibuka.",()->showProfile(""));});return;}runNet(()->client.get(target),r->{if(looksLoggedOut(r)){showLogin();return;}swap(sc);host.removeAllViews();Document d=Jsoup.parse(responseHtml(r.body),r.url);Element cover=d.selectFirst(".profile-cover");if(cover!=null){ImageView cv=new ImageView(this);cv.setScaleType(ImageView.ScaleType.CENTER_CROP);Element cimg=cover.selectFirst("img");if(cimg!=null)loadImage(cv,cimg.absUrl("src"));else cv.setBackgroundColor(surface2);host.addView(cv,new LinearLayout.LayoutParams(-1,dp(150)));}LinearLayout info=column();info.setPadding(dp(16),dp(12),dp(16),dp(18));Element av=d.selectFirst("img.profile-avatar");ImageView ava=avatarView(86);if(av!=null)loadImage(ava,av.absUrl("src"));info.addView(ava);String name=textOf(d,".profile-name","Profil");info.addView(bold(name,22));String un=textOf(d,".profile-username","");info.addView(tv(un,14,muted));String bio=textOf(d,".profile-bio","");if(!bio.isEmpty()){TextView bv=tv(bio,14.5f,text);LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,-2);bp.topMargin=dp(12);info.addView(bv,bp);}Element stats=d.selectFirst(".profile-stats");if(stats!=null){TextView sv=tv(stats.text(),13,muted);LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,-2);sp.topMargin=dp(14);info.addView(sv,sp);}host.addView(info);Elements posts=d.select("article.post-card");for(Element e:posts)host.addView(postCard(parsePost(e)),cardMargin());},e->{swap(sc);renderInlineError(host,"Profil belum dapat dimuat.",()->showProfile(target));});}
 
     private void showSearch(){configureChrome("Cari",true,0,"",null);showBottom(false);LinearLayout box=column();box.setPadding(dp(12),dp(10),dp(12),dp(20));EditText q=field("Cari orang atau tagar");box.addView(q,new LinearLayout.LayoutParams(-1,dp(52)));LinearLayout results=column();LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,0,1);rp.topMargin=dp(8);box.addView(results,rp);swap(box);q.setSingleLine(true);q.setImeOptions(EditorInfo.IME_ACTION_SEARCH);q.setOnEditorActionListener((v,a,e)->{if(a==EditorInfo.IME_ACTION_SEARCH){searchNow(q.getText().toString(),results);return true;}return false;});}
     private void searchNow(String query,LinearLayout results){String q=query.trim();if(q.isEmpty())return;runNet(()->client.get("/api/search_suggest.php?q="+java.net.URLEncoder.encode(q,"UTF-8")),r->{results.removeAllViews();try{JSONObject o=new JSONObject(r.body);JSONArray users=o.optJSONArray("users");if(users!=null)for(int i=0;i<users.length();i++){JSONObject u=users.optJSONObject(i);LinearLayout row=rowCard();ImageView av=avatarView(42);loadImage(av,u.optString("avatar"));row.addView(av);LinearLayout m=column();m.setBackgroundColor(Color.TRANSPARENT);m.addView(bold(u.optString("name","Pengguna"),14.5f));m.addView(tv("@"+u.optString("username"),12,muted));LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(0,-2,1);mp.leftMargin=dp(10);row.addView(m,mp);String path=relative(u.optString("url"));row.setOnClickListener(v->navigate(new Screen("profile",path,"Profil"),true));results.addView(row,cardMargin());}JSONArray tags=o.optJSONArray("tags");if(tags!=null)for(int i=0;i<tags.length();i++){JSONObject t=tags.optJSONObject(i);TextView tr=tv("#"+t.optString("tag")+"   "+t.optString("count"),15,accent);tr.setPadding(dp(16),dp(14),dp(16),dp(14));String path=relative(t.optString("url"));tr.setOnClickListener(v->navigate(new Screen("module",path,"Tagar"),true));results.addView(tr);}}catch(Exception ex){results.addView(tv("Pencarian belum dapat ditampilkan.",13,muted));}},e->showNativeNotice("Pencarian gagal",e.getMessage(),danger));}
@@ -647,13 +868,13 @@ public class MainActivity extends Activity {
     }
 
     private void showShopDetail(String path,String title){
-        configureChrome(title,true,0,"",null);showBottom(false);
-        runNet(()->client.get(path),r->{Document d=Jsoup.parse(r.body,r.url);ScrollView sc=new ScrollView(this);LinearLayout box=column();box.setPadding(dp(12),dp(8),dp(12),dp(28));sc.addView(box);Element mainEl=d.selectFirst("main#main-content");if(mainEl==null)mainEl=d.body();for(Element nav:mainEl.select(".shop-menu-grid,.wide-side,.site-footer,.topbar,.mobile-bottom-nav"))nav.remove();renderNativeModuleDocument(box,mainEl,r.url,true);swap(sc);},e->showNetworkError("Halaman toko belum dapat dimuat.",()->showShopDetail(path,title)));
+        configureChrome(title,true,0,"",null);showBottom(false);swap(nativeSkeleton("Memuat "+title,4));
+        runNet(()->client.get(path),r->{if(looksLoggedOut(r)){showLogin();return;}Document d=Jsoup.parse(responseHtml(r.body),r.url);ScrollView sc=new ScrollView(this);LinearLayout box=column();box.setPadding(dp(12),dp(8),dp(12),dp(28));sc.addView(box);Element mainEl=d.selectFirst("main#main-content");if(mainEl==null)mainEl=d.body();for(Element nav:mainEl.select(".shop-menu-grid,.wide-side,.site-footer,.topbar,.mobile-bottom-nav"))nav.remove();renderNativeModuleDocument(box,mainEl,r.url,true);swap(sc);},e->showNetworkError("Halaman toko belum dapat dimuat.\n"+safeMessage(e,""),()->showShopDetail(path,title)));
     }
 
     private void showTopup(){
-        configureChrome("Top Up",true,0,"",null);showBottom(false);
-        runNet(()->client.get("/topup.php"),r->{Document d=Jsoup.parse(r.body,r.url);ScrollView sc=new ScrollView(this);LinearLayout box=column();box.setPadding(dp(12),dp(8),dp(12),dp(28));sc.addView(box);Element mainEl=d.selectFirst("main#main-content");if(mainEl==null)mainEl=d.body();renderNativeModuleDocument(box,mainEl,r.url,true);swap(sc);},e->showNetworkError("Top Up belum dapat dimuat.",this::showTopup));
+        configureChrome("Top Up",true,0,"",null);showBottom(false);swap(nativeSkeleton("Memuat Top Up",4));
+        runNet(()->client.get("/topup.php"),r->{if(looksLoggedOut(r)){showLogin();return;}Document d=Jsoup.parse(responseHtml(r.body),r.url);ScrollView sc=new ScrollView(this);LinearLayout box=column();box.setPadding(dp(12),dp(8),dp(12),dp(28));sc.addView(box);Element mainEl=d.selectFirst("main#main-content");if(mainEl==null)mainEl=d.body();renderNativeModuleDocument(box,mainEl,r.url,true);swap(sc);},e->showNetworkError("Top Up belum dapat dimuat.\n"+safeMessage(e,""),this::showTopup));
     }
 
     private void showSettings(){
@@ -667,6 +888,7 @@ public class MainActivity extends Activity {
         addMenu(box,R.drawable.ic_native_shield,"Privasi & Keamanan","Privasi akun, blokir, sesi, dan keamanan","/settings.php?tab=privacy","Privasi & Keamanan");
         addMenu(box,R.drawable.ic_native_sparkles,"DeApp AI","Bahasa dan preferensi AI","/settings.php?tab=ai","Pengaturan AI");
         addMenu(box,R.drawable.ic_native_user,"Karakter","Karakter dan asisten virtual","/settings.php?tab=characters","Karakter");
+        addMenu(box,R.drawable.ic_native_settings,"Server DeApp","Koneksi backend saat ini: "+connectionHint(),"native:server","Server DeApp");
         TextView logout=tv("Keluar dari akun",15,danger);logout.setGravity(Gravity.CENTER);logout.setPadding(dp(14),dp(16),dp(14),dp(16));logout.setBackground(outlined(surface,border,14));LinearLayout.LayoutParams lp=cardMargin();lp.topMargin=dp(24);box.addView(logout,lp);logout.setOnClickListener(v->logout());swap(sc);
     }
 
@@ -696,8 +918,8 @@ public class MainActivity extends Activity {
     }
 
     private void showProfileFormSection(String actionValue,String title){
-        configureChrome(title,true,0,"",null);showBottom(false);
-        runNet(()->client.get("/settings.php?tab=profile"),r->{Document d=Jsoup.parse(r.body,r.url);Element chosen=null;for(Element f:d.select("form")){Element a=f.selectFirst("input[name=action]");if(a!=null&&actionValue.equals(a.attr("value"))){chosen=f;break;}}ScrollView sc=new ScrollView(this);LinearLayout box=column();box.setPadding(dp(14),dp(10),dp(14),dp(28));sc.addView(box);if(chosen==null){box.addView(emptyState("Belum tersedia","Form "+title+" tidak ditemukan pada server DeApp."));}else{boolean[] bound={false};renderNativeForm(box,chosen,r.url,true,bound);if("username".equals(actionValue)){Element info=chosen.parent();if(info!=null){String hint=textOf(info,"p.muted","Username dipakai pada tautan profil dan mention.");TextView t=tv(hint,12.5f,muted);LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(-1,-2);tp.topMargin=dp(12);box.addView(t,tp);}}}swap(sc);},e->showNetworkError("Pengaturan profil belum dapat dimuat.",()->showProfileFormSection(actionValue,title)));
+        configureChrome(title,true,0,"",null);showBottom(false);swap(nativeSkeleton("Memuat "+title,3));
+        runNet(()->client.get("/settings.php?tab=profile"),r->{if(looksLoggedOut(r)){showLogin();return;}Document d=Jsoup.parse(responseHtml(r.body),r.url);Element chosen=null;for(Element f:d.select("form")){Element a=f.selectFirst("input[name=action]");if(a!=null&&actionValue.equals(a.attr("value"))){chosen=f;break;}}ScrollView sc=new ScrollView(this);LinearLayout box=column();box.setPadding(dp(14),dp(10),dp(14),dp(28));sc.addView(box);if(chosen==null){box.addView(emptyState("Belum tersedia","Form "+title+" tidak ditemukan pada server DeApp."));}else{boolean[] bound={false};renderNativeForm(box,chosen,r.url,true,bound);if("username".equals(actionValue)){Element info=chosen.parent();if(info!=null){String hint=textOf(info,"p.muted","Username dipakai pada tautan profil dan mention.");TextView t=tv(hint,12.5f,muted);LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(-1,-2);tp.topMargin=dp(12);box.addView(t,tp);}}}swap(sc);},e->showNetworkError("Pengaturan profil belum dapat dimuat.",()->showProfileFormSection(actionValue,title)));
     }
 
 
@@ -718,10 +940,14 @@ public class MainActivity extends Activity {
     private void showNativeModule(String path,String fallbackTitle){showNativeModule(path,fallbackTitle,false);}
 
     private void showNativeModule(String path,String fallbackTitle,boolean headerSave){
-        configureChrome(fallbackTitle.isEmpty()?"DeApp":fallbackTitle,true,0,"",null);showBottom(false);
+        configureChrome(fallbackTitle.isEmpty()?"DeApp":fallbackTitle,true,0,"",null);showBottom(false);swap(nativeSkeleton("Memuat "+(fallbackTitle.isEmpty()?"DeApp":fallbackTitle),4));
         runNet(()->client.get(path),r->{
-            Document d=Jsoup.parse(r.body,r.url);String title=fallbackTitle;Element h=d.selectFirst("main h1, main h2, .page-title, h1");if(h!=null&&!h.text().trim().isEmpty())title=h.text().trim();
-            configureChrome(title,true,0,"",null);ScrollView sc=new ScrollView(this);LinearLayout box=column();box.setPadding(dp(12),dp(8),dp(12),dp(28));sc.addView(box);
+            if(looksLoggedOut(r)){showLogin();return;}
+            if(r.body==null||r.body.trim().isEmpty()){showNetworkError("Server terhubung, tetapi halaman tidak mengirim data.\n"+path,()->showNativeModule(path,fallbackTitle,headerSave));return;}
+            String html=responseHtml(r.body);ScrollView sc=new ScrollView(this);LinearLayout box=column();box.setPadding(dp(12),dp(8),dp(12),dp(28));sc.addView(box);
+            if(r.body.trim().startsWith("{") && html.equals(r.body) && renderJsonNative(box,r.body)){configureChrome(fallbackTitle.isEmpty()?"DeApp":fallbackTitle,true,0,"",null);swap(sc);return;}
+            Document d=Jsoup.parse(html,r.url);String title=fallbackTitle;Element h=d.selectFirst("main h1, main h2, .page-title, h1");if(h!=null&&!h.text().trim().isEmpty())title=h.text().trim();
+            configureChrome(title,true,0,"",null);
             Element mainEl=d.selectFirst("main#main-content");if(mainEl==null)mainEl=d.selectFirst("main");if(mainEl==null)mainEl=d.body();
             for(Element e:mainEl.select("script,style,nav,.topbar,.mobile-bottom-nav,.wide-side,.settings-nav,.shop-menu-grid,.sidebar,.site-footer"))e.remove();
             renderNativeModuleDocument(box,mainEl,r.url,headerSave);swap(sc);
@@ -740,7 +966,7 @@ public class MainActivity extends Activity {
         if(rendered==0){
             Elements forms=mainEl.select("form");for(Element form:forms){if(rendered++>12)break;renderNativeForm(box,form,url,headerSave&&!saveBound[0],saveBound);}
             Elements links=mainEl.select("a[href]");for(Element a:links){if(rendered++>40)break;String label=a.text().trim();String href=relative(a.absUrl("href"));if(label.isEmpty()||href.isEmpty())continue;addNativeLinkRow(box,label,href);}
-            if(rendered==0){String body=mainEl.text().trim();if(body.length()>2600)body=body.substring(0,2600)+"…";box.addView(tv(body.isEmpty()?"Halaman siap digunakan.":body,14.5f,text));}
+            if(rendered==0){String body=mainEl.text().trim();if(body.length()>2600)body=body.substring(0,2600)+"…";box.addView(emptyState(body.isEmpty()?"Data belum tersedia":"DeApp",body.isEmpty()?"Server terhubung, tetapi modul ini belum mengirim konten yang dapat ditampilkan.":body));}
         }
     }
 
@@ -793,7 +1019,7 @@ public class MainActivity extends Activity {
 
     private void openPath(String raw,String title){
         String direct=raw==null?"":raw.trim();if(direct.isEmpty())return;
-        if(direct.startsWith("native:")){String n=direct.substring(7);if("profile-settings".equals(n))navigate(new Screen("profile-settings","","Pengaturan Profil"),true);else if("profile-media".equals(n))navigate(new Screen("profile-media","","Foto Profil & Sampul"),true);else if("profile-info".equals(n))navigate(new Screen("settings-detail","/settings.php?tab=profile&native_section=info","Info Profil"),true);else if("username".equals(n))navigate(new Screen("settings-detail","/settings.php?tab=profile&native_section=username","Username"),true);return;}
+        if(direct.startsWith("native:")){String n=direct.substring(7);if("profile-settings".equals(n))navigate(new Screen("profile-settings","","Pengaturan Profil"),true);else if("profile-media".equals(n))navigate(new Screen("profile-media","","Foto Profil & Sampul"),true);else if("profile-info".equals(n))navigate(new Screen("settings-detail","/settings.php?tab=profile&native_section=info","Info Profil"),true);else if("username".equals(n))navigate(new Screen("settings-detail","/settings.php?tab=profile&native_section=username","Username"),true);else if("server".equals(n))showServerSetup(true);return;}
         String path=relative(direct);if(path.isEmpty())return;
         if(path.startsWith("http://")||path.startsWith("https://")){if(!path.startsWith(client.baseUrl())){openExternal(path);return;}path=relative(path);}
         if(path.contains("index.php")){goRoot("home","","Beranda");return;}
@@ -818,7 +1044,7 @@ public class MainActivity extends Activity {
         if(root==null)return;FrameLayout overlay=new FrameLayout(this);overlay.setClickable(false);LinearLayout card=new LinearLayout(this);card.setGravity(Gravity.CENTER_VERTICAL);card.setPadding(dp(14),dp(11),dp(14),dp(11));card.setBackground(outlined(surface,border,16));View dot=new View(this);dot.setBackground(rounded(toneColor,99));card.addView(dot,new LinearLayout.LayoutParams(dp(9),dp(9)));LinearLayout words=column();words.setBackgroundColor(Color.TRANSPARENT);words.addView(bold(title,13.5f));TextView msg=tv(message==null?"":message,12.5f,muted);words.addView(msg);LinearLayout.LayoutParams wp=new LinearLayout.LayoutParams(0,-2,1);wp.leftMargin=dp(10);card.addView(words,wp);FrameLayout.LayoutParams cp=new FrameLayout.LayoutParams(-1,-2,Gravity.CENTER);cp.leftMargin=dp(24);cp.rightMargin=dp(24);overlay.addView(card,cp);root.addView(overlay,new FrameLayout.LayoutParams(-1,-1));card.setAlpha(0f);card.setScaleX(.96f);card.setScaleY(.96f);card.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(140).start();main.postDelayed(()->{card.animate().alpha(0f).scaleX(.98f).scaleY(.98f).setDuration(160).withEndAction(()->root.removeView(overlay)).start();},2200);
     }
 
-    private void showNetworkError(String text,Runnable retry){LinearLayout l=column();l.setGravity(Gravity.CENTER);l.setPadding(dp(28),dp(28),dp(28),dp(28));l.addView(bold("Tidak terhubung",20));TextView b=tv(text,14,muted);b.setGravity(Gravity.CENTER);LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,-2);bp.topMargin=dp(8);l.addView(b,bp);Button r=primary("Coba lagi");LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,dp(50));rp.topMargin=dp(20);l.addView(r,rp);r.setOnClickListener(v->retry.run());swap(l);}
+    private void showNetworkError(String text,Runnable retry){LinearLayout l=column();l.setGravity(Gravity.CENTER);l.setPadding(dp(28),dp(28),dp(28),dp(28));TextView h=bold("Server DeApp belum terhubung",20);h.setGravity(Gravity.CENTER);l.addView(h);TextView b=tv(text+"\n\n"+connectionHint(),14,muted);b.setGravity(Gravity.CENTER);LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,-2);bp.topMargin=dp(8);l.addView(b,bp);Button r=primary("Coba lagi");LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,dp(50));rp.topMargin=dp(20);l.addView(r,rp);r.setOnClickListener(v->retry.run());Button server=secondaryButton("Atur server DeApp");LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,dp(48));sp.topMargin=dp(9);l.addView(server,sp);server.setOnClickListener(v->showServerSetup(true));swap(l);}
     private void renderInlineError(LinearLayout host,String text,Runnable retry){host.removeAllViews();host.addView(emptyState("Belum dapat dimuat",text));Button b=primary("Coba lagi");LinearLayout.LayoutParams p=cardMargin();host.addView(b,p);b.setOnClickListener(v->retry.run());}
     private View emptyState(String title,String body){LinearLayout l=column();l.setGravity(Gravity.CENTER);l.setPadding(dp(24),dp(36),dp(24),dp(36));TextView h=bold(title,17);h.setGravity(Gravity.CENTER);TextView b=tv(body,13.5f,muted);b.setGravity(Gravity.CENTER);LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,-2);bp.topMargin=dp(8);l.addView(h);l.addView(b,bp);return l;}
 

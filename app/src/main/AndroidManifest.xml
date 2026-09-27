@@ -23,7 +23,7 @@
         android:hardwareAccelerated="true"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
-        android:label="Deapp"
+        android:label="DeApp"
         android:theme="@style/AppTheme"
         android:networkSecurityConfig="@xml/network_security_config">
 

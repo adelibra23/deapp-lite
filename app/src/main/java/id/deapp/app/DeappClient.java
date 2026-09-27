@@ -189,7 +189,7 @@ public final class DeappClient {
         c.setUseCaches(false);
         c.setRequestProperty("Accept", "application/json,text/html,application/xhtml+xml;q=0.9,*/*;q=0.8");
         c.setRequestProperty("Accept-Language", "id-ID,id;q=0.9,en;q=0.6");
-        c.setRequestProperty("User-Agent", "DeApp-Android/2.1 NativeJava");
+        c.setRequestProperty("User-Agent", "DeApp-Android/2.1.1 NativeJava");
         String cookie = cookieHeader();
         if (!cookie.isEmpty()) c.setRequestProperty("Cookie", cookie);
     }

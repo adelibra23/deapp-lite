@@ -31,8 +31,15 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      - name: Verify native-only source
+        run: |
+          if grep -R -n -E "android\.webkit|WebViewClient|WebChromeClient|new[[:space:]]+WebView" app/src/main/java/id/deapp/app; then
+            echo "WebView API detected in native source"
+            exit 1
+          fi
+
       - name: Build DeApp Android APK
-        run: gradle :app:assembleDebug
+        run: gradle :app:assembleDebug --stacktrace
 
       - name: Rename APK
         run: cp app/build/outputs/apk/debug/app-debug.apk deapp-android.apk

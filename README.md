@@ -1,66 +1,32 @@
-# DeApp Android 2.1.0 — Full Native Java
+# DeApp Android 2.1.1
 
-DeApp Android 2.1.0 adalah aplikasi Android native penuh. UI aplikasi tidak menggunakan WebView.
+DeApp Android adalah klien Android native Java untuk backend DeApp PHP/MySQL.
 
-## Identitas
-- Application ID: `id.deapp.app`
-- Namespace: `id.deapp.app`
-- Version code: 45
-- Version name: `2.1.0`
-- Bahasa UI Android: Java 17
-- Backend: PHP + MySQL melalui HTTP/API
+## Build
 
-> Karena application ID berubah dari paket Lite lama menjadi `id.deapp.app`, Android memasangnya sebagai aplikasi baru. Ini disengaja agar DeApp 2.x benar-benar terpisah dari identitas Lite.
+- versionCode: 46
+- versionName: 2.1.1
+- namespace: `id.deapp.app`
+- applicationId: `id.deapp.app`
+- UI: Android native Java
+- WebView: tidak digunakan
 
-## Native UI
-Screen utama dibuat dengan komponen Android seperti `FrameLayout`, `LinearLayout`, `ScrollView`, `SwipeRefreshLayout`, `TextView`, `EditText`, `Spinner`, `Switch`, `ImageView`, dan `ImageButton`.
+## Koneksi server
 
-Tidak ada `android.webkit.WebView`, `WebViewClient`, atau `WebChromeClient` pada source aktif.
+Karena package native adalah `id.deapp.app`, konfigurasi server dari aplikasi Lite lama tidak dapat dibaca otomatis oleh Android. Pada pemasangan pertama, aplikasi menampilkan halaman **Hubungkan ke Server DeApp**.
 
-## Screen native utama
-- Login, 2FA, registrasi bertahap, Welcome
-- Beranda dan feed
-- Orang yang mungkin Anda kenal
-- Sponsor native
-- Composer postingan
-- Detail postingan dan komentar
-- Chat dan percakapan
-- Notifikasi
-- Profil
-- Pencarian
-- Story composer native
-- Toko & Dompet
-- Pengaturan
-- Semua Fitur DeApp
-- Halaman modul server dirender ulang sebagai Android View native
+Contoh:
 
-## Toko & Dompet
-Dashboard Toko adalah halaman induk. Halaman berikut berdiri sendiri:
-- Dompet
-- Top Up
-- Kirim Koin
-- Kode Promo
-- Etalase
-- Pet
-- Item Virtual
-- VIP
-- Menu lainnya
+- Hosting: `https://domain.com/deapp`
+- XAMPP/LAN: `192.168.1.10/deapp`
 
-Menu lainnya berisi halaman native untuk Keinginan, Pet Care 3D, Boost Lab, Showroom 3D, Hadiah, Tema, Bingkai, Gelembung, Stiker, Efek Nama, Tiket, Tas Barang, Koleksiku, dan Level.
+Aplikasi akan menguji koneksi sebelum menyimpan URL. Jika halaman gagal dimuat, state native menyediakan **Coba lagi** dan **Atur server DeApp**.
 
-## Pengaturan Profil
-- Foto Profil & Sampul: pemilih file Android + upload multipart native
-- Info Profil: form native, Simpan di toolbar
-- Username: form native, Simpan/Ganti di toolbar
-- Custom Profile Studio: data server dibentuk ulang menjadi komponen native
+## Fix v2.1.1
 
-Mode Tampilan, Pengalaman Aplikasi, Bahasa & Terjemahan, Aksesibilitas, Notifikasi, Privasi, AI, dan Karakter juga dirender dengan kontrol Android native. Form utama menggunakan tombol Simpan pada toolbar.
-
-## Legacy server compatibility
-Sebagian backend lama masih mengembalikan HTML. DeApp Android tidak menampilkan HTML tersebut. Jsoup hanya dipakai untuk mengekstrak data dari response server lama, lalu data dirender ulang sebagai Android View native. Ketika endpoint JSON tersedia, aplikasi menggunakan JSON secara langsung.
-
-## GitHub Actions
-Workflow diganti menjadi `Build DeApp Android APK` dan artifact menjadi `deapp-android-apk` / `deapp-android.apk`.
-
-## Build 45 compile correction
-GitHub Actions run #37 exposed one Java lambda capture error in `renderNativeBlock()`. The v2.1.0 build-fix package freezes the action label/href before the click listener so `compileDebugJavaWithJavac` can continue. Version remains 2.1.0 Build 45.
+- feed JSON wrapper diperbaiki;
+- blank screen diganti native skeleton/error state;
+- komentar membaca field API yang benar;
+- penggantian server membersihkan cookie lama;
+- generic JSON/HTML server response dirender menjadi Android View native;
+- workflow memverifikasi source aktif bebas WebView sebelum compile.
