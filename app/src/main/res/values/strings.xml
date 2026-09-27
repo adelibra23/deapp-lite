@@ -7,6 +7,6 @@
     <string name="shortcut_story_short">Cerita</string>
     <string name="shortcut_story_long">Buat cerita baru</string>
     <string name="shortcut_chat_short">Chat</string>
-    <string name="shortcut_chat_long">Buka pesan DeApp</string>
+    <string name="shortcut_chat_long">Buka pesan Deapp</string>
     <string name="shortcut_unavailable">Fitur ini belum tersedia</string>
 </resources>

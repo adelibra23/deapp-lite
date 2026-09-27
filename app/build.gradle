@@ -3,28 +3,20 @@ plugins {
 }
 
 android {
-    namespace 'id.deapp.app'
+    namespace 'id.deapp.lite'
     compileSdk 35
 
     defaultConfig {
-        applicationId 'id.deapp.app'
+        applicationId 'id.deapp.lite'
         minSdk 24
         targetSdk 35
-        versionCode 46
-        versionName '2.1.1'
+        versionCode 42
+        versionName '1.9.32-lite'
     }
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
-    }
-
-    // Legacy WebView assets are intentionally excluded from the native 2.x app.
-    sourceSets {
-        main {
-            assets.srcDirs = []
-            java.exclude 'id/deapp/lite/**'
-        }
     }
 
     buildTypes {
@@ -38,5 +30,4 @@ android {
 dependencies {
     implementation 'androidx.core:core:1.15.0'
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
-    implementation 'org.jsoup:jsoup:1.18.1'
 }
